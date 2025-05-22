@@ -1,0 +1,11 @@
+export { default as Navbar } from "./navbar";
+export { default as Hero } from "./hero/hero";
+export { default as Dropdown } from "./dropdown";
+export { default as CoreFeatures } from "./core-features/core-features";
+export { default as FeatureBlock } from "./core-features/feature-block";
+export { default as BusinessPartners } from "./business-partners";
+export { default as Testimonials } from "./testimonials";
+export { default as Footer } from "./footer";
+export { default as RatingStar } from "./rating-star";
+export { default as PricingHorizonCards } from "./pricing-horizon-card";
+export { default as DemoSlider } from "./demo-slider";
