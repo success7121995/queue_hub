@@ -1,25 +1,29 @@
+import { notFound } from 'next/navigation';
+
 import {
-	Navbar,
 	Hero,
 	CoreFeatures,
 	BusinessPartners,
 	Testimonials,
 	PricingHorizonCards,
 	DemoSlider,
-	Footer,
 } from "@/components";
 
 const Home = () => {
+	const showHomePage = true;
+
+	if (!showHomePage) {
+	  notFound();
+	}
+
 	return (
 		<>
-			<Navbar />
 			<Hero />
 			<CoreFeatures />
 			<BusinessPartners />
 			<Testimonials />
 			<PricingHorizonCards />
 			<DemoSlider />
-			<Footer />
 		</>
 	);
 };

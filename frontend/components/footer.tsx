@@ -16,7 +16,7 @@ const Footer = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages[0]);
 
     return (
-        <footer className="bg-surface py-10 px-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]" style={{ }}>
+        <footer className="bg-surface py-10 px-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] font-regular-eng">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
                 {/* Brand & Language */}
                 <div>
@@ -36,10 +36,10 @@ const Footer = () => {
                     <div className="font-bold mb-2 text-primary">Product</div>
                     <ul className="space-y-1 text-sm">
                     <li><a href="#" className="hover:underline">How It Works</a></li>
-                    <li><a href="#" className="hover:underline">Features</a></li>
+                    <li><a href="/feature/real-time-updates" className="hover:underline">Features</a></li>
                     <li><a href="#" className="hover:underline">Pricing</a></li>
                     <li><a href="#" className="hover:underline">FAQ</a></li>
-                    <li><a href="#" className="hover:underline">Try it Free</a></li>
+                    <li><a href="/signup" className="hover:underline">Try it Free</a></li>
                     </ul>
                 </div>
 

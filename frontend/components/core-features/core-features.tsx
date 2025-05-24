@@ -15,7 +15,8 @@ const CoreFeatures = () => {
                 "Synchronize actions across all devices — no refresh needed",
                 "Customers see updates in real-time, reducing uncertainty",
                 "Prevent front desk overload during peak hours"
-                ]
+                ],
+                href: "/features/real-time-updates"
             },
             {
                 title: "Smart Notifications & Queue Reminders",
@@ -26,7 +27,8 @@ const CoreFeatures = () => {
                 "QueueHub learns user patterns to fine-tune reminder timing",
                 "Quiet hours and holiday settings available for flexibility",
                 "Merchants can monitor which users opened or ignored alerts"
-                ]
+                ],
+                href: "/features/smart-notification-system"
             },
             {
                 title: "Multi-Role & Team Access Control",
@@ -37,7 +39,8 @@ const CoreFeatures = () => {
                 "Frontline staff get a simple, distraction-free interface",
                 "Add or remove team members on demand",
                 "Track actions by role for audit and accountability"
-                ]
+                ],
+                href: "/features/multi-role-access-and-permission-control"
             },
             {
                 title: "Analytics & Feedback Dashboard",
@@ -49,6 +52,7 @@ const CoreFeatures = () => {
                 "Filter insights by staff, location, or time period",
                 "Collect customer reviews and flag repeated issues"
                 ],
+                href: "/features/analytics-and-feedback-integration",
                 image: "/images/analytics-and-feedback-dashboard.png",
                 imageAlt: "Analytics & Feedback Dashboard",
                 imageWidth: 500,
@@ -63,7 +67,8 @@ const CoreFeatures = () => {
                 "Optimized layout for touch devices (iPad, Android tablets, etc.)",
                 "Queue management tools are accessible even on-the-go via browser",
                 "Mobile app is customer-facing only — used for joining queues and discovering merchants"
-                ]
+                ],
+                href: "/features/mobile-and-cross-device-access"
             },
             {
                 title: "2FA Secure Login & Access Control",
@@ -74,7 +79,8 @@ const CoreFeatures = () => {
                 "Logs of all login activities for traceability",
                 "Secure password reset flow with email verification",
                 "Internal admin accounts have test-only sandbox mode"
-                ]
+                ],
+                href: "/features/2fa-and-secure-login"
             }
     ];
 

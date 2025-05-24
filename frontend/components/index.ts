@@ -9,3 +9,6 @@ export { default as Footer } from "./footer";
 export { default as RatingStar } from "./rating-star";
 export { default as PricingHorizonCards } from "./pricing-horizon-card";
 export { default as DemoSlider } from "./demo-slider";
+export { default as FeatureSidenav } from "./core-features/feature-sidenav";
+export { default as Login } from "./login";
+export { default as Signup } from "./signup";

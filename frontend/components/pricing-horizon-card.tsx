@@ -69,7 +69,7 @@ const PricingHorizonCards = () => {
     ];
 
     return (
-        <section className="mt-20 py-10 font-regular-eng max-w-[1200px] mx-auto">
+        <section id="pricing" className="mt-20 py-10 font-regular-eng max-w-[1200px] mx-auto">
 
             {/* Heading */}
             <h1 className="text-3xl font-bold text-center my-10 font-regular-eng">Pricing</h1>
