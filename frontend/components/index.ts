@@ -11,4 +11,7 @@ export { default as PricingHorizonCards } from "./pricing-horizon-card";
 export { default as DemoSlider } from "./demo-slider";
 export { default as FeatureSidenav } from "./core-features/feature-sidenav";
 export { default as Login } from "./login";
-export { default as Signup } from "./signup";
+export { default as Signup } from "./signup/signup";
+export { default as AddressForm } from "./signup/address";
+export { default as PaymentMethodForm } from "./signup/payment-method";
+export { default as Complete } from "./signup/complete";
