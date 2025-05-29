@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image";
-import RatingStar from "./rating-star";
+import RatingStar from "../common/rating-star";
 
 interface TestimonialProps {
   name: string;

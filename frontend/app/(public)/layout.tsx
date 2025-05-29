@@ -5,12 +5,12 @@ export const metadata: Metadata = {
     description: "Public page",
 }
 
-import { Navbar, Footer } from "@/components";
+import { PublicNavbar, Footer } from "@/components";
 
 const PublicLayout = ({children}: {children: React.ReactNode}) => {
     return (
         <>
-            <Navbar />
+            <PublicNavbar />
             <div className="mt-15">
                 {children}
             </div>

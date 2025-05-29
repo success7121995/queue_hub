@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { use } from 'react';
 import { notFound } from 'next/navigation';
 
 type FeatureContentItem =

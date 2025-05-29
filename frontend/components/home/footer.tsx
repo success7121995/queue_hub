@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import Dropdown, { DropdownItem } from "./dropdown";
+import Dropdown, { DropdownItem } from "../common/dropdown";
 
 
 const Footer = () => {

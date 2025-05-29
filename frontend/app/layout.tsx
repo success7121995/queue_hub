@@ -36,18 +36,18 @@ const RootLayout = ({
 
 return (
     <html lang="en">
-    <body
-        className={`
-            ${geistSans.variable}
-            ${geistMono.variable}
-            ${urbanistItalic.variable}
-            ${unbanist.variable}
-            antialiased
-            bg-background
-        `}
-    >
-        {children}
-    </body>
+        <body
+            className={`
+                ${geistSans.variable}
+                ${geistMono.variable}
+                ${urbanistItalic.variable}
+                ${unbanist.variable}
+                antialiased
+                bg-background
+            `}
+        >
+            {children}
+        </body>
     </html>
 );
 }

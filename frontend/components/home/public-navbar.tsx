@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, Globe } from "lucide-react";
 import { Dropdown } from "@/components";
-import { type DropdownItem } from "@/components/dropdown";
+import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 
-const Navbar = () => {
+const PublicNavbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -186,4 +186,4 @@ const Navbar = () => {
     );
 };
 
-export default Navbar;
+export default PublicNavbar;
