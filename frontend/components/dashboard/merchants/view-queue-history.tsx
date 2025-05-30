@@ -112,14 +112,17 @@ const queueHistory: QueueHistoryProps[] = [
 
 const ViewQueueHistory = () => {
 	return (
-		<div className="min-h-screen bg-white px-8 py-8 font-regular-eng">
-			<h1 className="text-3xl mb-8 text-primary-light font-bold">View Live Queues</h1>
-			<Table
-				columns={columns}
-				data={queueHistory}
-				emptyMessage="No queue history"
-				dateColumnKey={(row) => row.queue.entries?.[0]?.leftAt}
-			/>
+		<div className="min-h-screen px-8 py-8 font-regular-eng">
+			<h1 className="text-3xl mb-8 text-primary-light font-bold">View Queue History</h1>
+
+			<div className="bg-white p-4 rounded-lg shadow-sm">
+				<Table
+					columns={columns}
+					data={queueHistory}
+					emptyMessage="No queue history"
+					dateColumnKey={(row) => row.queue.entries?.[0]?.leftAt}
+				/>
+			</div>
 		</div>
 	);
 };

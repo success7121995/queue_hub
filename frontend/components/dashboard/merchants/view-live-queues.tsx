@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MoreVertical, UserCircle, Edit, Trash2 } from "lucide-react";
+import { MoreVertical, UserCircle, Edit, Trash2, Users, UserCheck, AlertTriangle } from "lucide-react";
 import { type Merchant } from "./merchant-dashboard";
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
-
+import NumberCard from "@/components/common/number-card";
 interface ViewLiveQueuesProps {
 	merchant: Merchant;
 }
@@ -255,81 +255,70 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 		<div className="font-regular-eng p-8">
 			{/* Header Section */}
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">View Live Queues</h1>
-			<div className="flex flex-wrap gap-16 mb-8">
-				<div>
-					<h3 className="text-lg mb-2 text-text-main font-semibold">Total Customer Served Today</h3>
-					<div className="text-3xl text-center mt-2 font-bold text-primary">{mockStats.servedToday}</div>
-				</div>
-				<div>
-					<h3 className="text-lg mb-2 text-text-main font-semibold">Current Queue Volume</h3>
-					<div className="text-3xl text-center mt-2 font-bold text-primary">{mockStats.queueVolume}</div>
-				</div>
+
+			{/* Redesigned Number Cards */}
+			<div className="flex flex-wrap gap-8 mb-8">
+				<NumberCard title="Total Served Today" value={mockStats.servedToday} icon={<UserCheck size={32} className="text-primary-light" />} />
+				<NumberCard title="Current Queue Volume" value={mockStats.queueVolume} icon={<Users size={32} className="text-primary-light" />} />
 			</div>
 
-			{/* In Queue & No Show */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mx-auto mb-12">
+			{/* Redesigned In Queue & No Show */}
+			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mx-auto mb-12">
 				{/* In Queue */}
-				<div className="w-[40%] lg:w-full flex flex-wrap">
-					<h3 className="text-xl mb-2 text-text-main font-bold">In Queue</h3>
+				<div>
+					<h3 className="text-xl mb-4 text-primary-light font-bold flex items-center gap-2">
+						<Users size={20} className="text-primary-light" /> In Queue
+					</h3>
 					<div className="flex flex-wrap gap-4">
-
 						{inQueue.map((q) => (
-							<div key={q.id} className="flex items-center border border-primary rounded px-4 py-2 bg-transparent shadow-sm relative">
-								{/* Label & Number */}
-								<span>
-									<span className="mr-2 text-base text-primary-light font-semibold">{q.label}</span>
-									<span className="text-base text-primary-light font-bold">{q.number}</span>
-								</span>
-
-								{/* Menu */}
-								<div ref={menuRef}>
+							<div key={q.id} className="relative flex flex-col items-center border-2 border-primary-light bg-white rounded-xl px-6 py-4 shadow-sm min-w-[90px] min-h-[90px]">
+								<div className="absolute top-2 right-2">
 									<button
-										className="ml-2 p-1 hover:bg-primary-light/20 text-primary rounded cursor-pointer"
+										className="p-1 hover:bg-primary-light/20 rounded-full text-primary-light"
 										onClick={() => setMenuOpen(menuOpen === q.id ? null : q.id)}
 									>
 										<MoreVertical size={18} />
 									</button>
 									{menuOpen === q.id && (
-										<div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 bg-white rounded-lg border border-gray-200 shadow px-4 py-2 z-10 min-w-[120px]">
+										<div className="absolute right-0 top-8 bg-white rounded-lg border border-gray-200 shadow px-4 py-2 z-10 min-w-[120px]">
 											{queueMenuOptions.map((opt) => (
 												<div key={opt} className="py-1 cursor-pointer hover:bg-gray-100">{opt}</div>
 											))}
 										</div>
 									)}
 								</div>
+								<div className="text-2xl font-bold text-primary-light mb-1">{q.label}{q.number}</div>
+								<div className="text-xs text-primary-light font-semibold">In Queue</div>
 							</div>
 						))}
-
 					</div>
 				</div>
 
 				{/* No Show */}
-				<div className="w-[40%] lg:w-full flex flex-wrap md:block">
-					<h3 className="text-xl mb-2 text-text-main font-bold">No Show</h3>
+				<div>
+					<h3 className="text-xl mb-4 text-primary-light font-bold flex items-center gap-2">
+						<AlertTriangle size={20} className="text-orange-500" /> No Show
+					</h3>
 					<div className="flex flex-wrap gap-4">
-
 						{noShow.map((q) => (
-							<div key={q.id} className="flex items-center border border-primary rounded px-4 py-2 bg-transparent shadow-sm relative">
-								<span>
-									<span className="mr-2 text-base text-primary-light font-semibold">{q.label}</span>
-									<span className="text-base text-primary-light font-bold">{q.number}</span>
-								</span>
-								<div ref={menuRef}>
+							<div key={q.id} className="relative flex flex-col items-center border-2 border-orange-400 bg-white rounded-xl px-6 py-4 shadow-sm min-w-[90px] min-h-[90px]">
+								<div className="absolute top-2 right-2">
 									<button
-										className="ml-2 p-1 hover:bg-primary-light/20 text-primary rounded cursor-pointer"
+										className="p-1 hover:bg-orange-100 rounded-full text-orange-500"
 										onClick={() => setMenuOpen(menuOpen === q.id ? null : q.id)}
 									>
 										<MoreVertical size={18} />
 									</button>
 									{menuOpen === q.id && (
-										<div className="absolute left-1/2 top-full mt-2 -translate-x-1/2 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
+										<div className="absolute right-0 top-8 bg-white border rounded-lg shadow px-4 py-2 z-10 min-w-[120px]">
 											{queueMenuOptions.map((opt) => (
 												<div key={opt} className="py-1 cursor-pointer hover:bg-gray-100">{opt}</div>
 											))}
 										</div>
 									)}
 								</div>
-
+								<div className="text-2xl font-bold text-orange-600 mb-1">{q.label}{q.number}</div>
+								<div className="text-xs text-orange-500 font-semibold">No Show</div>
 							</div>
 						))}
 					</div>
@@ -339,8 +328,8 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 			{/* Tables Section */}
 			<div className="space-y-12">
 				{/* Active Queues */}
-				<div>
-					<div className="text-xl mb-2 text-text-main font-bold">Active Queues</div>
+				<div className="bg-white rounded-lg p-8 shadow-sm">
+					<div className="text-xl mb-2 text-primary-light font-bold">Active Queues</div>
 					<Table 
 						columns={activeQueuesColumns}
 						data={activeQueues}
@@ -350,8 +339,8 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 				</div>
 
 				{/* Completed */}
-				<div>
-					<div className="text-xl mb-2 text-text-main font-bold">Completed</div>
+				<div className="bg-white rounded-lg p-8 shadow-sm">
+					<div className="text-xl mb-2 text-primary-light font-bold">Completed</div>
 					<Table 
 						columns={completedColumns}
 						data={completed}
@@ -360,8 +349,8 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 				</div>
 
 				{/* Abandon */}
-				<div>
-					<div className="text-xl mb-2 text-text-main font-bold">Abandon</div>
+				<div className="bg-white rounded-lg p-8 shadow-sm">
+					<div className="text-xl mb-2 text-primary-light font-bold">Abandon</div>
 					<Table 
 						columns={abandonColumns}
 						data={abandon}

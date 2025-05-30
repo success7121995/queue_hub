@@ -2,6 +2,8 @@
 
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
+import NumberCard from "@/components/common/number-card";
+import { UserCheck, Users } from "lucide-react";
 
 const stats = [
 	{ label: "Total Customer Served Today", value: 45 },
@@ -59,7 +61,7 @@ const ManageQueueEntries = () => {
 			accessor: (row) => (
 				<div className="flex flex-wrap gap-2">
 					{row.tags.map((tag: string) => (
-						<Tag key={tag} label={tag} />
+						<Tag key={tag} tagName={tag} />
 					))}
 				</div>
 			),
@@ -89,16 +91,12 @@ const ManageQueueEntries = () => {
 		<div className="font-regular-eng p-8 min-h-screen">
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">Manage Queue Entries</h1>
 			<div className="flex flex-wrap gap-12 mb-8">
-
+				
 				{stats.map((stat) => (
-					<div key={stat.label} className="flex flex-col items-center min-w-[180px]">
-						<h3 className="text-lg mb-2 text-text-main font-semibold">{stat.label}</h3>
-						<div className="text-3xl font-bold text-primary">{stat.value}</div>
-					</div>
+					<NumberCard key={stat.label} title={stat.label} value={stat.value} icon={<Users size={32} className="text-primary-light" />} />
 				))}
 			</div>
-			<div className="bg-white p-4">
-				<h3 className="text-xl mb-2 text-text-main font-bold">Queues</h3>
+			<div className="bg-white p-4 rounded-lg shadow-sm">
 				<Table
 					columns={columns}
 					data={queueData}

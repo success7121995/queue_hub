@@ -90,7 +90,7 @@ const Login = () => {
                 <div className="flex justify-end">
                     <button
                     type="submit"
-                    className="border border-gray-700 rounded px-4 py-1.5 text-sm hover:bg-gray-100 transition-all duration-200"
+                    className="bg-primary-light text-white rounded-[5px] px-8 py-2 text-base font-semibold hover:bg-primary-dark transition-all cursor-pointer"
                     onClick={() => router.push("/dashboard/1/view-live-queues")}
                     >
                     Sign In

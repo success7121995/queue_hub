@@ -28,9 +28,9 @@ const DashboardPage = async ({ params }: Props) => {
         }
 
         return (
-            <main className="overflow-hidden">
+            <main className="overflow-hidden h-screen">
                 <DashboardNavbar />
-                <div className="flex">
+                <div className="flex bg-surface overflow-hidden">
                     <DashboardSidenav merchantId={merchantId} />
                     <MerchantDashboard merchantId={merchantId} slug={slug} />
                 </div>

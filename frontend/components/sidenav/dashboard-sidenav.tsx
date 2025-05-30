@@ -33,7 +33,6 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 			items: [
 				{ label: "View Queue History", href: `/dashboard/${merchantId}/view-queue-history` },
 				{ label: "Feedback", href: `/dashboard/${merchantId}/feedback` },
-				{ label: "Replies", href: `/dashboard/${merchantId}/replies` },
 			],
 		},
 		{
@@ -74,7 +73,7 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 		<>
 			{/* Toggler under navbar, only on mobile (below md) */}
 			<button
-				className="fixed top-[53px] md:top-[70px] 2xl:top-[80px] left-0 bg-white p-2 2xl:hidden border-b border-gray-200 w-full flex justify-between items-center cursor-pointer z-[999]"
+				className="fixed top-[53px] md:top-[60px] lg:top-[73px] 2xl:top-[80px] left-0 bg-white p-2 2xl:hidden border-b border-gray-200 w-full flex justify-between items-center cursor-pointer z-[999]"
 				onClick={() => setOpen(true)}
 				aria-label="Open sidenav"
 			>
@@ -125,6 +124,7 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 						</div>
 					))}
 				</div>
+
 				{/* Desktop: expanded sections, no accordion */}
 				<div className="hidden 2xl:block mt-20">
 					{menuData.map((section) => (

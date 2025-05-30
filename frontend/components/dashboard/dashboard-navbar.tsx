@@ -3,8 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const DashboardNavbar = () => {
+	const router = useRouter();
 	const [profileOpen, setProfileOpen] = useState(false);
 	const [mailOpen, setMailOpen] = useState(false);
 	const [branchOpen, setBranchOpen] = useState(false);
@@ -144,7 +147,7 @@ const DashboardNavbar = () => {
 
 			{/* Mobile dropdown */}
 			{mobileNavOpen && (
-				<div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-white shadow z-40 flex flex-col p-4 sm:hidden">
+				<div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-white shadow z-50 flex flex-col p-4 2xl:hidden">
 					<div className="flex items-center space-x-2 mb-4">
 						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
 							<UserCircle size={28} />
@@ -173,7 +176,7 @@ const DashboardNavbar = () => {
 					<div className="flex flex-col mb-2">
 						<button
 							type="button"
-							className="flex items-center w-full justify-between py-2"
+							className="flex items-center w-full justify-between py-2 cursor-pointer"
 							onClick={() => setProfileAccordion((v) => !v)}
 						>
 							<span className="flex items-center">
@@ -185,11 +188,13 @@ const DashboardNavbar = () => {
 						</button>
 						{profileAccordion && (
 							<div className="flex flex-col pl-8 space-y-2 mt-1">
-								<button className="text-left">Profile</button>
-								<button className="text-left">Account</button>
-								<button className="text-left">Billing</button>
-								<button className="text-left">Settings</button>
-								<button className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100">Logout</button>
+								<Link href="/profile" className="text-left">Profile</Link>
+								<Link href="/account" className="text-left">Account</Link>
+								<Link href="/billing" className="text-left">Billing</Link>
+								<Link href="/settings" className="text-left">Settings</Link>
+								<button className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100" onClick={() => {
+									router.push("/");
+								}}>Logout</button>
 							</div>
 						)}
 					</div>

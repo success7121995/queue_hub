@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Search, ArrowUpDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ArrowUpDown, Inbox } from "lucide-react";
 import DateTimePicker from "react-datetime-picker";
 import "react-datetime-picker/dist/DateTimePicker.css";
 import "react-calendar/dist/Calendar.css";
@@ -258,40 +258,32 @@ const Table = <T extends Record<string, any>>({
 	const renderPagination = () => {
 		const pageNumbers: number[] = [];
 		const maxVisiblePages = 5;
-        
 		let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
 		let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
 		if (endPage - startPage + 1 < maxVisiblePages) {
 			startPage = Math.max(1, endPage - maxVisiblePages + 1);
 		}
-
 		for (let i = startPage; i <= endPage; i++) {
 			pageNumbers.push(i);
 		}
-
-        // Pagination
 		return (
 			<div className="flex items-center justify-between px-4 py-3 bg-transparent m:px-6 overflow-x-hidden">
-                {/* Mobile Pagination */}
 				<div className="flex justify-between flex-1 sm:hidden">
 					<button
 						onClick={() => handlePageChange(currentPage - 1)}
 						disabled={currentPage === 1}
-						className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+						className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						Previous
 					</button>
 					<button
 						onClick={() => handlePageChange(currentPage + 1)}
 						disabled={currentPage === totalPages}
-						className="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+						className="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						Next
 					</button>
 				</div>
-
-                {/* Desktop Pagination */}
 				<div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
 					<div>
 						<p className="text-sm text-gray-700">
@@ -301,11 +293,11 @@ const Table = <T extends Record<string, any>>({
 						</p>
 					</div>
 					<div>
-						<nav className="inline-flex -space-x-px rounded-md shadow-sm isolate" aria-label="Pagination">
+						<nav className="inline-flex gap-2" aria-label="Pagination">
 							<button
 								onClick={() => handlePageChange(currentPage - 1)}
 								disabled={currentPage === 1}
-								className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-l-md border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+								className="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 bg-white text-gray-400 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<span className="sr-only">Previous</span>
 								<ChevronLeft className="w-5 h-5" aria-hidden="true" />
@@ -314,11 +306,11 @@ const Table = <T extends Record<string, any>>({
 								<button
 									key={page}
 									onClick={() => handlePageChange(page)}
-									className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
+									className={`inline-flex items-center px-4 py-1 rounded-full border text-sm font-medium transition-colors ${
 										currentPage === page
-											? "z-10 bg-primary text-white"
-											: "text-gray-900 bg-white hover:bg-gray-50"
-									} border border-gray-300`}
+											? "bg-primary text-white border-primary"
+											: "bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
+									}`}
 								>
 									{page}
 								</button>
@@ -326,7 +318,7 @@ const Table = <T extends Record<string, any>>({
 							<button
 								onClick={() => handlePageChange(currentPage + 1)}
 								disabled={currentPage === totalPages}
-								className="relative inline-flex items-center px-2 py-2 text-gray-400 rounded-r-md border border-gray-300 bg-white text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+								className="inline-flex items-center px-3 py-1 rounded-full border border-gray-300 bg-white text-gray-400 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<span className="sr-only">Next</span>
 								<ChevronRight className="w-5 h-5" aria-hidden="true" />
@@ -340,95 +332,80 @@ const Table = <T extends Record<string, any>>({
 
 	return (
 		<div className="flex flex-col w-full">
-			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 bg-white p-4 rounded-lg shadow-sm">
+			{/* Redesigned Filter/Search Bar */}
+			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 bg-gradient-to-r from-gray-50 to-white border border-gray-200 p-4 rounded-xl shadow-sm">
 				{renderDateFilter()}
 				{renderSearch()}
 			</div>
 			{filteredData.length === 0 ? (
-				<div className="text-center text-gray-500 mt-4 bg-white p-4 rounded-lg shadow-sm">
-					{dateRange.from || dateRange.to 
-						? "No records match the selected date range."
-						: emptyMessage
-					}
+				<div className="flex flex-col items-center justify-center text-center text-gray-500 mt-8 bg-white p-8 rounded-xl shadow-sm gap-2">
+					<Inbox size={48} className="mx-auto text-gray-300 mb-2" />
+					<div className="text-lg font-semibold">No data available</div>
+					<div className="text-sm">Try adjusting your filters or search terms.</div>
 				</div>
 			) : (
-				<div className="w-full">
-					<div className="w-full overflow-x-auto">
-						<div className="min-w-full inline-block align-middle">
-							<div className="overflow-hidden">
-								<table className={`min-w-full divide-y divide-gray-200 ${className}`}>
-									{/* Table Header */}
-									<thead>
-										<tr>
-											{sortedColumns.map((column, index) => (
-												<th 
-													key={index} 
-													className={`px-6 py-3 text-left text-xs font-bold text-gray-500 tracking-wider whitespace-nowrap ${
-														index === 1 && actions ? 'order-2 md:order-none' : ''
-													}`}
+				<div className="w-full overflow-x-auto">
+					<div className="min-w-full inline-block align-middle">
+						<div className="overflow-hidden rounded-xl border border-gray-200">
+							<table className="min-w-full divide-y divide-gray-200">
+								{/* Table Header */}
+								<thead className="sticky top-0 z-10 bg-gradient-to-r from-primary-light/10 to-white shadow-sm">
+									<tr>
+										{sortedColumns.map((column, index) => (
+											<th 
+											key={index} 
+											className={`px-6 py-4 text-left text-base font-bold text-primary-light tracking-wider whitespace-nowrap ${
+												index === 0 ? 'rounded-tl-xl' : ''
+											}${index === sortedColumns.length - 1 && !actions ? 'rounded-tr-xl' : ''}`}
+										>
+											{column.sortable !== false ? (
+												<button
+													onClick={() => handleSort(column.accessor)}
+													className="flex items-center gap-1 hover:bg-primary-light/20 px-2 py-1 rounded-md transition-colors cursor-pointer"
 												>
-													{column.sortable !== false ? (
-														<button
-															onClick={() => handleSort(column.accessor)}
-															className="flex items-center gap-1 hover:bg-primary-light/30 px-2 py-1 rounded-md transition-colors cursor-pointer"
-														>
-															{column.header}
-															<ArrowUpDown className="w-4 h-4" />
-															{sortConfig?.key === column.accessor && (
-																<span className="text-xs">
-																	({sortConfig.direction === 'asc' ? '↑' : '↓'})
-																</span>
-															)}
-														</button>
-													) : (
-														column.header
+													{column.header}
+													<ArrowUpDown className="w-4 h-4" />
+													{sortConfig?.key === column.accessor && (
+														<span className="text-xs">
+															({sortConfig.direction === 'asc' ? '↑' : '↓'})
+														</span>
 													)}
-												</th>
-											))}
-											{actions && (
-												<th className="sticky right-0 px-6 py-3 text-left text-xs font-bold text-text-main tracking-wider order-1 md:order-none"></th>
+												</button>
+											) : (
+												column.header
 											)}
-										</tr>
-									</thead>
-
-									{/* Table Body */}
-									<tbody className="bg-white divide-y divide-gray-200">
-										{currentData.length === 0 ? (
-											<tr>
+										</th>
+									))}
+									{actions && (
+										<th className="sticky right-0 px-6 py-4 text-left text-base font-bold text-primary-light tracking-wider rounded-tr-xl bg-gradient-to-r from-primary-light/10 to-white"></th>
+									)}
+								</tr>
+								</thead>
+								{/* Table Body */}
+								<tbody className="bg-white divide-y divide-gray-100">
+									{currentData.map((row, rowIndex) => (
+										<tr key={rowIndex} className="hover:bg-primary-light/10 transition-colors group">
+											{sortedColumns.map((column, colIndex) => (
 												<td 
-													colSpan={sortedColumns.length + (actions ? 1 : 0)} 
-													className="px-6 py-4 text-center text-sm text-gray-500"
-												>
-													{emptyMessage}
-												</td>
-											</tr>
-										) : (
-											currentData.map((row, rowIndex) => (
-												<tr key={rowIndex} className="hover:bg-gray-50">
-													{sortedColumns.map((column, colIndex) => (
-														<td 
-															key={colIndex} 
-															className={`px-6 py-4 whitespace-nowrap text-sm text-text-main ${
-																colIndex === 1 && actions ? 'order-2 md:order-none' : ''
-															}`}
-														>
-															{typeof column.accessor === 'function' 
-																? column.accessor(row)
-																: row[column.accessor]
-															}
-														</td>
-													))}
-													{actions && (
-														<td className="sticky right-0 bg-white px-6 py-4 whitespace-nowrap text-sm order-1 md:order-none">
-															{actions(row)}
-														</td>
-													)}
-												</tr>
-											))
+												key={colIndex} 
+												className={`px-6 py-4 whitespace-nowrap text-sm text-text-main ${
+													colIndex === 0 ? 'rounded-bl-xl group-hover:bg-primary-light/20' : ''
+												}${colIndex === sortedColumns.length - 1 && !actions ? 'rounded-br-xl group-hover:bg-primary-light/20' : ''}
+												}`}
+											>
+												{typeof column.accessor === 'function' 
+													? column.accessor(row)
+													: row[column.accessor]
+												}
+											</td>
+										))}
+										{actions && (
+											<td className="sticky right-0 bg-white px-6 py-4 whitespace-nowrap text-sm rounded-br-xl"></td>
 										)}
-									</tbody>
-								</table>
-							</div>
+									</tr>
+								))}
+								</tbody>
+							</table>
 						</div>
 					</div>
 				</div>

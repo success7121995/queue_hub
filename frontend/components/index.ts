@@ -1,3 +1,4 @@
+export { default as MultistepForm } from "./common/multistep-form/multistep-form";
 export { default as PublicNavbar } from "./home/public-navbar";
 export { default as Hero } from "./home/hero/hero";
 export { default as Dropdown } from "./common/dropdown";
@@ -19,7 +20,6 @@ export { default as ManageQueueEntries } from "./dashboard/merchants/manage-queu
 export { default as BranchInfo } from "./dashboard/merchants/branch/branch-info";
 export { default as ViewQueueHistory } from "./dashboard/merchants/view-queue-history";
 export { default as Feedback } from "./dashboard/merchants/feedback";
-export { default as Replies } from "./dashboard/merchants/replies";
 export { default as RegisterNewUser } from "./dashboard/merchants/register-new-user";
 export { default as ManageUsers } from "./dashboard/merchants/manage-users"; 
 export { default as Analytics } from "./dashboard/merchants/analytics";
@@ -31,3 +31,7 @@ export { default as BranchCard } from "./dashboard/merchants/branch/branch-card"
 export { default as BranchDetail } from "./dashboard/merchants/branch/branch-detail";
 export { default as AddBranch } from "./dashboard/merchants/add-branch";
 export { default as ImageUploader } from "./common/image-uploader";
+export { default as BarChart } from "./common/bar-chart";
+export { default as ExportBtn } from "./common/export-btn";
+export { default as NumberCard } from "./common/number-card";
+export { default as DateSelect } from "./common/date-select";

@@ -10,7 +10,7 @@ interface BranchCardProps {
 }
 
 const BranchCard = ({ branch, idx, onReadMore }: BranchCardProps) => (
-	<div className="rounded-2xl shadow-lg bg-white overflow-hidden max-w-xl w-full mb-8">
+	<div className="rounded-2xl shadow-lg bg-white overflow-hidden max-w-xl w-full mb-8 h-full">
 		{/* Top image section with overlay */}
 		<div className="relative h-40 w-full">
 			{branch.featureImage ? (

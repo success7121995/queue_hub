@@ -1,0 +1,253 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Cookies from "js-cookie";
+import { SignupFormFields } from "@/types/form";
+import { useForm } from "@/constant/form-provider";
+import type { UseFormReturn } from "react-hook-form";
+import Link from "next/link";
+
+interface SignupProps {
+  onNext?: () => void;
+}
+
+const plans = [
+  { name: "Free Trial", description: "Start 30-day trial", price: "FREE", value: "free-trial" },
+  { name: "Essential Plan", description: "Perfect for individual shops, restaurants, clinics, and service providers.", price: "50 USD / per month", value: "essential" },
+  { name: "Growth Plan", description: "Best for businesses with multiple branches and growing customer volume.", price: "75 USD / per month", value: "growth" },
+];
+
+const COOKIE_KEY = "signupForm";
+
+const defaultValues: SignupFormFields["signup"] = {
+  businessName: "",
+  firstName: "",
+  lastName: "",
+  username: "",
+  email: "",
+  businessTel: "",
+  password: "",
+  confirmPassword: "",
+};
+
+const Signup: React.FC<SignupProps> = ({ onNext }) => {
+    const { formMethods } = useForm();
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        formState: { errors },
+    } = formMethods as UseFormReturn<SignupFormFields["signup"]>;
+
+    // Plan selection managed locally
+    const [selectedPlan, setSelectedPlan] = useState(plans[0].value);
+
+    // Load from cookie if available
+    useEffect(() => {
+    const cookie = Cookies.get(COOKIE_KEY);
+    if (cookie) {
+        try {
+        const parsed = JSON.parse(cookie);
+        if (parsed.signup) {
+            Object.entries(parsed.signup).forEach(([key, value]) => {
+            setValue(key as keyof SignupFormFields["signup"], value as string);
+            });
+        }
+        if (parsed.plan) {
+            setSelectedPlan(parsed.plan);
+        }
+        } catch {}
+    }
+    }, [setValue]);
+
+    /**
+     * On submit, save the data to the cookie and call the onNext function
+     * @param data - The data to save to the cookie
+     */
+    const onSubmit = (data: SignupFormFields["signup"]) => {
+
+        console.log(data);
+        // Save to cookie
+        const cookie = Cookies.get(COOKIE_KEY);
+        let cookieData = {};
+        
+        if (cookie) {
+            try {
+            cookieData = JSON.parse(cookie);
+            } catch {}
+        }
+
+        Cookies.set(COOKIE_KEY, JSON.stringify({ ...cookieData, signup: data, plan: selectedPlan }));
+        if (onNext) onNext();
+    };
+
+    return (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col md:flex-row gap-10 w-full justify-center items-center py-8 lg:items-start font-regular-eng">
+            {/* Plan Selection */}
+            <div className="w-full md:w-1/2 max-w-md">
+                <h2 className="text-2xl font-bold mb-6 text-primary-light">Choose Your Plan</h2>
+                <div className="flex flex-col gap-5">
+                    {plans.map((plan) => (
+                    <button
+                        key={plan.value}
+                        type="button"
+                        className={`w-full text-left border-2 rounded-2xl px-6 py-5 transition-all duration-200 shadow-sm flex items-center justify-between gap-4 focus:outline-none text-base font-medium ${
+                        selectedPlan === plan.value
+                            ? "bg-primary-light/10 border-primary-light ring-2 ring-primary-light"
+                            : "bg-white border-gray-200 hover:border-primary-light"
+                        }`}
+                        onClick={() => setSelectedPlan(plan.value)}
+                    >
+                        <div>
+                            <div className="font-bold text-lg mb-1 text-primary-light">{plan.name}</div>
+                            <div className="text-xs text-gray-600 font-normal">{plan.description}</div>
+                        </div>
+                        <div className="text-right font-semibold text-base whitespace-nowrap text-primary-light">
+                        {plan.price}
+                        </div>
+                    </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Sign Up Form */}
+            <div className="w-full md:w-1/2 max-w-md bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-4 border border-gray-100 relative">
+                <h2 className="text-3xl font-bold text-center mb-4 text-primary-light">Sign Up</h2>
+
+                {/* Business Name */}
+                <div>
+                    <label htmlFor="businessName" className="block mb-1 font-semibold text-text-main text-sm">Business Name</label>
+                    <input
+                        id="businessName"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.businessName ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("businessName", { required: "Business name is required" })}
+                        placeholder="Enter your business name"
+                    />
+                    {errors.businessName && <p className="text-xs text-red-500 mt-1">{errors.businessName.message}</p>}
+                </div>
+
+                {/* First Name and Last Name */}
+                <div className="flex gap-3">
+                    <div className="flex-1">
+                    <label htmlFor="firstName" className="block mb-1 font-semibold text-text-main text-sm">First Name</label>
+                    <input
+                        id="firstName"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.firstName ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("firstName", { required: "First name is required" })}
+                        placeholder="Enter your first name"
+                    />
+                    {errors.firstName && <span className="text-red-500 text-xs">{errors.firstName.message}</span>}
+                    </div>
+                    <div className="flex-1">
+                    <label htmlFor="lastName" className="block mb-1 font-semibold text-text-main text-sm">Last Name</label>
+                    <input
+                        id="lastName"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.lastName ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("lastName", { required: "Last name is required" })}
+                        placeholder="Enter your last name"
+                    />
+                    {errors.lastName && <span className="text-red-500 text-xs">{errors.lastName.message}</span>}
+                    </div>
+                </div>
+
+                {/* Username */}
+                <div>
+                    <label htmlFor="username" className="block mb-1 font-semibold text-text-main text-sm">Username</label>
+                    <input
+                        id="username"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.username ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("username", { required: "Username is required" })}
+                        placeholder="Enter your username"
+                    />
+                    {errors.username && <span className="text-red-500 text-xs">{errors.username.message}</span>}
+                </div>
+
+                {/* Email */}
+                <div>
+                    <label htmlFor="email" className="block mb-1 font-semibold text-text-main text-sm">Email</label>
+                    <input
+                        id="email"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.email ? "border-red-500" : "border-gray-400"
+                        }`}
+                        type="email"
+                        {...register("email", { required: "Email is required" })}
+                        placeholder="Enter your email"
+                    />
+                    {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
+                </div>
+
+                {/* Business Tel */}
+                <div>
+                    <label htmlFor="businessTel" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
+                    <input
+                        id="businessTel"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.businessTel ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("businessTel", { required: "Business Tel is required" })}
+                        placeholder="Enter your business tel"
+                    />
+                    {errors.businessTel && <span className="text-red-500 text-xs">{errors.businessTel.message}</span>}
+                </div>
+                        
+                {/* Password */}
+                <div>
+                    <label htmlFor="password" className="block mb-1 font-semibold text-text-main text-sm">Password</label>
+                    <input
+                        id="password"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.password ? "border-red-500" : "border-gray-400"
+                        }`}
+                        type="password"
+                        {...register("password", { required: "Password is required" })}
+                        placeholder="Enter your password"
+                    />
+                    {errors.password && <span className="text-red-500 text-xs">{errors.password.message}</span>}
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+        
+                    <label htmlFor="confirmPassword" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
+                    <input
+                        id="confirmPassword"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.confirmPassword ? "border-red-500" : "border-gray-400"
+                        }`}
+                        type="password"
+                        {...register("confirmPassword", { required: "Confirm password is required" })}
+                        placeholder="Confirm your password"
+                    />
+                    {errors.confirmPassword && <span className="text-red-500 text-xs">{errors.confirmPassword.message}</span>}
+                </div>
+
+                {/* Privacy Policy and Terms of Service */}
+                <div className="text-xs mb-2">
+                    By proceeding, I agree to <span className="font-bold text-primary">QueueHub</span>'s <br />
+                    <Link href="#" className="underline">Privacy Policy</Link> and <Link href="#" className="underline">Terms of Service</Link>
+                </div>
+
+                {/* Next Button */}
+                <div className="flex justify-end">
+                <button
+                    type="submit"
+                    className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-md hover:bg-primary-dark transition-all cursor-pointer"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
+        </form>
+    );
+};
+
+export default Signup;

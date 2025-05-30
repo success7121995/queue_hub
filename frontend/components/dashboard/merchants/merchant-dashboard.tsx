@@ -7,7 +7,6 @@ import {
 	BranchInfo,
 	ViewQueueHistory,
 	Feedback,
-	Replies,
 	RegisterNewUser,
 	ManageUsers,
 	Analytics,
@@ -84,8 +83,6 @@ const MerchantDashboard = ({ merchantId, slug }: MerchantDashboardProps) => {
 				return <ViewQueueHistory />;
 			case "feedback":
 				return <Feedback />;
-			case "replies":
-				return <Replies />;
 			case "register-new-user":
 				return <RegisterNewUser />;
 			case "manage-users":
@@ -100,8 +97,8 @@ const MerchantDashboard = ({ merchantId, slug }: MerchantDashboardProps) => {
 	}
 
 	return (
-		<div className="lg:p-8 mt-20 md:mt-0 h-full w-full md:max-w-[1000px] lg:max-w-[1440px]">
-			<div className="h-[calc(100vh-53px)] md:h-[calc(100vh-64px)] overflow-y-auto mt-5 md:mt-20 2xl:mt-10">
+		<div className="lg:p-8 mt-20 md:mt-0 h-full w-full md:max-w-[1000px] lg:max-w-[1440px] bg-surface">
+			<div className="h-[calc(100vh-53px)] md:h-[calc(100vh-64px)] overflow-y-auto mt-5 md:mt-20 2xl:mt-20 bg-surface">
 				{renderContent()}
 			</div>
 		</div>

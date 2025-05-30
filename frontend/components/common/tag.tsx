@@ -10,12 +10,14 @@ interface TagProps {
 
 const Tag = ({ tagName, removeButton = false, onClick = () => {} }: TagProps) => {
 	return (
-		<div className="relative text-xs px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">
-			{tagName}
-
-
+		<div className="relative inline-flex items-center px-4 py-1 bg-primary-light/10 border border-primary-light text-primary-light rounded-full text-xs font-semibold shadow-sm mr-2 mb-2 transition-all duration-200 group cursor-pointer">
+			<span>{tagName}</span>
 			{removeButton && (
-				<button className="absolute right-0 top-0 -translate-y-1/2 p-0.5 bg-red-500 rounded-full cursor-pointer" onClick={onClick}>
+				<button
+					onClick={onClick}
+					className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 rounded-full p-0.5 flex items-center justify-center shadow-md"
+					style={{ width: 18, height: 18 }}
+				>
 					<X size={10} className="text-white" />
 				</button>
 			)}

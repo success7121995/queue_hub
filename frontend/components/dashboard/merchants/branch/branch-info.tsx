@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { CirclePlus } from "lucide-react";
 import { BranchDetail, BranchCard } from "@/components";
 import { Merchant } from "@/types/merchant";
+import Link from "next/link";
 
 const branches: Merchant[] = [
 	{
@@ -184,15 +185,15 @@ const BranchInfo = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-white px-8 py-8 font-regular-eng">
+		<div className="min-h-screen px-8 py-8 font-regular-eng">
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">Branch Info</h1>
 
 			{selectedBranchIdx === null ? (
 				<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 items-center w-full">
-					<button className="flex flex-col items-center justify-center max-w-xl cursor-pointer my-32">
+					<Link href="/dashboard/1/add-branch" className="flex flex-col items-center justify-center max-w-xl cursor-pointer my-32">
 						<CirclePlus className="w-10 h-10 text-primary-light" />
 						<h4 className="text-primary-light text-xl font-semibold">Expand Your Business</h4>
-					</button>
+					</Link>
 
 					{branchList.map((branch, idx) => (
 						<BranchCard branch={branch} key={idx} idx={idx} onReadMore={handleReadMore} />

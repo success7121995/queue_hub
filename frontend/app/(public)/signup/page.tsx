@@ -1,9 +1,8 @@
-// import { Signup } from "@/components";
+import { MultistepForm } from "@/components";
 
 const SignupPage = () => {
     return (
-        <></>
-        // <Signup />
+        <MultistepForm form="signup" />
     )
 }
 
