@@ -6,6 +6,8 @@ import { type Merchant } from "./merchant-dashboard";
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
+import { useDateTime } from "@/constant/datetime-provider";
+
 interface ViewLiveQueuesProps {
 	merchant: Merchant;
 }
@@ -37,8 +39,8 @@ const activeQueues = [
 		name: "A",
 		currentNumber: 12,
 		queueVolume: 23,
-		avgWait: "12 mins",
-		servingTime: "0:29:57",
+		avgWait: 12,
+		servingTime: 30,
 		tags: [
 			{ id: "1", tagName: "3-4 Persons" },
 			{ id: "2", tagName: "Express" },
@@ -49,8 +51,8 @@ const activeQueues = [
 		name: "B",
 		currentNumber: 1,
 		queueVolume: 2,
-		avgWait: "5 mins",
-		servingTime: "0:00:00",
+		avgWait: 5,
+		servingTime: 0,
 		tags: [
 			{ id: "1", tagName: "A" },
 			{ id: "2", tagName: "1-2 Persons" },
@@ -60,8 +62,8 @@ const activeQueues = [
 		name: "Reserved",
 		currentNumber: 1,
 		queueVolume: 2,
-		avgWait: "0 min",
-		servingTime: "0:00:00",
+		avgWait: 0,
+		servingTime: 0,
 		tags: [
 			{ id: "4", tagName: "Reserved" },
 			{ id: "5", tagName: "Express" },
@@ -74,8 +76,8 @@ const completed = [
 	{
 		name: "A",
 		number: 10,
-		joinedAt: "2025-03-01 15:00",
-		completedAt: "2025-03-01 15:20",
+		joinedAt: new Date("2025-03-01 15:00"),
+		completedAt: new Date("2025-03-01 15:20"),
 		serveTime: "00:20",
 		servedBy: "Chan Tai Ming",
 	},
@@ -84,8 +86,8 @@ const abandon = [
 	{
 		name: "A",
 		number: 1,
-		joinedAt: "2025-03-01 15:00",
-		abandonAt: "2025-03-01 15:20",
+		joinedAt: new Date("2025-03-01 15:00"),
+		abandonAt: new Date("2025-03-01 15:20"),
 		abandonedBy: "Chan Tai Ming",
 	},
 ];
@@ -95,6 +97,7 @@ const queueMenuOptions = ["Call", "Serve", "Recall", "Abandon"];
 const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 	const [menuOpen, setMenuOpen] = useState<string | null>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
+	const { formatDate } = useDateTime();
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -130,13 +133,13 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 		},
 		{ 
 			header: "Average Wait Time", 
-			accessor: "avgWait",
+			accessor: (row) => formatDate(new Date(row.avgWait * 60 * 1000)),
 			priority: 1,
 			sortable: true
 		},
 		{ 
 			header: "Serving Time", 
-			accessor: "servingTime",
+			accessor: (row) => formatDate(new Date(row.servingTime * 60 * 1000)),
 			priority: 1,
 			sortable: true
 		},
@@ -169,13 +172,13 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 		},
 		{ 
 			header: "Joined At", 
-			accessor: "joinedAt",
+			accessor: (row) => formatDate(row.joinedAt),
 			priority: 1,
 			sortable: true
 		},
 		{ 
 			header: "Completed At", 
-			accessor: "completedAt",
+			accessor: (row) => formatDate(row.completedAt),
 			priority: 1,
 			sortable: true
 		},
@@ -213,13 +216,13 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 		},
 		{ 
 			header: "Joined At", 
-			accessor: "joinedAt",
+			accessor: (row) => formatDate(row.joinedAt),
 			priority: 1,
 			sortable: true
 		},
 		{ 
 			header: "Abandon At", 
-			accessor: "abandonAt",
+			accessor: (row) => formatDate(row.abandonAt),
 			priority: 1,
 			sortable: true
 		},
@@ -330,31 +333,27 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 				{/* Active Queues */}
 				<div className="bg-white rounded-lg p-8 shadow-sm">
 					<div className="text-xl mb-2 text-primary-light font-bold">Active Queues</div>
-					<Table 
+					<Table
 						columns={activeQueuesColumns}
 						data={activeQueues}
-						emptyMessage="No active queues"
-						actions={renderActions}
 					/>
 				</div>
 
 				{/* Completed */}
 				<div className="bg-white rounded-lg p-8 shadow-sm">
 					<div className="text-xl mb-2 text-primary-light font-bold">Completed</div>
-					<Table 
+					<Table
 						columns={completedColumns}
 						data={completed}
-						emptyMessage="No completed queues"
 					/>
 				</div>
 
 				{/* Abandon */}
 				<div className="bg-white rounded-lg p-8 shadow-sm">
 					<div className="text-xl mb-2 text-primary-light font-bold">Abandon</div>
-					<Table 
+					<Table
 						columns={abandonColumns}
 						data={abandon}
-						emptyMessage="No abandoned queues"
 					/>
 				</div>
 			</div>

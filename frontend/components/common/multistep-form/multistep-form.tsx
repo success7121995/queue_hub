@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Address from "./address";
 import BranchInfo from "./branch-info";
 import Complete from "./complete";
@@ -10,8 +10,7 @@ import UserInfo from "./user-info";
 import AccountSetup from "./account-setup";
 import Stepper from "../stepper";
 import { useRouter } from "next/navigation";
-import { SignupFormFields, AddBranchFormFields, AddAdminFormFields } from "@/types/form";
-import { FormProvider, useForm } from "@/constant/form-provider";
+import { FormProvider } from "@/constant/form-provider";
 
 interface MultistepFormProps {
     form: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -72,18 +71,24 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                 }
             case "add-branch":
                 switch (currentStep) {
-                    case 1: return <BranchInfo />;
+                    case 1: return <BranchInfo onNext={handleNext} />;
                     case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 4: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/branches-info")} />;
+                    case 4: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/branch-info")} />;
                     default: return null;
                 }
             case "add-employee":
+                switch (currentStep) {
+                    case 1: return <UserInfo onNext={handleNext} />;
+                    case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
+                    case 3: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/manage-users")} />;
+                    default: return null;
+                }
             case "add-admin":
                 switch (currentStep) {
-                    case 1: return <UserInfo />;
-                    case 2: return <AccountSetup />;
-                    case 3: return <Complete />;
+                    case 1: return <UserInfo onNext={handleNext} />;
+                    case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
+                    case 3: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/admin-info")} />;
                     default: return null;
                 }
             default:

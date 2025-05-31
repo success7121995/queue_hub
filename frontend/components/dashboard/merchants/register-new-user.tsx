@@ -1,7 +1,12 @@
+"use client";
+
+import { MultistepForm } from "@/components";
+
+
 const RegisterNewUser = () => {
 	return (
-		<div>
-			<h1>View Live Queues</h1>
+		<div className="font-regular-eng p-8">
+			<MultistepForm form="add-employee" />
 		</div>
 	);
 };

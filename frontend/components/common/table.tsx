@@ -2,10 +2,7 @@
 
 import { ReactNode, useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Search, ArrowUpDown, Inbox } from "lucide-react";
-import DateTimePicker from "react-datetime-picker";
-import "react-datetime-picker/dist/DateTimePicker.css";
-import "react-calendar/dist/Calendar.css";
-import "react-clock/dist/Clock.css";
+import DateTimePicker from "./datetime-picker";
 
 export interface Column<T> {
 	header: string;
@@ -18,8 +15,6 @@ export interface Column<T> {
 interface TableProps<T> {
 	columns: Column<T>[];
 	data: T[];
-	className?: string;
-	emptyMessage?: string;
 	actions?: (row: T) => ReactNode;
 	rowsPerPage?: number;
 	dateColumnKey?: keyof T | ((row: T) => Date | null | undefined);
@@ -28,8 +23,6 @@ interface TableProps<T> {
 const Table = <T extends Record<string, any>>({ 
 	columns, 
 	data, 
-	className = "",
-	emptyMessage = "No data available",
 	actions,
 	rowsPerPage = 10,
 	dateColumnKey
@@ -39,16 +32,12 @@ const Table = <T extends Record<string, any>>({
 	const [sortConfig, setSortConfig] = useState<{ key: keyof T | ((row: T) => unknown); direction: 'asc' | 'desc' } | null>(null);
 	const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({ from: null, to: null });
 
-	// Find the first date column in the data
-	const detectedDateColumnKey = useMemo(() => {
-		if (dateColumnKey) return dateColumnKey;
-		if (data.length === 0) return null;
-		const firstRow = data[0];
-		const dateKeys = ['createdAt', 'joinedAt', 'updatedAt', 'leftAt'];
-		return dateKeys.find(key => key in firstRow && firstRow[key] instanceof Date) || null;
-	}, [data, dateColumnKey]);
-
-	// Helper function to get value from accessor
+	/**
+	 * Get value from accessor
+	 * @param row - The row to get the value from
+	 * @param accessor - The accessor to get the value from
+	 * @returns The value from the accessor
+	 */
 	const getValueFromAccessor = (row: T, accessor: keyof T | ((row: T) => unknown)): unknown => {
 		if (typeof accessor === 'function') {
 			return accessor(row);
@@ -56,17 +45,27 @@ const Table = <T extends Record<string, any>>({
 		return row[accessor];
 	};
 
-	// Helper function to stringify value for search
+	/**
+	 * Stringify value for search
+	 * @param value - The value to stringify
+	 * @returns The stringified value
+	 */
 	const stringifyValue = (value: unknown): string => {
 		if (value === null || value === undefined) return '';
 		if (value instanceof Date) return value.toISOString();
 		return String(value).toLowerCase();
 	};
 
+	/**
+	 * Get the date from the row
+	 * @param row - The row to get the date from
+	 * @returns The date from the row
+	 */
 	const getRowDate = (row: T): Date | null => {
 		if (!dateColumnKey) return null;
 		if (typeof dateColumnKey === 'function') return dateColumnKey(row) ?? null;
 		const key = dateColumnKey as string;
+
 		// Support nested keys like 'queue.entries.0.leftAt'
 		const val = key.split('.').reduce<any>((acc, k) => {
 			if (acc == null) return undefined;
@@ -77,7 +76,10 @@ const Table = <T extends Record<string, any>>({
 		return null;
 	};
 
-	// Filter and sort data
+	/**
+	 * Filter and sort data
+	 * @returns The filtered and sorted data
+	 */
 	const filteredData = useMemo(() => {
 		let result = [...data];
 
@@ -145,15 +147,25 @@ const Table = <T extends Record<string, any>>({
 	const endIndex = startIndex + rowsPerPage;
 	const currentData = filteredData.slice(startIndex, endIndex);
 
-	// Reset to first page when search or sort changes
+	/**
+	 * Reset to first page when search or sort changes
+	 */
 	useMemo(() => {
 		setCurrentPage(1);
 	}, [searchQuery, sortConfig]);
 
+	/**
+	 * Handle page change
+	 * @param page - The page to change to
+	 */
 	const handlePageChange = (page: number) => {
 		setCurrentPage(page);
 	};
 
+	/**
+	 * Handle sort
+	 * @param accessor - The accessor to sort by. Can be a keyof T or a function that returns a value
+	 */
 	const handleSort = (accessor: keyof T | ((row: T) => unknown)) => {
 		setSortConfig(current => {
 			if (!current || current.key !== accessor) {
@@ -165,61 +177,33 @@ const Table = <T extends Record<string, any>>({
 		});
 	};
 
+	/**
+	 * Handle search
+	 * @param value - The value to search for
+	 */
 	const handleSearch = (value: string) => {
 		setSearchQuery(value);
 		setCurrentPage(1);
 	};
 
+	/**
+	 * Render date filter
+	 * @returns Date filter component
+	 */
 	const renderDateFilter = () => {
-		if (!detectedDateColumnKey) return null;
-
+		if (!dateColumnKey) return null;
 		return (
 			<div className="flex flex-col gap-2">
 				<div className="flex flex-col md:flex-row gap-4">
-					<div className="flex flex-col gap-1">
-						<label className="text-sm text-text-main font-semibold">From</label>
-						<DateTimePicker
-							onChange={(date) => setDateRange(prev => ({ ...prev, from: date }))}
-							value={dateRange.from}
-							locale="en-GB"
-							disableClock
-	
-							clearIcon={null}
-							calendarIcon={null}
-							autoFocus={false}
-							format="y MMM dd HH:mm"
-							monthAriaLabel="Month"
-							dayAriaLabel="Day"
-							yearAriaLabel="Year"
-							hourAriaLabel="Hour"
-							minuteAriaLabel="Minute"
-							className="border border-gray-300 rounded-md bg-white"
-						/>
-					</div>
-					<div className="flex flex-col gap-1">
-						<label className="text-sm text-text-main font-semibold">To</label>
-						<DateTimePicker
-							onChange={(date) => setDateRange(prev => ({ ...prev, to: date }))}
-							value={dateRange.to}
-							locale="en-GB"
-							disableClock
-							clearIcon={null}
-							calendarIcon={null}
-							autoFocus={false}
-							format="y MMM dd HH:mm"
-							monthAriaLabel="Month"
-							dayAriaLabel="Day"
-							yearAriaLabel="Year"
-							hourAriaLabel="Hour"
-							minuteAriaLabel="Minute"
-							className="border border-gray-300 rounded-md bg-white"
-						/>
-					</div>
+					<DateTimePicker
+						value={[dateRange.from, dateRange.to]}
+						onChange={([from, to]) => setDateRange({ from, to })}
+					/>
 				</div>
 				{(dateRange.from || dateRange.to) && (
 					<button
 						onClick={() => setDateRange({ from: null, to: null })}
-						className="text-sm text-primary hover:text-primary-dark transition-colors self-start"
+						className="text-sm text-primary hover:text-primary-dark transition-colors self-start cursor-pointer"
 					>
 						Clear Date Filter
 					</button>
@@ -228,6 +212,10 @@ const Table = <T extends Record<string, any>>({
 		);
 	};
 
+	/**
+	 * Render search
+	 * @returns Search component
+	 */
 	const renderSearch = () => (
 		<div className="w-full md:w-auto">
 			<div className="relative w-full">
@@ -332,11 +320,13 @@ const Table = <T extends Record<string, any>>({
 
 	return (
 		<div className="flex flex-col w-full">
+
 			{/* Redesigned Filter/Search Bar */}
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 bg-gradient-to-r from-gray-50 to-white border border-gray-200 p-4 rounded-xl shadow-sm">
-				{renderDateFilter()}
+				{dateColumnKey && renderDateFilter()}
 				{renderSearch()}
 			</div>
+			
 			{filteredData.length === 0 ? (
 				<div className="flex flex-col items-center justify-center text-center text-gray-500 mt-8 bg-white p-8 rounded-xl shadow-sm gap-2">
 					<Inbox size={48} className="mx-auto text-gray-300 mb-2" />

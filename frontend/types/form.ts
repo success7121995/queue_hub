@@ -1,4 +1,3 @@
-
 export interface SignupFormFields {
     signup: {
         businessName: string;
@@ -16,13 +15,22 @@ export interface SignupFormFields {
 
 export interface AddBranchFormFields {
     branchInfo: {
-        branchName: string;
-        ownerName: string;
-        position: string;
+        name: string;
+        contactPerson: string;
         email: string;
-        phone: string;
-    },
-    address: Address,
+        branchTel: string;
+        description: string;
+        features: string[];
+        tags: string[];
+        openingHours: {
+            id: number;
+            dayOfWeek: number;
+            openTime: string;
+            closeTime: string;
+            closed: boolean;
+        }[];
+    };
+    address: Address;
     payment: Payment;
 }
 

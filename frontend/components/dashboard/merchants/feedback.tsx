@@ -109,12 +109,11 @@ const feedback: Review[] = [
 
 const Feedback = () => {
 	return (
-		<div className="min-h-screen bg-white px-8 py-8 font-regular-eng">
+		<div className="min-h-screen px-8 py-8 font-regular-eng">
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">Feedback</h1>
 			<Table
 				columns={columns}
 				data={feedback}
-				emptyMessage="No feedback"
 				dateColumnKey={(row) => new Date(row.createdAt)}
 			/>
 		</div>

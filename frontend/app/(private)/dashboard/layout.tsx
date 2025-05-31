@@ -1,8 +1,8 @@
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
-		<div>
+		<main className="bg-surface">
 			{children}
-		</div>
+		</main>
 	);
 };
 

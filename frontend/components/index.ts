@@ -21,7 +21,7 @@ export { default as BranchInfo } from "./dashboard/merchants/branch/branch-info"
 export { default as ViewQueueHistory } from "./dashboard/merchants/view-queue-history";
 export { default as Feedback } from "./dashboard/merchants/feedback";
 export { default as RegisterNewUser } from "./dashboard/merchants/register-new-user";
-export { default as ManageUsers } from "./dashboard/merchants/manage-users"; 
+export { default as ManageUsers } from "./dashboard/merchants/manage-user"; 
 export { default as Analytics } from "./dashboard/merchants/analytics";
 export { default as SystemHealth } from "./dashboard/merchants/system-health";
 export { default as Table } from "./common/table";
