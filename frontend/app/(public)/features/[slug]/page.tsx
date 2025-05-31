@@ -14,7 +14,7 @@ interface FeatureContent {
 }
 
 interface FeaturePageProps {
-	params: Promise<{ slug: string }>;
+	params: { slug: string };
 }
 
 /**********    Render with bold    **********/
@@ -29,7 +29,7 @@ const renderWithBold = (text: string) => {
 }
 
 const FeaturePage = ({ params }: FeaturePageProps) => {
-	const { slug } = use(params);
+	const { slug } = params;
 
 	const allowedSlugs = [
 		"real-time-updates",
