@@ -5,9 +5,9 @@ interface Props {
     params: { merchantId: string; slug: string };
 }
 
-const DashboardPage = async ({ params }: Props) => {
+const DashboardPage = ({ params }: Props) => {
     try {
-        const { merchantId, slug } = await params;
+        const { merchantId, slug } = params;
 
         const allowSlug = [
             "view-live-queues",
