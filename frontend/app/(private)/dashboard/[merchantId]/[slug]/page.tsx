@@ -1,13 +1,18 @@
 import { notFound } from "next/navigation";
 import { MerchantDashboard, DashboardNavbar, DashboardSidenav } from "@/components";
 
-interface Props {
-    params: { merchantId: string; slug: string };
+type Props = {
+    params: {
+        merchantId: string;
+        slug: string;
+    };
+    searchParams: { [key: string]: string | string[] | undefined };
 }
 
-const DashboardPage = ({ params }: Props) => {
+const DashboardPage = async ({ params, searchParams }: Props) => {
     try {
-        const { merchantId, slug } = params;
+        const { merchantId, slug } = await params;
+        const { tab } = await searchParams;
 
         const allowSlug = [
             "view-live-queues",
