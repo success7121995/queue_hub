@@ -100,7 +100,6 @@ const ManageQueueEntries = () => {
 				<Table
 					columns={columns}
 					data={queueData}
-					emptyMessage="No queues found"
 				/>
 			</div>
 		</div>

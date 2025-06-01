@@ -25,7 +25,7 @@ const Table = <T extends Record<string, any>>({
 	data, 
 	actions,
 	rowsPerPage = 10,
-	dateColumnKey
+	dateColumnKey,
 }: TableProps<T>) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -318,6 +318,16 @@ const Table = <T extends Record<string, any>>({
 		);
 	};
 
+	const renderEmptyState = () => {
+		if (filteredData.length > 0) return null;
+		return (
+			<div className="flex flex-col items-center justify-center py-8 text-gray-500">
+				<Inbox size={48} className="mb-4" />
+				<p>No data available</p>
+			</div>
+		);
+	};
+
 	return (
 		<div className="flex flex-col w-full">
 
@@ -328,11 +338,7 @@ const Table = <T extends Record<string, any>>({
 			</div>
 			
 			{filteredData.length === 0 ? (
-				<div className="flex flex-col items-center justify-center text-center text-gray-500 mt-8 bg-white p-8 rounded-xl shadow-sm gap-2">
-					<Inbox size={48} className="mx-auto text-gray-300 mb-2" />
-					<div className="text-lg font-semibold">No data available</div>
-					<div className="text-sm">Try adjusting your filters or search terms.</div>
-				</div>
+				renderEmptyState()
 			) : (
 				<div className="w-full overflow-x-auto">
 					<div className="min-w-full inline-block align-middle">

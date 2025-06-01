@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Colors */
+  --color-background: #ffffff; /* Pure White */
+  --color-primary: #F97316; /* Solar Orange */
+  --color-primary-hover: #EA580C; /* Burnt Orange */
+  --color-primary-light: #FD8733; /* Solar Orange */
+  --color-secondary: #FACC15; /* Accent Slate */
+  --color-text-main: #0a0a0a; /* Deep Navy */
+  --color-text-light: #ffffff; /* Slate Gray */
+  --color-surface: #F5F5F5; /* Pale Slate */
+  --color-border: #E2E8F0; /* Cool Gray */
+  --color-error: #DC2626; /* Alert Red */
+  --color-success: #16A34A; /* Confirmation Green */
+  --color-info: #0EA5E9; /* Calm Sky Blue */
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+}
+
+/* Crown Animation */
+.crown-zoom-bounce {
+  animation: zoomBounce 1s ease forwards;
+  transform-origin: center center;
+}
+
+@keyframes zoomBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.5); }
+  60% { transform: scale(0.95); }
+  80% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Date Picker Styles */
+.react-datetime-picker__wrapper {
+  @apply border-2 border-orange-300 rounded-md p-1 bg-transparent shadow-none outline-none;
+}
+
+.react-datetime-picker__wrapper:focus-within {
+  @apply border-3;
+}
+
+.react-datetime-picker__inputGroup__input,
+.react-datetime-picker__inputGroup__day,
+.react-datetime-picker__inputGroup__month,
+.react-datetime-picker__inputGroup__year,
+.react-datetime-picker__inputGroup__hour,
+.react-datetime-picker__inputGroup__minute,
+.react-datetime-picker__inputGroup__amPm {
+  @apply text-sm border-none outline-none bg-transparent shadow-none mx-0.5 text-center;
+}
+
+.react-datetime-picker__inputGroup__input--hasLeadingZero {
+  @apply pl-0;
+}
+
+.react-datetime-picker__inputGroup__leadingZero {
+  @apply text-sm;
+}
+
+.react-datetime-picker__inputGroup__day[data-input="true"],
+.react-datetime-picker__inputGroup__month[data-input="true"],
+.react-datetime-picker__inputGroup__year[data-input="true"],
+.react-datetime-picker__inputGroup__hour[data-input="true"],
+.react-datetime-picker__inputGroup__minute[data-input="true"],
+.react-datetime-picker__inputGroup__amPm[data-input="true"],
+.react-datetime-picker__inputGroup__leadingZero {
+  @apply text-orange-500;
+}
+
+.react-datetime-picker__inputGroup__divider {
+  @apply text-orange-300;
+}
+
+.react-datetime-picker__inputGroup__divider:before {
+  @apply text-gray-900;
+}
+
+/* Time Picker Styles */
+.react-time-picker {
+  @apply border-none shadow-none outline-none bg-transparent;
+}
+
+.react-time-picker__inputGroup__input {
+  @apply border-none outline-none bg-transparent shadow-none text-inherit p-0 text-center;
+}
+
+.react-time-picker__button {
+  @apply border-none bg-transparent shadow-none p-0;
+}
+
+.react-time-picker__clock {
+  @apply border-none shadow-none;
+}
+
+.react-time-picker__wrapper {
+  @apply border-none shadow-none;
+} 

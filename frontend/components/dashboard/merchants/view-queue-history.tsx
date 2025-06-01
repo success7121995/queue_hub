@@ -119,7 +119,6 @@ const ViewQueueHistory = () => {
 				<Table
 					columns={columns}
 					data={queueHistory}
-					emptyMessage="No queue history"
 					dateColumnKey={(row) => row.queue.entries?.[0]?.leftAt}
 				/>
 			</div>
