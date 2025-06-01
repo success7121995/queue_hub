@@ -90,7 +90,7 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 			>
 				
 				{/* Mobile: accordion format */}
-				<div className="block 2xl:hidden mt-15">
+				<div className="block 2xl:hidden mt-15 pt-20">
 					{menuData.map((section) => (
 						<div key={section.label} className="mb-2">
 							<button
@@ -126,7 +126,7 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 				</div>
 
 				{/* Desktop: expanded sections, no accordion */}
-				<div className="hidden 2xl:block mt-20">
+				<div className="hidden 2xl:block mt-20 pt-16">
 					{menuData.map((section) => (
 						<div key={section.label} className="mb-4">
 							<div className="font-bold text-base mb-2 text-primary-light">{section.label}</div>

@@ -21,7 +21,7 @@
 @layer base {
   body {
     @apply bg-white text-gray-900;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: 'regular-eng', Arial, Helvetica, sans-serif;
   }
 }
 
@@ -32,11 +32,21 @@
 }
 
 @keyframes zoomBounce {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.5); }
-  60% { transform: scale(0.95); }
-  80% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.5);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  80% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Date Picker Styles */
@@ -45,7 +55,7 @@
 }
 
 .react-datetime-picker__wrapper:focus-within {
-  @apply border-3;
+  @apply border-2 border-orange-500;
 }
 
 .react-datetime-picker__inputGroup__input,
@@ -103,4 +113,4 @@
 
 .react-time-picker__wrapper {
   @apply border-none shadow-none;
-} 
+}

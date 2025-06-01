@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
+    "@tailwindcss/postcss": "^4.1.8",
     "compressorjs": "^1.2.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.12.1",
@@ -28,13 +29,14 @@
     "zod": "^3.25.30"
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
 }
