@@ -46,7 +46,8 @@ enum ApprovalStatus {
 
 enum SubscriptionStatus {
   TRIAL
-  ACTIVE
+  ESSENTIAL
+  GROWTH
   EXPIRED
   CANCELLED
 }
@@ -64,13 +65,15 @@ enum QueueEntryStatus {
   NO_SHOW
 }
 
-enum AdminActionType {
+enum ActivityType {
   // User Management
   CREATE_USER
   UPDATE_USER
   DELETE_USER
   RESET_USER_PASSWORD
   FORCE_LOGOUT_USER
+  LOGIN_USER
+  LOGOUT_USER
   CHANGE_USER_ROLE
   SUSPEND_USER
 
@@ -124,6 +127,9 @@ enum AdminActionType {
 
   // System & Access
   LOGIN_ADMIN_PANEL
+
+  // Verification
+  VERIFY_EMAIL
 }
 
 enum InvoiceStatus {
@@ -133,7 +139,7 @@ enum InvoiceStatus {
   REFUNDED
 }
 
-enum EmailTemplate {
+enum EmailType {
   RESET_PASSWORD
   SUPPORT_REPLY
   RENEWAL_NOTICE
@@ -241,25 +247,26 @@ model User {
   phone                          String
   role                           UserRole                     @default(GUEST)
   status                         UserStatus                   @default(INACTIVE)
-  registration_date              DateTime
+  registration_date              DateTime                     @default(now())
   created_at                     DateTime                     @default(now())
   updated_at                     DateTime                     @updatedAt
   last_login                     DateTime?
   lang                           Lang                         @default(EN)
   oauth_accounts                 OAuthAccount[]               @relation("UserOAuthAccounts")
   merchant                       Merchant[]                   @relation("UserMerchants")
-  user_merchants                 UserMercahnt[]               @relation("UserMerchantStaff")
+  user_merchants                 UserMerchant[]               @relation("UserMerchantStaff")
   queue_entries                  QueueEntry[]                 @relation("UserQueueEntries")
   favorite_merchants             FavoriteMercahnt[]           @relation("UserFavoriteMerchants")
   user_queue_reminder_references UserQueueReminderReference[] @relation("UserQueueReminders")
-  admin_action_logs_affected     AdminActionLog[]             @relation("AdminActionLogAffectedUser")
-  admin_action_logs_admin        AdminActionLog[]             @relation("AdminActionLogAdmin")
   password_resets                PasswordReset[]              @relation("UserPasswordResets")
   messages_sent                  Message[]                    @relation("MessageSender")
   messages_received              Message[]                    @relation("MessageReceiver")
   email_logs_sent                EmailLog[]                   @relation("EmailSender")
   reviews                        Review[]                     @relation("UserReviews")
   user_devices                   UserDevice[]                 @relation("UserDevices")
+  activity_logs                  ActivityLog[]                @relation("UserActivityLogs")
+  email_verified                 Boolean                      @default(false)
+  verification_token             String?                        @unique
 }
 
 model OAuthAccount {
@@ -283,23 +290,37 @@ model Merchant {
   owner               User                  @relation("UserMerchants", fields: [owner_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
   approval_status     ApprovalStatus        @default(PENDING)
   business_name       String
-  tel                 String                @unique
+  phone                 String                @unique
   email               String                @unique
-  address             String
+  address             MerchantAddress[]     @relation("MerchantAddresses")
   description         String?
   subscription_status SubscriptionStatus    @default(TRIAL)
   subscription_start  DateTime?
   subscription_end    DateTime?
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
+  approved_at         DateTime?             @updatedAt
   opening_hours       MerchantOpeningHour[] @relation("MerchantOpeningHours")
   features            MerchantFeature[]     @relation("MerchantFeatures")
   images              MerchantImage[]       @relation("MerchantImages")
-  user_merchants      UserMercahnt[]        @relation("MerchantStaff")
+  user_merchants      UserMerchant[]        @relation("MerchantStaff")
   queues              Queue[]               @relation("MerchantQueues")
   favorite_merchants  FavoriteMercahnt[]    @relation("MerchantFavorites")
   reviews             Review[]              @relation("MerchantReviews")
   news                News[]                @relation("MerchantNews")
+}
+
+model MerchantAddress {
+  address_id String @id @default(uuid()) 
+  merchant_id String
+  merchant Merchant @relation("MerchantAddresses", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
+  street String
+  unit String
+  floor String
+  city String
+  state String
+  zip String
+  country String
 }
 
 model MerchantOpeningHour {
@@ -329,7 +350,7 @@ model MerchantImage {
   uploaded_at DateTime  @default(now())
 }
 
-model UserMercahnt {
+model UserMerchant {
   staff_id    String       @id @default(uuid())
   user_id     String
   user        User         @relation("UserMerchantStaff", fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
@@ -349,7 +370,6 @@ model Queue {
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
   queue_entries     QueueEntry[]     @relation("QueueEntries")
-  admin_action_logs AdminActionLog[] @relation("AdminActionLogTargetQueue")
   messages          Message[]        @relation("QueueMessages")
 }
 
@@ -397,22 +417,6 @@ model UserQueueReminderReference {
   updated_at    DateTime            @updatedAt
 }
 
-model AdminActionLog {
-  log_id           String          @id @default(uuid())
-  admin_id         String
-  admin            User            @relation("AdminActionLogAdmin", fields: [admin_id], references: [user_id])
-  action           String
-  action_type      AdminActionType
-  action_data      Json
-  affected_user_id String?
-  affected_user    User?           @relation("AdminActionLogAffectedUser", fields: [affected_user_id], references: [user_id])
-  target_type      Entity?
-  target_id        String?
-  target           Queue?          @relation("AdminActionLogTargetQueue", fields: [target_id], references: [queue_id])
-  created_at       DateTime        @default(now())
-  updated_at       DateTime        @updatedAt
-}
-
 model AnalyticsLog {
   log_id       String        @id @default(uuid())
   subject_type AnalyticsType
@@ -420,6 +424,19 @@ model AnalyticsLog {
   metric_type  MetricType
   value        Float
   record_at    DateTime      @default(now())
+}
+
+model ActivityLog {
+  log_id       String        @id @default(uuid())
+  user_id      String?
+  user         User?          @relation("UserActivityLogs", fields: [user_id], references: [user_id])
+  action       ActivityType
+  action_data  Json
+  success      Boolean       @default(true)
+  error        String?
+  status       Int           @default(200)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
 }
 
 model SystemHealth {
@@ -453,6 +470,14 @@ model Message {
   created_at  DateTime @default(now())
 }
 
+model EmailTemplate {
+  template_id       String      @id @default(uuid())
+  template_name     String
+  template_content  String
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+}
+
 model EmailLog {
   email_id        String        @id @default(uuid())
   recipient_email String
@@ -460,12 +485,13 @@ model EmailLog {
   sender          User?         @relation("EmailSender", fields: [sender_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
   subject         String
   content         String
-  template        EmailTemplate
+  type            EmailType
   status          EmailStatus
   sent_at         DateTime?
   failed_at       DateTime?
   failed_reason   String?
 }
+
 
 model Invoice {
   invoice_id           String        @id @default(uuid())
