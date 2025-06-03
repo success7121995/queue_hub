@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import localFont from "next/font/local";
 import DateTimeProvider from "@/constant/datetime-provider";
+import QueryProvider from "@/constant/query-provider";
 
 const urbanistItalic = localFont({
     src: "../public/fonts/Urbanist-Italic-VariableFont_wght.ttf",
@@ -33,9 +34,11 @@ return (
                 antialiased
             `}
         >
-            <DateTimeProvider>
-                {children}
-            </DateTimeProvider>
+            <QueryProvider>
+                <DateTimeProvider>
+                    {children}
+                </DateTimeProvider>
+            </QueryProvider>
         </body>
     </html>
 );

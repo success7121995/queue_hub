@@ -66,7 +66,7 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                     case 1: return <Signup onNext={handleNext} />;
                     case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 4: return <Complete onCompleteButtonClick={() => router.push("/")} />;
+                    case 4: return <Complete form="signup" />;
                     default: return null;
                 }
             case "add-branch":
@@ -74,21 +74,21 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                     case 1: return <BranchInfo onNext={handleNext} />;
                     case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 4: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/branch-info")} />;
+                    case 4: return <Complete form="add-branch" />;
                     default: return null;
                 }
             case "add-employee":
                 switch (currentStep) {
                     case 1: return <UserInfo onNext={handleNext} />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
-                    case 3: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/manage-users")} />;
+                    case 3: return <Complete form="add-employee" />
                     default: return null;
                 }
             case "add-admin":
                 switch (currentStep) {
                     case 1: return <UserInfo onNext={handleNext} />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
-                    case 3: return <Complete onCompleteButtonClick={() => router.push("/dashboard/1/admin-info")} />;
+                    case 3: return <Complete form="add-admin" />;
                     default: return null;
                 }
             default:

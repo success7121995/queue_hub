@@ -3,11 +3,40 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 
 type LoginFormInputs = {
-email: string;
-password: string;
+    email: string;
+    password: string;
 };
+
+// const loginMutation = useMutation({
+//     mutationFn: async (data: LoginFormInputs) => {
+//         const res = await fetch("/api/login", {
+//             method: "POST",
+//             body: JSON.stringify(data),
+//             headers: { "Content-Type": "application/json" },
+//             credentials: "include"
+//     });
+   
+//       const result = await res.json();
+  
+//     if (!res.ok) {
+//         throw new Error(result.message || "Login failed");
+//     }
+  
+//         return result;
+//     },
+//     onSuccess: (data) => {
+//         console.log("Login success", data);
+//         // 例如 redirect：
+//         window.location.href = data.redirect;
+//     },
+//     onError: (err: any) => {
+//         console.error("Login error:", err.message);
+//     }
+//   });
+  
 
 const Login = () => {
     const router = useRouter();

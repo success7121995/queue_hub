@@ -2,29 +2,88 @@
 
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import { useMutation } from "@tanstack/react-query";
+import { AddAdminFormFields, AddBranchFormFields, SignupFormFields } from "@/types/form";
 
 interface CompleteProps {
-onCompleteButtonClick?: () => void;
+    form?: "signup" | "add-branch" | "add-admin" | "add-employee";
 }
 
 const COOKIE_KEY = "signupForm";
 
-const Complete: React.FC<CompleteProps> = ({ onCompleteButtonClick }) => {
-    const [formData, setFormData] = useState<any>(null);
+const Complete: React.FC<CompleteProps> = ({ form }) => {
+    let apiPath = "";
+    switch (form) {
+        case "signup":
+            apiPath = "/merchant/signup";
+            break;
+        case "add-branch":
+            apiPath = "/merchant/branch";
+            break;
+        case "add-admin":
+            apiPath = "/merchant/admin";
+            break;
+        case "add-employee":
+            apiPath = "/merchant/employee";
+            break;
+    }
+    
+    const [formData, setFormData] = useState<Record<string, any> | null>(null);
 
     useEffect(() => {
         const cookie = Cookies.get(COOKIE_KEY);
 
-        console.log(cookie);
         if (cookie) {
             try {
-                setFormData(JSON.parse(cookie));
+                const parsed = JSON.parse(cookie);
+
+                // Remove sensitive fields
+                delete parsed.card_name
+                delete parsed.card_number;
+                delete parsed.cvv;
+                
+                setFormData(parsed);
                 Cookies.remove(COOKIE_KEY);
             } catch {
                 setFormData(null);
             }
         }
     }, []);
+
+    const submitMutation = useMutation({
+        mutationFn: async (data: SignupFormFields | AddBranchFormFields | AddAdminFormFields) => {
+            const res = await fetch(`http://localhost:5500/api${apiPath}`, {
+                method: "POST",
+                body: JSON.stringify(data),
+                headers: { "Content-Type": "application/json" },
+            }); 
+    
+            const result = await res.json();
+    
+            if (!res.ok) {
+                throw new Error(result.message || "Signup failed");
+            }
+    
+            return result;
+        },
+        onSuccess: (data) => {
+            console.log("Signup success", data);
+            // 例如 redirect：
+            window.location.href = data.redirect;
+        },
+        onError: (err: any) => {
+            console.error("Signup error:", err.message);
+        }
+    });
+
+    /**
+     * Handle submit button click
+     */
+    const handleSubmit = () => {
+        if (formData) {
+            submitMutation.mutate(formData as SignupFormFields | AddBranchFormFields | AddAdminFormFields);
+        }
+    }
 
     return (
         <div className="w-full min-h-[60vh] flex justify-center items-center to-white py-16 font-regular-eng">
@@ -45,21 +104,38 @@ const Complete: React.FC<CompleteProps> = ({ onCompleteButtonClick }) => {
                 <h3 className="text-lg font-semibold mb-3 text-primary-light">Summary</h3>
                 {formData ? (
                 <ul className="text-sm text-gray-700 space-y-2">
-
-                    {formData.signup && (
-                    <li><span className="font-semibold">Business:</span> {formData.signup.businessName}</li>
+                    {formData.plan && (
+                        <li><span className="font-semibold">Plan: </span> {formData.plan === "FREE-TRIAL" ? "Free Trial" : formData.plan === "ESSENTIAL" ? "Essential" : "Growth"}</li>
                     )}
-                    {formData.signup && (
-                    <li><span className="font-semibold">Contact:</span> {formData.signup.firstName} {formData.signup.lastName} ({formData.signup.email})</li>
+                    {formData.lang && (
+                        <li><span className="font-semibold">Language: </span> {formData.lang === "EN" ? "English" : formData.lang === "ZH-HK" ? "繁體中文 (香港)" : formData.lang === "ZH-TW" ? "繁體中文 (台灣)" : "简体中文"}</li>
                     )}
-                    {formData.address && (
-                    <li><span className="font-semibold">Address:</span> {formData.address.street}{formData.address.apt ? `, ${formData.address.apt}` : ""}, {formData.address.city}, {formData.address.state}, {formData.address.zip}, {formData.address.country}</li>
+                    {formData.business_name && (
+                        <li><span className="font-semibold">Business Name: </span> {formData.business_name}</li>
                     )}
-                    {formData.payment && (
-                    <li><span className="font-semibold">Card:</span> **** **** **** {formData.payment.cardNumber?.slice(-4)} (Exp: {formData.payment.expiryDate})</li>
+                    {(formData.fname || formData.lname) && (
+                        <li><span className="font-semibold">Name: </span> {formData.fname} {formData.lname}</li>
                     )}
-                    {formData.payment && (
-                    <li><span className="font-semibold">Auto Renewal:</span> {formData.payment.autoRenewal ? "Enabled" : "Disabled"}</li>
+                    {formData.email && (
+                        <li><span className="font-semibold">Email: </span> {formData.email}</li>
+                    )}
+                    {formData.phone && (
+                        <li><span className="font-semibold">Tel: </span> {formData.phone}</li>
+                    )}
+                    {(formData.street || formData.floor || formData.unit || formData.city || formData.state || formData.zip || formData.country) && (
+                        <li><span className="font-semibold">Address: </span> {formData.street}{formData.unit ? ", Unit " + formData.unit : ""}{formData.floor ? ", Floor " + formData.floor : ""}{formData.city ? ", " + formData.city : ""}{formData.state ? ", " + formData.state : ""}{formData.zip ? ", " + formData.zip : ""}{formData.country ? ", " + formData.country : ""}</li>
+                    )}
+                    {formData.card_name && (
+                        <li><span className="font-semibold">Card Name: </span> {formData.card_name}</li>
+                    )}
+                    {formData.card_number && (
+                        <li><span className="font-semibold">Card Number: </span> {formData.card_number}</li>
+                    )}
+                    {formData.expiry_date && (
+                        <li><span className="font-semibold">Expiry Date: </span> {formData.expiry_date}</li>
+                    )}
+                    {typeof formData.saved_card !== 'undefined' && (
+                        <li><span className="font-semibold">Payment Method: </span> {formData.saved_card ? "Saved card" : "New card"}</li>
                     )}
                 </ul>
                 ) : (
@@ -71,7 +147,7 @@ const Complete: React.FC<CompleteProps> = ({ onCompleteButtonClick }) => {
             <button
                 type="button"
                 className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-primary-dark transition-all cursor-pointer"
-                onClick={onCompleteButtonClick}
+                onClick={handleSubmit}
             >
                 Continue
             </button>

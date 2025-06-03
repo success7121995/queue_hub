@@ -60,10 +60,14 @@ const Address: React.FC<AddressProps> = ({ onNext, onPrev }) => {
         let cookieData = {};
         if (cookie) {
             try {
-            cookieData = JSON.parse(cookie);
+                cookieData = JSON.parse(cookie);
             } catch {}
         }
-        Cookies.set(COOKIE_KEY, JSON.stringify({ ...cookieData, address: data }));
+        // Flatten and store all address fields at the top level
+        Cookies.set(COOKIE_KEY, JSON.stringify({
+            ...cookieData,
+            ...data
+        }));
         // Advance to next step
         if (onNext) onNext();
     };
@@ -108,30 +112,44 @@ const Address: React.FC<AddressProps> = ({ onNext, onPrev }) => {
                 {errors.country && <span className="text-red-500 text-xs">{errors.country.message}</span>}
             </div>
 
+            {/* Unit */}
+            <div>
+                <label htmlFor="unit" className="block mb-1 font-semibold text-text-main text-sm">Unit</label>
+                <input
+                    id="unit"
+                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                        errors.unit ? "border-red-500" : "border-gray-400"
+                    }`}
+                    {...register("unit")}
+                    placeholder="Enter unit number (e.g. Apt #, Suite #)"
+                />
+                {errors.unit && <span className="text-red-500 text-xs">{errors.unit.message}</span>}
+            </div>
+
+            {/* Floor */}
+            <div>
+                <label htmlFor="floor" className="block mb-1 font-semibold text-text-main text-sm">Floor</label>
+                <input
+                    id="floor"
+                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                        errors.floor ? "border-red-500" : "border-gray-400"
+                    }`}
+                    {...register("floor")}
+                    placeholder="Enter floor number"
+                />
+                {errors.floor && <span className="text-red-500 text-xs">{errors.floor.message}</span>}
+            </div>
+
             {/* Street Address */}
             <div>
                 <label htmlFor="street" className="block mb-1 font-semibold text-text-main text-sm">Street Address</label>
                 <input
                     id="street"
-                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                         errors.street ? "border-red-500" : "border-gray-400"
                     }`}
                     {...register("street", { required: "Street address is required" })}
                     placeholder="Enter street address"
-                />
-                {errors.street && <span className="text-red-500 text-xs">{errors.street.message}</span>}
-            </div>
-
-            {/* Apt / Suite / Floor (Optional) */}
-            <div> 
-                <label htmlFor="street" className="block mb-1 font-semibold text-text-main text-sm">Apt / Suite / Floor<span className="text-xs text-gray-400 ml-2">Optional</span></label>
-                <input
-                    id="street"
-                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                        errors.street ? "border-red-500" : "border-gray-400"
-                    }`}
-                    {...register("apt")}
-                    placeholder="Enter Apt # / Suite # / Floor #"
                 />
                 {errors.street && <span className="text-red-500 text-xs">{errors.street.message}</span>}
             </div>
@@ -141,7 +159,7 @@ const Address: React.FC<AddressProps> = ({ onNext, onPrev }) => {
                 <label htmlFor="city" className="block mb-1 font-semibold text-text-main text-sm">City</label>
                 <input
                     id="city"
-                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                         errors.city ? "border-red-500" : "border-gray-400"
                     }`}
                     {...register("city", { required: "City is required" })}
@@ -158,7 +176,7 @@ const Address: React.FC<AddressProps> = ({ onNext, onPrev }) => {
                     <label htmlFor="state" className="block mb-1 font-semibold text-text-main text-sm">State / Province / Region</label>
                     <input
                         id="state"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.state ? "border-red-500" : "border-gray-400"
                         }`}
                         {...register("state", { required: "State / province / region is required" })}
@@ -172,7 +190,7 @@ const Address: React.FC<AddressProps> = ({ onNext, onPrev }) => {
                     <label htmlFor="zip" className="block mb-1 font-semibold text-text-main text-sm">ZIP or Postal Code</label>
                     <input
                         id="zip"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.zip ? "border-red-500" : "border-gray-400"
                         }`}
                         {...register("zip", { required: "ZIP / Postal code is required" })}

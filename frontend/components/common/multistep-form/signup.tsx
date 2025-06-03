@@ -12,9 +12,9 @@ interface SignupProps {
 }
 
 const plans = [
-  { name: "Free Trial", description: "Start 30-day trial", price: "FREE", value: "free-trial" },
-  { name: "Essential Plan", description: "Perfect for individual shops, restaurants, clinics, and service providers.", price: "50 USD / per month", value: "essential" },
-  { name: "Growth Plan", description: "Best for businesses with multiple branches and growing customer volume.", price: "75 USD / per month", value: "growth" },
+  { name: "Free Trial", description: "Start 30-day trial", price: "FREE", value: "TRIAL" },
+  { name: "Essential Plan", description: "Perfect for individual shops, restaurants, clinics, and service providers.", price: "50 USD / per month", value: "ESSENTIAL" },
+  { name: "Growth Plan", description: "Best for businesses with multiple branches and growing customer volume.", price: "75 USD / per month", value: "GROWTH" },
 ];
 
 const COOKIE_KEY = "signupForm";
@@ -25,9 +25,11 @@ const defaultValues: SignupFormFields["signup"] = {
   lname: "",
   username: "",
   email: "",
-  tel: "",
+  phone: "",
   password: "",
   confirm_password: "",
+  lang: "EN",
+  plan: "FREE-TRIAL"
 };
 
 const Signup: React.FC<SignupProps> = ({ onNext }) => {
@@ -65,19 +67,20 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
      * @param data - The data to save to the cookie
      */
     const onSubmit = (data: SignupFormFields["signup"]) => {
-
-        console.log(data);
         // Save to cookie
         const cookie = Cookies.get(COOKIE_KEY);
         let cookieData = {};
-        
         if (cookie) {
             try {
-            cookieData = JSON.parse(cookie);
+                cookieData = JSON.parse(cookie);
             } catch {}
         }
-
-        Cookies.set(COOKIE_KEY, JSON.stringify({ ...cookieData, signup: data, plan: selectedPlan }));
+        // Flatten and store all signup fields at the top level
+        Cookies.set(COOKIE_KEY, JSON.stringify({
+            ...cookieData,
+            ...data,
+            plan: selectedPlan
+        }));
         if (onNext) onNext();
     };
 
@@ -114,12 +117,24 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
             <div className="w-full md:w-1/2 max-w-md bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-4 border border-gray-100 relative">
                 <h2 className="text-3xl font-bold text-center mb-4 text-primary-light">Sign Up</h2>
 
+                {/* Language */}
+                <div>
+                    <label htmlFor="lang" className="block mb-1 font-semibold text-text-main text-sm">Language</label>
+
+                    <select id="lang" className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" {...register("lang")}>
+                        <option value="EN">English</option>
+                        <option value="ZH-HK">繁體中文 (香港)</option>
+                        <option value="ZH-TW">繁體中文 (台灣)</option>
+                        <option value="ZH-CN">简体中文 (中国大陆)</option>
+                    </select>
+                </div>
+                    
                 {/* Business Name */}
                 <div>
                     <label htmlFor="business_name" className="block mb-1 font-semibold text-text-main text-sm">Business Name</label>
                     <input
                         id="business_name"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.business_name ? "border-red-500" : "border-gray-400"
                         }`}
                         {...register("business_name", { required: "Business name is required" })}
@@ -134,7 +149,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="firstName" className="block mb-1 font-semibold text-text-main text-sm">First Name</label>
                     <input
                         id="firstName"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.fname ? "border-red-500" : "border-gray-400"
                         }`}
                         {...register("fname", { required: "First name is required" })}
@@ -146,7 +161,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="lastName" className="block mb-1 font-semibold text-text-main text-sm">Last Name</label>
                     <input
                         id="lastName"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.lname ? "border-red-500" : "border-gray-400"
                         }`}
                         {...register("lname", { required: "Last name is required" })}
@@ -161,7 +176,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="username" className="block mb-1 font-semibold text-text-main text-sm">Username</label>
                     <input
                         id="username"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.username ? "border-red-500" : "border-gray-400"
                         }`}
                         {...register("username", { required: "Username is required" })}
@@ -175,7 +190,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="email" className="block mb-1 font-semibold text-text-main text-sm">Email</label>
                     <input
                         id="email"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.email ? "border-red-500" : "border-gray-400"
                         }`}
                         type="email"
@@ -190,13 +205,13 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="business_tel" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
                     <input
                         id="business_tel"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.tel ? "border-red-500" : "border-gray-400"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                            errors.phone ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("tel", { required: "Business Tel is required" })}
+                        {...register("phone", { required: "Business Tel is required" })}
                         placeholder="Enter your business tel"
                     />
-                    {errors.tel && <span className="text-red-500 text-xs">{errors.tel.message}</span>}
+                    {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
                         
                 {/* Password */}
@@ -204,7 +219,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="password" className="block mb-1 font-semibold text-text-main text-sm">Password</label>
                     <input
                         id="password"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.password ? "border-red-500" : "border-gray-400"
                         }`}
                         type="password"
@@ -220,13 +235,13 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <label htmlFor="confirm_password" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
                     <input
                         id="confirm_password"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.confirm_password ? "border-red-500" : "border-gray-400"
                         }`}
                         type="password"
                         {...register("confirm_password", { required: "Confirm password is required" })}
                         placeholder="Confirm your password"
-                    />
+                    />  
                     {errors.confirm_password && <span className="text-red-500 text-xs">{errors.confirm_password.message}</span>}
                 </div>
 

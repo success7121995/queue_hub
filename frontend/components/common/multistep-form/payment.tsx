@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import Cookies from "js-cookie";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
-import { SignupFormFields, Payment as PaymentType } from "@/types/form";
+import { SignupFormFields, } from "@/types/form";
 
 const COOKIE_KEY = "signupForm";
 
@@ -21,7 +21,12 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
         setValue,
         formState: { errors },
         watch,
-    } = (formMethods as unknown) as UseFormReturn<PaymentType>;
+    } = (formMethods as unknown) as UseFormReturn<SignupFormFields["payment"]>;
+
+    /**
+     * Get the last four digits of the card number
+     */
+    const lastFourDigits = watch("card_number")?.slice(-4);
 
     // Load from cookie if available
     useEffect(() => {
@@ -32,7 +37,7 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
             const parsed = JSON.parse(cookie);
             if (parsed.payment) {
                 Object.entries(parsed.payment).forEach(([key, value]) => {
-                setValue(key as keyof PaymentType, value as any);
+                setValue(key as keyof SignupFormFields["payment"], value as any);
                 });
             }
             } catch {}
@@ -41,19 +46,28 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
 
     /**
      * On submit, save the data to the cookie and call the onNext function
+     * 
      * @param data - The data to save to the cookie
      */
-    const onSubmit = (data: PaymentType) => {
+    const onSubmit = (data: SignupFormFields["payment"]) => {
         // Save to cookie
         const cookie = Cookies.get(COOKIE_KEY);
         let cookieData = {};
         if (cookie) {
             try {
-            cookieData = JSON.parse(cookie);
+                cookieData = JSON.parse(cookie);
             } catch {}
         }
-
-        Cookies.set(COOKIE_KEY, JSON.stringify({ ...cookieData, payment: data }));
+        // Flatten and store all payment fields at the top level
+        Cookies.set(COOKIE_KEY, JSON.stringify({
+            ...cookieData,
+            card_number: "**** **** **** " + lastFourDigits,
+            card_name: data.card_name,
+            expiry_date: data.expiry_date,
+            saved_card: data.saved_card,
+            auto_renewal: data.auto_renewal,
+            card_token: data.card_token,
+        }));
         if (onNext) onNext();
     };
 
@@ -67,11 +81,11 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
             <div className="mb-6 flex items-center gap-2">
                 <input
                     type="checkbox"
-                    id="saved_address"
+                    id="saved_card"
                     className="accent-primary-light w-4 h-4"
-                    {...register("saved_address")}
+                    {...register("saved_card")}
                 />
-                <label htmlFor="saved_address" className="text-sm">Use saved billing address</label>
+                <label htmlFor="saved_card" className="text-sm">Save payment info for next time?</label>
             </div>
 
             <h3 className="text-xl font-bold mb-2 mt-6">Credit Card</h3>
@@ -81,7 +95,7 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
                 <label htmlFor="card_name" className="block mb-1 font-semibold text-text-main text-sm">Name on Card</label>
                 <input
                     id="card_name"
-                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.card_name ? "border-red-500" : "border-gray-400"}`}
+                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${errors.card_name ? "border-red-500" : "border-gray-400"}`}
                     {...register("card_name", { required: "Name on card is required" })}
                     placeholder="Enter your full name on your card"
                 />
@@ -93,7 +107,7 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
                 <label htmlFor="card_number" className="block mb-1 font-semibold text-text-main text-sm">Card Number</label>
                 <input
                     id="card_number"
-                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.card_number ? "border-red-500" : "border-gray-400"}`}
+                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${errors.card_number ? "border-red-500" : "border-gray-400"}`}
                         {...register("card_number", { required: "Card number is required" })}
                     placeholder="Enter your card number"
                     inputMode="numeric"
@@ -108,7 +122,7 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
                     <label htmlFor="expiry_date" className="block mb-1 font-semibold text-text-main text-sm">Expiration Date</label>
                     <input
                         id="expiry_date"
-                        className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.expiry_date ? "border-red-500" : "border-gray-400"}`}
+                        className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${errors.expiry_date ? "border-red-500" : "border-gray-400"}`}
                         {...register("expiry_date", { required: "Expiration date is required" })}
                         placeholder="MM / YY"
                         maxLength={7}

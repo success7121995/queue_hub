@@ -5,9 +5,11 @@ export interface SignupFormFields {
         lname: string;
         username: string;
         email: string;
-        tel: string;
+        phone: string;
         password: string;
         confirm_password: string;
+        lang: "EN" | "ZH-HK" | "ZH-TW" | "ZH-CN";
+        plan: "FREE-TRIAL" | "ESSENTIAL" | "GROWTH";
     },
     address: Address,
     payment: Payment;
@@ -52,13 +54,13 @@ export interface AddAdminFormFields {
 }
 
 export type Address = {
-    country?: string;
-    street?: string;
-    apt?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
+    country: string;
+    street: string;
+    unit: string;
+    floor: string;
+    city: string;
+    state: string;
+    zip: string;
 } 
 
 export type Payment = {
@@ -66,14 +68,7 @@ export type Payment = {
     card_number: string;
     expiry_date: string;
     cvv: string;
-    saved_address?: boolean;
-    country?: string;
-    street?: string;
-    apt?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-    saved_card?: boolean;
-    auto_renewal?: boolean;
+    card_token: string;
+    saved_card: boolean;
+    auto_renewal: boolean;
 }
