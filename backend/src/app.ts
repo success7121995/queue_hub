@@ -1,8 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
-import session, { Session } from "express-session";
+import session from "express-session";
 import { UserRole } from "@prisma/client";
-import authRoutes from "./routes/auth";
+import routes from "./routes";
+import { errorHandler } from "./middlewares/error-hander";
 
 declare module 'express-session' {
     interface Session {
@@ -36,12 +37,15 @@ app.use(session({
 const port: number = parseInt(process.env.PORT || "5501");
 
 // Routes
-app.use("/api/auth", authRoutes);
+app.use('/api', routes);
 
 // 404
 app.use((req, res) => {
 	res.status(404).json({ message: "Route not found" });
 });
+
+// Error handler
+app.use(errorHandler);
 
 app.listen(port, "0.0.0.0", () => {
 	console.log(`Server is running on http://localhost:${port}`);
