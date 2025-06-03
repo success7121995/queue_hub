@@ -110,20 +110,20 @@ const AccountSetup: React.FC<AccountSetupProps> = ({ onNext, onPrev }) => {
 
                 {/* Confirm Password */}
                 <div>
-                    <label htmlFor="confirmPassword" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
+                    <label htmlFor="confirm_password" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
                     <input
-                        id="confirmPassword"
+                        id="confirm_password"
                         type="password"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.confirmPassword ? "border-red-500" : "border-gray-400"
+                            errors.confirm_password ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("confirmPassword", { 
+                        {...register("confirm_password", { 
                             required: "Please confirm your password",
                             validate: value => value === password || "Passwords do not match"
                         })}
                         placeholder="Confirm password"
                     />
-                    {errors.confirmPassword && <span className="text-red-500 text-xs">{errors.confirmPassword.message}</span>}
+                    {errors.confirm_password && <span className="text-red-500 text-xs">{errors.confirm_password.message}</span>}
                 </div>
 
                 {/* Language Selection */}

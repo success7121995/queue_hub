@@ -9,16 +9,16 @@ import { SignupFormFields, Address as AddressType } from "@/types/form";
 const COOKIE_KEY = "signupForm";
 
 const countryList = [
-"United States",
-"Canada",
-"United Kingdom",
-"Australia",
-"Hong Kong",
-"Singapore",
-"Malaysia",
-"China",
-"Japan",
-"Other",
+    "United States",
+    "Canada",
+    "United Kingdom",
+    "Australia",
+    "Hong Kong",
+    "Singapore",
+    "Malaysia",
+    "China",
+    "Japan",
+    "Other",
 ];
 
 interface AddressProps {

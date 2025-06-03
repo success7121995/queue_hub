@@ -22,7 +22,7 @@ const FeatureBlock = ({
     index: number;
 }) => {
     const ImageComponent = (
-        <div className="image w-[500px] h-[500px] flex-shrink-0 flex items-center justify-center">
+        <div className="image w-[250px] h-[250px] lg:w-[500px] lg:h-[500px] flex-shrink-0 flex items-center justify-center">
             {/* Placeholder for image */}
             {feature.image ? (
                 <Image src={feature.image || ""} alt={feature.imageAlt || ""} width={feature.imageWidth || 500} height={feature.imageHeight || 500} />

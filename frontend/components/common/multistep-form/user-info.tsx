@@ -73,12 +73,12 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext }) => {
                         <input
                             id="firstName"
                             className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                                errors.firstName ? "border-red-500" : "border-gray-400"
+                                errors.first_name ? "border-red-500" : "border-gray-400"
                             }`}
-                            {...register("firstName", { required: "First name is required" })}
+                            {...register("first_name", { required: "First name is required" })}
                             placeholder="Enter first name"
                         />
-                        {errors.firstName && <span className="text-red-500 text-xs">{errors.firstName.message}</span>}
+                        {errors.first_name && <span className="text-red-500 text-xs">{errors.first_name.message}</span>}
                     </div>
 
                     <div className="flex-1">
@@ -86,12 +86,12 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext }) => {
                         <input
                             id="lastName"
                             className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                                errors.lastName ? "border-red-500" : "border-gray-400"
+                                errors.last_name ? "border-red-500" : "border-gray-400"
                             }`}
-                            {...register("lastName", { required: "Last name is required" })}
+                            {...register("last_name", { required: "Last name is required" })}
                             placeholder="Enter last name"
                         />
-                        {errors.lastName && <span className="text-red-500 text-xs">{errors.lastName.message}</span>}
+                        {errors.last_name && <span className="text-red-500 text-xs">{errors.last_name.message}</span>}
                     </div>
                 </div>
 

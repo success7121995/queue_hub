@@ -67,53 +67,53 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
             <div className="mb-6 flex items-center gap-2">
                 <input
                     type="checkbox"
-                    id="saveAddress"
+                    id="saved_address"
                     className="accent-primary-light w-4 h-4"
-                    {...register("saveAddress")}
+                    {...register("saved_address")}
                 />
-                <label htmlFor="saveAddress" className="text-sm">Use saved billing address</label>
+                <label htmlFor="saved_address" className="text-sm">Use saved billing address</label>
             </div>
 
             <h3 className="text-xl font-bold mb-2 mt-6">Credit Card</h3>
 
             {/* Name on Card */}
             <div className="mb-4">
-                <label htmlFor="name" className="block mb-1 font-semibold text-text-main text-sm">Name on Card</label>
+                <label htmlFor="card_name" className="block mb-1 font-semibold text-text-main text-sm">Name on Card</label>
                 <input
-                    id="name"
-                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.name ? "border-red-500" : "border-gray-400"}`}
-                    {...register("name", { required: "Name on card is required" })}
+                    id="card_name"
+                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.card_name ? "border-red-500" : "border-gray-400"}`}
+                    {...register("card_name", { required: "Name on card is required" })}
                     placeholder="Enter your full name on your card"
                 />
-                {errors.name && <span className="text-red-500 text-xs">{errors.name.message}</span>}
+                {errors.card_name && <span className="text-red-500 text-xs">{errors.card_name.message}</span>}
             </div>
 
             {/* Card Number */}
             <div className="mb-4">
-                <label htmlFor="cardNumber" className="block mb-1 font-semibold text-text-main text-sm">Card Number</label>
+                <label htmlFor="card_number" className="block mb-1 font-semibold text-text-main text-sm">Card Number</label>
                 <input
-                    id="cardNumber"
-                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.cardNumber ? "border-red-500" : "border-gray-400"}`}
-                    {...register("cardNumber", { required: "Card number is required" })}
+                    id="card_number"
+                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.card_number ? "border-red-500" : "border-gray-400"}`}
+                        {...register("card_number", { required: "Card number is required" })}
                     placeholder="Enter your card number"
                     inputMode="numeric"
                     maxLength={19}
                 />
-                {errors.cardNumber && <span className="text-red-500 text-xs">{errors.cardNumber.message}</span>}
+                {errors.card_number && <span className="text-red-500 text-xs">{errors.card_number.message}</span>}
             </div>
 
             {/* Expiration Date & CVC */}
             <div className="flex gap-3 mb-4">
                 <div className="flex-1">
-                    <label htmlFor="expiryDate" className="block mb-1 font-semibold text-text-main text-sm">Expiration Date</label>
+                    <label htmlFor="expiry_date" className="block mb-1 font-semibold text-text-main text-sm">Expiration Date</label>
                     <input
-                        id="expiryDate"
-                        className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.expiryDate ? "border-red-500" : "border-gray-400"}`}
-                        {...register("expiryDate", { required: "Expiration date is required" })}
+                        id="expiry_date"
+                        className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.expiry_date ? "border-red-500" : "border-gray-400"}`}
+                        {...register("expiry_date", { required: "Expiration date is required" })}
                         placeholder="MM / YY"
                         maxLength={7}
                     />
-                    {errors.expiryDate && <span className="text-red-500 text-xs">{errors.expiryDate.message}</span>}
+                    {errors.expiry_date && <span className="text-red-500 text-xs">{errors.expiry_date.message}</span>}
                 </div>
                 <div className="flex-1">
                     <label htmlFor="cvv" className="block mb-1 font-semibold text-text-main text-sm">CVC</label>
@@ -133,20 +133,20 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
             <div className="mb-2 flex items-center gap-2">
                 <input
                 type="checkbox"
-                id="saveCard"
+                id="saved_card"
                 className="accent-primary-light w-4 h-4"
-                {...register("saveCard")}
+                {...register("saved_card")}
                 />
-                <label htmlFor="saveCard" className="text-sm">Save Payment Method</label>
+                <label htmlFor="saved_card" className="text-sm">Save Payment Method</label>
             </div>
 
             {/* Enable Auto Renewal */}
             <div className="mb-6 flex items-center gap-2">
                 <input
                 type="checkbox"
-                id="autoRenewal"
+                id="auto_renewal"
                 className="accent-primary-light w-4 h-4"
-                {...register("autoRenewal")}
+                {...register("auto_renewal")}
                 />
                 <label htmlFor="autoRenewal" className="text-sm">Enable Auto Renewal</label>
             </div>

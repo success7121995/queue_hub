@@ -20,14 +20,14 @@ const plans = [
 const COOKIE_KEY = "signupForm";
 
 const defaultValues: SignupFormFields["signup"] = {
-  businessName: "",
-  firstName: "",
-  lastName: "",
+  business_name: "",
+  fname: "",
+  lname: "",
   username: "",
   email: "",
-  businessTel: "",
+  tel: "",
   password: "",
-  confirmPassword: "",
+  confirm_password: "",
 };
 
 const Signup: React.FC<SignupProps> = ({ onNext }) => {
@@ -116,16 +116,16 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
 
                 {/* Business Name */}
                 <div>
-                    <label htmlFor="businessName" className="block mb-1 font-semibold text-text-main text-sm">Business Name</label>
+                    <label htmlFor="business_name" className="block mb-1 font-semibold text-text-main text-sm">Business Name</label>
                     <input
-                        id="businessName"
+                        id="business_name"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.businessName ? "border-red-500" : "border-gray-400"
+                            errors.business_name ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("businessName", { required: "Business name is required" })}
+                        {...register("business_name", { required: "Business name is required" })}
                         placeholder="Enter your business name"
                     />
-                    {errors.businessName && <p className="text-xs text-red-500 mt-1">{errors.businessName.message}</p>}
+                    {errors.business_name && <p className="text-xs text-red-500 mt-1">{errors.business_name.message}</p>}
                 </div>
 
                 {/* First Name and Last Name */}
@@ -135,24 +135,24 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     <input
                         id="firstName"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.firstName ? "border-red-500" : "border-gray-400"
+                            errors.fname ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("firstName", { required: "First name is required" })}
+                        {...register("fname", { required: "First name is required" })}
                         placeholder="Enter your first name"
                     />
-                    {errors.firstName && <span className="text-red-500 text-xs">{errors.firstName.message}</span>}
+                    {errors.fname && <span className="text-red-500 text-xs">{errors.fname.message}</span>}
                     </div>
                     <div className="flex-1">
                     <label htmlFor="lastName" className="block mb-1 font-semibold text-text-main text-sm">Last Name</label>
                     <input
                         id="lastName"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.lastName ? "border-red-500" : "border-gray-400"
+                            errors.lname ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("lastName", { required: "Last name is required" })}
+                        {...register("lname", { required: "Last name is required" })}
                         placeholder="Enter your last name"
                     />
-                    {errors.lastName && <span className="text-red-500 text-xs">{errors.lastName.message}</span>}
+                    {errors.lname && <span className="text-red-500 text-xs">{errors.lname.message}</span>}
                     </div>
                 </div>
 
@@ -187,16 +187,16 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
 
                 {/* Business Tel */}
                 <div>
-                    <label htmlFor="businessTel" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
+                    <label htmlFor="business_tel" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
                     <input
-                        id="businessTel"
+                        id="business_tel"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.businessTel ? "border-red-500" : "border-gray-400"
+                            errors.tel ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("businessTel", { required: "Business Tel is required" })}
+                        {...register("tel", { required: "Business Tel is required" })}
                         placeholder="Enter your business tel"
                     />
-                    {errors.businessTel && <span className="text-red-500 text-xs">{errors.businessTel.message}</span>}
+                    {errors.tel && <span className="text-red-500 text-xs">{errors.tel.message}</span>}
                 </div>
                         
                 {/* Password */}
@@ -217,17 +217,17 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                 {/* Confirm Password */}
                 <div>
         
-                    <label htmlFor="confirmPassword" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
+                    <label htmlFor="confirm_password" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
                     <input
-                        id="confirmPassword"
+                        id="confirm_password"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.confirmPassword ? "border-red-500" : "border-gray-400"
+                            errors.confirm_password ? "border-red-500" : "border-gray-400"
                         }`}
                         type="password"
-                        {...register("confirmPassword", { required: "Confirm password is required" })}
+                        {...register("confirm_password", { required: "Confirm password is required" })}
                         placeholder="Confirm your password"
                     />
-                    {errors.confirmPassword && <span className="text-red-500 text-xs">{errors.confirmPassword.message}</span>}
+                    {errors.confirm_password && <span className="text-red-500 text-xs">{errors.confirm_password.message}</span>}
                 </div>
 
                 {/* Privacy Policy and Terms of Service */}

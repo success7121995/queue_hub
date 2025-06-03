@@ -1,13 +1,13 @@
 export interface SignupFormFields {
     signup: {
-        businessName: string;
-        firstName: string;
-        lastName: string;
+        business_name: string;
+        fname: string;
+        lname: string;
         username: string;
         email: string;
-        businessTel: string;
+        tel: string;
         password: string;
-        confirmPassword: string;
+        confirm_password: string;
     },
     address: Address,
     payment: Payment;
@@ -16,17 +16,17 @@ export interface SignupFormFields {
 export interface AddBranchFormFields {
     branchInfo: {
         name: string;
-        contactPerson: string;
+        contact_person: string;
         email: string;
-        branchTel: string;
+        branch_tel: string;
         description: string;
         features: string[];
         tags: string[];
-        openingHours: {
+        opening_hours: {
             id: number;
             dayOfWeek: number;
-            openTime: string;
-            closeTime: string;
+            open_time: string;
+            close_time: string;
             closed: boolean;
         }[];
     };
@@ -36,8 +36,8 @@ export interface AddBranchFormFields {
 
 export interface AddAdminFormFields {
     userInfo: {
-        firstName: string;
-        lastName: string;
+        first_name: string;
+        last_name: string;
         email: string;
         phone: string;
         position: string;
@@ -46,7 +46,7 @@ export interface AddAdminFormFields {
     accountSetup: {
         username: string;
         password: string;
-        confirmPassword: string;
+        confirm_password: string;
         lang: 'en-GB' | 'zh-CN' | 'zh-HK' | 'zh-TW';
     }
 }
@@ -62,11 +62,11 @@ export type Address = {
 } 
 
 export type Payment = {
-    name: string;
-    cardNumber: string;
-    expiryDate: string;
+    card_name: string;
+    card_number: string;
+    expiry_date: string;
     cvv: string;
-    saveAddress?: boolean;
+    saved_address?: boolean;
     country?: string;
     street?: string;
     apt?: string;
@@ -74,6 +74,6 @@ export type Payment = {
     city?: string;
     state?: string;
     zip?: string;
-    saveCard?: boolean;
-    autoRenewal?: boolean;
+    saved_card?: boolean;
+    auto_renewal?: boolean;
 }
