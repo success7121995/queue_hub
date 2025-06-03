@@ -1,15 +1,21 @@
 import { Request, Response, NextFunction } from "express";
-import { PrismaClient, User, Merchant, UserRole, UserStatus, ApprovalStatus, ActivityType, Prisma } from "@prisma/client";
+import { PrismaClient, User, UserRole, ActivityType, Prisma, ApprovalStatus, MerchantRole } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
-import { AppError } from "../helpers/app-error";
-import { insertActivityLog } from "../helpers/activity-log";
+import { AppError } from "../utils/app-error";
+import { insertActivityLog } from "../utils/activity-log";
 import { 
     checkUserExists, 
     validatePasswords, 
     hashPassword, 
     validateUserAccess
 } from "../utils/userUtils";
-import { getAllMerchants, getMerchant } from "../services/merchant-service";
+import {
+    getAllMerchants,
+    getMerchant,
+    updateMerchantData,
+    deleteMerchantData
+} from "../services/merchant-services";
+import { deleteUserData } from "../services/user-services";
 
 const prisma = new PrismaClient();
 
@@ -64,6 +70,7 @@ export const viewAllAdminUsers = async (req: Request, res: Response, next: NextF
  * View a single admin user
  * @param req - The request object
  * @param res - The response object
+ * @param next - The next function
  */
 export const viewAdminUser = async (req: Request, res: Response, next: NextFunction) => {
     const sessionUser = req.session.user;
@@ -104,6 +111,7 @@ export const viewAdminUser = async (req: Request, res: Response, next: NextFunct
  * Create admin user
  * @param req - The request object
  * @param res - The response object
+ * @param next - The next function
  */
 export const createAdmin = async (req: Request, res: Response, next: NextFunction) => {
     const sessionUser = req.session.user;
@@ -113,7 +121,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
     await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
 
     const {
-        title, lname, fname, username, email, phone, password, confirm_password, lang, role
+        lname, fname, username, email, phone, password, confirm_password, lang, role
     } = req.body;
 
     let error: string | null = null;
@@ -132,7 +140,6 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
             const user: User = await tx.user.create({
                 data: {
                     user_id: uuidv4() + "-" + Date.now(),
-                    title,
                     username,
                     lname,
                     fname,
@@ -184,7 +191,7 @@ export const updateAdmin = async (req: Request, res: Response, next: NextFunctio
     await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
 
     const {
-        user_id, title, lname, fname, username, email, phone, password, confirm_password, lang, role
+        user_id, lname, fname, username, email, phone, lang, role
     } = req.body;
 
     let error: string | null = null;
@@ -204,7 +211,7 @@ export const updateAdmin = async (req: Request, res: Response, next: NextFunctio
             const user: User = await tx.user.update({
                 where: { user_id },
                 data: {
-                    title, lname, fname, username, email, phone, lang, role
+                    lname, fname, username, email, phone, lang, role
                 }
             });
 
@@ -305,4 +312,109 @@ export const viewMerchant = async (req: Request, res: Response, next: NextFuncti
 
     const { merchant } = await getMerchant(merchant_id);
     res.status(200).json({ message: "Merchant fetched successfully", success: true, data: merchant });
+}
+
+/**
+ * Update Merchant
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const updateMerchant = async (req: Request, res: Response, next: NextFunction) => {
+    const sessionUser = req.session.user;
+    if (!sessionUser) {
+        throw new AppError("Unauthorized", 401);
+    }
+
+    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
+    const { merchant_id } = req.params;
+    const { merchant } = await updateMerchantData(merchant_id, sessionUser.userId, req.body);
+    res.status(200).json({ message: "Merchant updated successfully", success: true, data: merchant });
+}
+
+/**
+ * Approve Merchant
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const approveMerchant = async (req: Request, res: Response, next: NextFunction) => {
+    const sessionUser = req.session.user;
+    if (!sessionUser) {
+        throw new AppError("Unauthorized", 401);
+    }
+
+    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
+    const { merchant_id } = req.params;
+    const { merchant } = await updateMerchantData(merchant_id, sessionUser.userId, { approval_status: ApprovalStatus.APPROVED });
+
+    // Send email to merchant
+    // TODO: Send email to merchant
+
+    res.status(200).json({ message: "Merchant approved", success: true, data: merchant });
+}
+
+/**
+ * Reject Merchant
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const rejectMerchant = async (req: Request, res: Response, next: NextFunction) => {
+    const sessionUser = req.session.user;
+    if (!sessionUser) {
+        throw new AppError("Unauthorized", 401);
+    }
+
+    const { reason } = req.body;
+
+    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
+    const { merchant_id } = req.params;
+    const { merchant } = await updateMerchantData(merchant_id, sessionUser.userId, { approval_status: ApprovalStatus.REJECTED });
+
+    // Send email to merchant
+    // TODO: Send email to merchant
+    console.log(reason);
+
+    res.status(200).json({ message: "Merchant rejected", success: true, data: merchant });
+}
+
+/**
+ * Delete Merchant
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const deleteMerchant = async (req: Request, res: Response, next: NextFunction) => {
+    // const sessionUser = req.session.user;
+    // if (!sessionUser) {
+    //     throw new AppError("Unauthorized", 401);
+    // }
+
+    // await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
+
+    const { merchant_id } = req.params;
+    const { merchant } = await deleteMerchantData(merchant_id, '123');
+
+    res.status(200).json({ message: "Merchant deleted successfully", success: true, data: merchant });
+}
+
+/**
+ * Delete User
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+    // const sessionUser = req.session.user;
+    // if (!sessionUser) {
+    //     throw new AppError("Unauthorized", 401);
+    // } 
+
+    // await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
+
+    const { user_id } = req.params;
+    const { user } = await deleteUserData(user_id);
+
+    res.status(200).json({ message: "User deleted successfully", success: true, data: user });
 }

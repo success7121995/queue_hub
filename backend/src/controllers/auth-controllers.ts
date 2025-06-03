@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import { PrismaClient, User, Merchant, UserRole, UserStatus, ApprovalStatus, ActivityType, Prisma } from "@prisma/client";
+import { PrismaClient, User, Merchant, UserRole, UserStatus, ApprovalStatus, ActivityType, Prisma, SubscriptionStatus, Lang } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
-import { AppError } from "../helpers/app-error";
-import { insertActivityLog } from "../helpers/activity-log";
+import { AppError } from "../utils/app-error";
+import { insertActivityLog } from "../utils/activity-log";
+import { generateVerifyLink } from "../services/verification-services";
 import { 
     checkUserExists, 
     validatePasswords, 
@@ -21,9 +22,15 @@ const prisma = new PrismaClient();
  */
 export const merchantSignup = async (req: Request, res: Response, next: NextFunction) => {
     const {
-        plan, title, business_name, lname, fname, username, email, phone, password, confirm_password, lang,
+        plan, business_name, lname, fname, username, email, phone, password, confirm_password, lang,
         country, state, city, zip, street, unit, floor,
-        card_token, save_card
+        card_token, save_card, auto_renewal
+    }: {
+        plan: SubscriptionStatus;
+        business_name: string; lname: string; fname: string; username: string; email: string; phone: string;
+        password: string; confirm_password: string; lang: Lang;
+        country: string; state: string; city: string; zip: string; street: string; unit: string; floor: string;
+        card_token: string; save_card: boolean; auto_renewal: boolean;
     } = req.body;
 
     let error: string | null = null;
@@ -42,7 +49,6 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
             const user: User = await tx.user.create({
                 data: {
                     user_id: uuidv4() + "-" + Date.now(),
-                    title,
                     username,
                     lname,
                     fname,
@@ -64,6 +70,7 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
                     phone,
                     email,
                     subscription_status: plan,
+                    auto_renewal,
                     address: {
                         create: {
                             address_id: uuidv4() + "-" + Date.now(),
@@ -88,8 +95,12 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
             throw new AppError("Failed to create merchant", 400);
         }
 
+        // Send verification email
+        console.log(result);
+        // TODO: Send verification email
+
         success = true;
-        res.status(200).json({ message: "Merchant created successfully", success: true });
+        res.status(200).json({ message: "Merchant created successfully", success: true, redirect: `http://localhost:3000` });
 
     } catch (err) {
         error = err instanceof Error ? err.stack || err.message : JSON.stringify(err);
@@ -160,7 +171,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         const safeUser = {
             userId: result.user.user_id,
             role: result.user.role,
-            username: result.user.username
+            username: result.user.username,
+            merchant_id: result.merchant?.merchant_id || null
         }
 
         req.session.user = safeUser;
@@ -223,4 +235,14 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
             actionData: req.session.user || { message: 'Failed to logout' }
         });
     }
-} 
+}
+
+/**
+ * Verify Email
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const verifyMerchantEmail = async (req: Request, res: Response, next: NextFunction) => {
+    const { verification_token } = req.params;
+}

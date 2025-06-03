@@ -4,6 +4,7 @@ import session from "express-session";
 import { UserRole } from "@prisma/client";
 import routes from "./routes";
 import { errorHandler } from "./middlewares/error-hander";
+import cors from "cors";
 
 declare module 'express-session' {
     interface Session {
@@ -11,6 +12,7 @@ declare module 'express-session' {
             userId: string;
             role: UserRole;
             username: string;
+            merchant_id?: string | null;
         };
     }
 }
@@ -19,6 +21,10 @@ dotenv.config();
 
 const app = express();
 
+app.use(cors({
+	origin: "http://localhost:3000",
+	credentials: true,
+}));
 app.use(express.json());
 app.use(session({
 	name: "session_id",

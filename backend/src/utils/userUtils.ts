@@ -1,6 +1,6 @@
-import { PrismaClient, User, UserRole } from "@prisma/client";
+import { PrismaClient, User, UserRole, MerchantRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { AppError } from "../helpers/app-error";
+import { AppError } from "./app-error";
 
 const prisma = new PrismaClient();
 
@@ -49,8 +49,14 @@ export async function hashPassword(password: string): Promise<string> {
  * @param user - The user to validate
  * @param allowedRoles - The allowed roles
  */
-export async function validateUserAccess(user: { role: UserRole } | null, allowedRoles: UserRole[]): Promise<void> {
-    if (!user || !allowedRoles.includes(user.role)) {
+export async function validateUserAccess(
+    user: { role?: UserRole; merchant_role?: MerchantRole } | null,
+    allowedRoles: (UserRole | MerchantRole)[]
+): Promise<void> {
+    const userRole = user?.role || user?.merchant_role;
+
+    // If the user is not found or the user role is not in the allowed roles, throw an error
+    if (!user || !userRole || !allowedRoles.includes(userRole)) {
         throw new AppError("Unauthorized", 401);
     }
 }

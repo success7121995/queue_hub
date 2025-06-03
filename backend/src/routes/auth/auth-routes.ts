@@ -3,7 +3,7 @@ import {
     merchantSignup,
     login,
     logout
-} from "../../controllers/auth-controller";
+} from "../../controllers/auth-controllers";
 
 const router = Router();
 

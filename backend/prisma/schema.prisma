@@ -7,14 +7,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Enum
-enum Title {
-  MR
-  MRS
-  MS
-  DR
-}
-
 enum UserRole {
   GUEST
   CUSTOMER
@@ -247,7 +239,6 @@ enum LegalDocumentType {
 // User + Auth
 model User {
   user_id                        String                       @id @default(uuid())
-  title                          Title                        @default(MR)
   username                       String                       @unique
   lname                          String
   fname                          String
@@ -306,6 +297,7 @@ model Merchant {
   subscription_status SubscriptionStatus    @default(TRIAL)
   subscription_start  DateTime?
   subscription_end    DateTime?
+  auto_renewal        Boolean               @default(false)
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
   approved_at         DateTime?             @updatedAt
