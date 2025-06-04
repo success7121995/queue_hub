@@ -36,7 +36,7 @@ const Footer = () => {
                     <div className="font-bold mb-2 text-primary">Product</div>
                     <ul className="space-y-1 text-sm">
                     <li><a href="#" className="hover:underline">How It Works</a></li>
-                    <li><a href="/feature/real-time-updates" className="hover:underline">Features</a></li>
+                    <li><a href="/features/real-time-updates" className="hover:underline">Features</a></li>
                     <li><a href="#pricing" className="hover:underline">Pricing</a></li>
                     <li><a href="#" className="hover:underline">FAQ</a></li>
                     <li><a href="/signup" className="hover:underline">Try it Free</a></li>
