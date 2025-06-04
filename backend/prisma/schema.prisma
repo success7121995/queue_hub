@@ -244,7 +244,7 @@ model User {
   fname                          String
   email                          String                       @unique
   password_hash                  String?
-  phone                          String
+  phone                          String                       @unique
   role                           UserRole                     @default(GUEST)
   status                         UserStatus                   @default(INACTIVE)
   registration_date              DateTime                     @default(now())

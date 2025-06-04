@@ -10,33 +10,37 @@ declare module 'express-session' {
     interface Session {
         user?: {
             userId: string;
-            role: UserRole;
+            role: string;
             username: string;
-            merchant_id?: string | null;
+            merchant_id: string | null;
         };
+        redirect_token?: string;
     }
-}
+} 
 
 dotenv.config();
 
 const app = express();
 
 app.use(cors({
-	origin: "http://localhost:3000",
+	origin: process.env.NEXT_PUBLIC_FRONTEND_URL,
 	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
 app.use(session({
 	name: "session_id",
 	secret: process.env.SESSION_SECRET || "",
 	resave: false,
-	saveUninitialized: true,
+	saveUninitialized: false,
 	cookie: {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		maxAge: 24 * 60 * 60 * 1000, // 24 hours
-		sameSite: "strict",
+		sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 		path: "/",
+		domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined
 	}
 }));
 

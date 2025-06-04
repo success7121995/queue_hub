@@ -5,6 +5,8 @@ import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import LoadingIndicator from "@/components/common/loading-indicator";
 
 const DashboardNavbar = () => {
 	const router = useRouter();
@@ -56,8 +58,51 @@ const DashboardNavbar = () => {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
+	/**
+	 * Logout mutation
+	 */
+	const logoutMutation = useMutation({
+		mutationFn: async () => {
+			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to logout');
+			}
+
+			// Force a hard reload to clear any cached state
+			window.location.href = '/';
+			return res.json();
+		},
+		onError: (error) => {
+			console.error("Logout failed:", error);
+			// Even on error, redirect to home page
+			window.location.href = '/';
+		},
+	});
+
+	/**
+	 * Logout handler
+	 */
+	const handleLogout = () => {
+		logoutMutation.mutate();
+	}
+
 	return (
 		<nav className="font-regular-eng fixed top-0 left-0 w-full z-[1000] flex items-center px-4 sm:px-8 py-3 sm:py-4 border-b border-gray-200 bg-primary shadow-sm">
+			{/* Loading overlay */}
+			{logoutMutation.isPending && (
+				<LoadingIndicator 
+					fullScreen 
+					text="Logging out..." 
+					className="bg-white/80"
+				/>
+			)}
 
 			{/* Logo and QueueHub always visible */}
 			<div className="flex items-center space-x-2">
@@ -130,7 +175,17 @@ const DashboardNavbar = () => {
 							<button className="w-full text-left py-1">Billing</button>
 							<button className="w-full text-left py-1">Settings</button>
 							<hr className="my-2" />
-							<button className="w-full border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100">Logout</button>
+							<button 
+								className="w-full border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
+								onClick={handleLogout}
+								disabled={logoutMutation.isPending}
+							>
+								{logoutMutation.isPending ? (
+									<LoadingIndicator size="sm" className="!mt-0" />
+								) : (
+									'Logout'
+								)}
+							</button>
 						</div>
 					)}
 				</div>
@@ -192,9 +247,17 @@ const DashboardNavbar = () => {
 								<Link href="/account" className="text-left">Account</Link>
 								<Link href="/billing" className="text-left">Billing</Link>
 								<Link href="/settings" className="text-left">Settings</Link>
-								<button className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100" onClick={() => {
-									router.push("/");
-								}}>Logout</button>
+								<button 
+									className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
+									onClick={handleLogout}
+									disabled={logoutMutation.isPending}
+								>
+									{logoutMutation.isPending ? (
+										<LoadingIndicator size="sm" className="!mt-0" />
+									) : (
+										'Logout'
+									)}
+								</button>
 							</div>
 						)}
 					</div>

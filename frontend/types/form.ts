@@ -9,7 +9,7 @@ export interface SignupFormFields {
         password: string;
         confirm_password: string;
         lang: "EN" | "ZH-HK" | "ZH-TW" | "ZH-CN";
-        plan: "FREE-TRIAL" | "ESSENTIAL" | "GROWTH";
+        plan: "TRIAL" | "ESSENTIAL" | "GROWTH";
     },
     address: Address,
     payment: Payment;

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import styles from './page.module.css';
 
 import {
 	Hero,
@@ -17,14 +18,14 @@ const Home = () => {
 	}
 
 	return (
-		<>
+		<div className={styles.homeContainer}>
 			<Hero />
 			<CoreFeatures />
 			<BusinessPartners />
 			<Testimonials />
 			<PricingHorizonCards />
 			<DemoSlider />
-		</>
+		</div>
 	);
 };
 

@@ -36,7 +36,7 @@ export const viewAllAdminUsers = async (req: Request, res: Response, next: NextF
         order_by: 'username' | 'lname' | 'fname' | 'email' | 'last_login' | 'created_at' | 'updated_at'
     };
 
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.DEVELOPER, UserRole.SUPPORT_AGENT]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.DEVELOPER, UserRole.SUPPORT_AGENT]);
 
     let error: string | null = null;
     let result: { users: User[]; total: number; } | null = null;
@@ -77,7 +77,7 @@ export const viewAdminUser = async (req: Request, res: Response, next: NextFunct
     if (!sessionUser) {
         throw new AppError("Unauthorized", 401);
     }
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.DEVELOPER, UserRole.SUPPORT_AGENT]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.DEVELOPER, UserRole.SUPPORT_AGENT]);
 
     const { user_id } = req.params;
 
@@ -118,7 +118,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
     if (!sessionUser) {
         throw new AppError("Unauthorized", 401);
     }
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
 
     const {
         lname, fname, username, email, phone, password, confirm_password, lang, role
@@ -172,7 +172,7 @@ export const createAdmin = async (req: Request, res: Response, next: NextFunctio
             success,
             status: res.statusCode || 500,
             error,
-            actionData: result || { message: 'Failed to create admin user' }
+            actionData: result || { message: 'Failed to create admin user' },   
         });
     }
 }
@@ -188,7 +188,7 @@ export const updateAdmin = async (req: Request, res: Response, next: NextFunctio
     if (!sessionUser) {
         throw new AppError("Unauthorized", 401);
     }
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
 
     const {
         user_id, lname, fname, username, email, phone, lang, role
@@ -234,7 +234,7 @@ export const updateAdmin = async (req: Request, res: Response, next: NextFunctio
             success: !error,
             status: res.statusCode,
             error: error || null,
-            actionData: result || { message: 'Failed to update admin user' }
+            actionData: result || { message: 'Failed to update admin user' },
         });
     }
 }
@@ -251,7 +251,7 @@ export const deleteAdmin = async (req: Request, res: Response, next: NextFunctio
         return next(new AppError("Unauthorized", 401));
     }
 
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN]);
 
     const { user_id } = req.body;
 
@@ -326,7 +326,7 @@ export const updateMerchant = async (req: Request, res: Response, next: NextFunc
         throw new AppError("Unauthorized", 401);
     }
 
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
     const { merchant_id } = req.params;
     const { merchant } = await updateMerchantData(merchant_id, sessionUser.userId, req.body);
     res.status(200).json({ message: "Merchant updated successfully", success: true, data: merchant });
@@ -344,7 +344,7 @@ export const approveMerchant = async (req: Request, res: Response, next: NextFun
         throw new AppError("Unauthorized", 401);
     }
 
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
     const { merchant_id } = req.params;
     const { merchant } = await updateMerchantData(merchant_id, sessionUser.userId, { approval_status: ApprovalStatus.APPROVED });
 
@@ -368,7 +368,7 @@ export const rejectMerchant = async (req: Request, res: Response, next: NextFunc
 
     const { reason } = req.body;
 
-    await validateUserAccess({ role: sessionUser.role }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
+    await validateUserAccess({ role: sessionUser.role as UserRole }, [UserRole.SUPER_ADMIN, UserRole.OPS_ADMIN, UserRole.SUPPORT_AGENT]);
     const { merchant_id } = req.params;
     const { merchant } = await updateMerchantData(merchant_id, sessionUser.userId, { approval_status: ApprovalStatus.REJECTED });
 

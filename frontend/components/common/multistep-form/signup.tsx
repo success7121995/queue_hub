@@ -29,7 +29,7 @@ const defaultValues: SignupFormFields["signup"] = {
   password: "",
   confirm_password: "",
   lang: "EN",
-  plan: "FREE-TRIAL"
+  plan: "TRIAL"
 };
 
 const Signup: React.FC<SignupProps> = ({ onNext }) => {
@@ -79,6 +79,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
         Cookies.set(COOKIE_KEY, JSON.stringify({
             ...cookieData,
             ...data,
+            
             plan: selectedPlan
         }));
         if (onNext) onNext();

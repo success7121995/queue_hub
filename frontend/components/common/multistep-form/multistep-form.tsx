@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import Address from "./address";
 import BranchInfo from "./branch-info";
-import Complete from "./complete";
+import Preview from "./preview";
 import Payment from "./payment";
 import Signup from "./signup";
 import UserInfo from "./user-info";
 import AccountSetup from "./account-setup";
 import Stepper from "../stepper";
+import Success from "./success";
 import { useRouter } from "next/navigation";
 import { FormProvider } from "@/constant/form-provider";
 
@@ -66,7 +67,7 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                     case 1: return <Signup onNext={handleNext} />;
                     case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 4: return <Complete form="signup" />;
+                    case 4: return <Preview form="signup" onPrev={handlePrev} />;
                     default: return null;
                 }
             case "add-branch":
@@ -74,21 +75,21 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                     case 1: return <BranchInfo onNext={handleNext} />;
                     case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 4: return <Complete form="add-branch" />;
+                    case 4: return <Preview form="add-branch" onPrev={handlePrev} />;
                     default: return null;
                 }
             case "add-employee":
                 switch (currentStep) {
                     case 1: return <UserInfo onNext={handleNext} />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
-                    case 3: return <Complete form="add-employee" />
+                    case 3: return <Preview form="add-employee" onPrev={handlePrev} />
                     default: return null;
                 }
             case "add-admin":
                 switch (currentStep) {
                     case 1: return <UserInfo onNext={handleNext} />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
-                    case 3: return <Complete form="add-admin" />;
+                    case 3: return <Preview form="add-admin" onPrev={handlePrev} />;
                     default: return null;
                 }
             default:

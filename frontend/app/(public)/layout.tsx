@@ -1,21 +1,21 @@
 import { Metadata } from "next";
+import { PublicNavbar, Footer } from "@/components";
+import styles from './layout.module.css';
 
 export const metadata: Metadata = {
     title: "Public",
     description: "Public page",
 }
 
-import { PublicNavbar, Footer } from "@/components";
-
 const PublicLayout = ({children}: {children: React.ReactNode}) => {
     return (
-        <>
+        <div className={styles.container}>
             <PublicNavbar />
-            <div className="mt-15">
+            <main className={styles.main}>
                 {children}
-            </div>
+            </main>
             <Footer />
-        </>
+        </div>
     )
 }
 

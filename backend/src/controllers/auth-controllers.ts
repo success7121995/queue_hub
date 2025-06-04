@@ -1,5 +1,17 @@
 import { NextFunction, Request, Response } from "express";
-import { PrismaClient, User, Merchant, UserRole, UserStatus, ApprovalStatus, ActivityType, Prisma, SubscriptionStatus, Lang } from "@prisma/client";
+import {
+    PrismaClient,
+    User,
+    Merchant,
+    UserRole,
+    UserStatus,
+    ApprovalStatus,
+    ActivityType,
+    Prisma,
+    SubscriptionStatus,
+    Lang,
+    MerchantRole
+} from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
 import { insertActivityLog } from "../utils/activity-log";
@@ -13,6 +25,7 @@ import {
 } from "../utils/userUtils";
 
 const prisma = new PrismaClient();
+const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
 
 /**
  * Merchant signup
@@ -38,7 +51,7 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
     let result: { user: User; merchant: Merchant; } | null = null;
 
     try {
-        if (await checkUserExists(email, username)) {
+        if (await checkUserExists(email, username, phone)) {
             throw new AppError("User already exists", 400);
         }
 
@@ -57,7 +70,7 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
                     phone,
                     role: UserRole.MERCHANT,
                     status: UserStatus.INACTIVE,
-                    lang,
+                    lang
                 }
             });
 
@@ -83,10 +96,19 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
                             floor
                         }
                     }
+                },
+            });
+
+            const userMerchant = await tx.userMerchant.create({
+                data: {
+                    user_id: user.user_id,
+                    merchant_id: merchant.merchant_id,
+                    position: 'Owner',
+                    role: MerchantRole.OWNER
                 }
             });
 
-            return { user, merchant };
+            return { user, merchant, userMerchant };
         }, {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         });
@@ -100,12 +122,23 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
         // TODO: Send verification email
 
         success = true;
-        res.status(200).json({ message: "Merchant created successfully", success: true, redirect: `http://localhost:3000` });
+        // Generate a redirect token (in production, this should be a secure token)
+        const redirect_token = uuidv4();
+        
+        // Store the redirect token in session
+        req.session.redirect_token = redirect_token;
+        
+        res.status(200).json({ 
+            message: "Merchant created successfully", 
+            success: true, 
+            redirect_token 
+        });
 
     } catch (err) {
         error = err instanceof Error ? err.stack || err.message : JSON.stringify(err);
         success = false;
-        next(err);
+
+        next(err instanceof AppError ? err : new AppError("Failed to signup merchant", 500));
     } finally {
         await insertActivityLog({
             actionType: ActivityType.CREATE_MERCHANT,
@@ -113,7 +146,7 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
             success,
             status: res.statusCode || 500,
             error,
-            actionData: result || { message: 'Failed to signup merchant' }
+            actionData: result || { message: 'Failed to signup merchant' },
         });
     }
 }
@@ -152,7 +185,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                     include: { merchant: true }
                 });
 
+                console.log(userMerchant);
+
                 if (!userMerchant?.merchant || userMerchant.merchant.approval_status !== ApprovalStatus.APPROVED) {
+                    console.log(userMerchant?.merchant.approval_status);
                     throw new AppError("Merchant not approved", 400);
                 }
 
@@ -176,6 +212,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         }
 
         req.session.user = safeUser;
+        success = true;
 
         res.status(200).json({
             message: "Login successful",
@@ -183,22 +220,23 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             user: result.user,
             merchant: result.merchant,
             redirect: result.user.role === UserRole.MERCHANT
-                ? `http://localhost:3000/dashboard/${result.merchant?.merchant_id}/view-live-queues`
-                : '/'
+                ? `${frontendUrl}/dashboard/${result.merchant?.merchant_id}/view-live-queues`
+                : `${frontendUrl}/dashboard/2a0b68db-d948-44d3-8967-ec3d106f31ff-1749016133439/view-live-queues`
         });
 
     } catch (err) {
         error = err instanceof Error ? err.stack || err.message : JSON.stringify(err);
         success = false;
-        next(err);
+        res.status(err instanceof AppError && err.statusCode ? err.statusCode : 500);
+        next(err instanceof AppError ? err : new AppError("Failed to login", 500));
     } finally {
         await insertActivityLog({
             actionType: ActivityType.LOGIN_USER,
             userId: result?.user?.user_id || '',
             success,
-            status: res.statusCode || 500,
+            status: res.statusCode,
             error,
-            actionData: result || { message: 'Failed to login' }
+            actionData: result || { message: 'Failed to login' },
         });
     }
 }
@@ -212,28 +250,45 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 export const logout = async (req: Request, res: Response, next: NextFunction) => {
     let error: string | null = null;
     let success = false;
+    const userId = req.session.user?.userId;
 
     try {
+        // Clear the session cookie
+        res.clearCookie('session_id', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            path: "/",
+            domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : undefined
+        });
+
+        // Destroy the session
         req.session.destroy((err) => {
             if (err) {
-                throw new AppError("Failed to logout", 400);
+                error = err.message;
+                success = false;
+                res.status(400).json({ message: "Failed to logout", success: false });
+                return;
             }
-    
+            success = true;
             res.status(200).json({ message: "Logout successful", success: true });
         });
     } catch (err) {
         error = err instanceof Error ? err.stack || err.message : JSON.stringify(err);
         success = false;
-        next(err);
+        res.status(500).json({ message: "Failed to logout", success: false });
+        next(err instanceof AppError ? err : new AppError("Failed to logout", 500));
     } finally {
-        await insertActivityLog({
-            actionType: ActivityType.LOGOUT_USER,
-            userId: req.session.user?.userId || '',
-            success,
-            status: res.statusCode || 500,
-            error,
-            actionData: req.session.user || { message: 'Failed to logout' }
-        });
+        if (userId) {
+            await insertActivityLog({
+                actionType: ActivityType.LOGOUT_USER,
+                userId,
+                success,
+                status: res.statusCode,
+                error,
+                actionData: { message: success ? 'Logout successful' : 'Failed to logout' },
+            });
+        }
     }
 }
 
@@ -246,3 +301,77 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 export const verifyMerchantEmail = async (req: Request, res: Response, next: NextFunction) => {
     const { verification_token } = req.params;
 }
+
+/**
+ * Handle secure redirect
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const handleRedirect = async (req: Request, res: Response, next: NextFunction) => {
+    const { redirect_token } = req.params;
+    const sessionUser = req.session.user;
+    const sessionRedirectToken = req.session.redirect_token;
+
+    try {
+        // Verify the redirect token matches the one in session
+        if (!sessionRedirectToken || redirect_token !== sessionRedirectToken) {
+            throw new AppError("Invalid redirect token", 400);
+        }
+
+        // Clear the redirect token after use
+        delete req.session.redirect_token;
+
+        // Determine target URL based on user role
+        let targetPath = '/';
+        
+        if (sessionUser) {
+            if (sessionUser.role === UserRole.MERCHANT && sessionUser.merchant_id) {
+                targetPath = `/dashboard/${sessionUser.merchant_id}/view-live-queues`;
+            } else if (sessionUser.role === UserRole.SUPER_ADMIN) {
+                targetPath = '/admin/dashboard';
+            }
+        }
+
+        // Return the full frontend URL
+        res.status(200).json({ 
+            success: true, 
+            redirect_url: `${frontendUrl}${targetPath}`
+        });
+    } catch (err) {
+        next(err instanceof AppError ? err : new AppError("Failed to process redirect", 500));
+    }
+}
+
+/**
+ * Verify session status
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next function
+ */
+export const verifySession = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = req.session.user;
+        console.log('Session user in verifySession:', user); // Debug log
+
+        if (!user) {
+            throw new AppError("No active session", 401);
+        }
+
+        // Return minimal user info needed by frontend
+        const response = {
+            success: true,
+            user: {
+                userId: user.userId,
+                role: user.role,
+                username: user.username,
+                merchant_id: user.merchant_id,
+            }
+        };
+
+        res.status(200).json(response);
+    } catch (err) {
+        console.error('Session verification error:', err);
+        next(err instanceof AppError ? err : new AppError("Failed to verify session", 500));
+    }
+};

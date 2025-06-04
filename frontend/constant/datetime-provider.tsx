@@ -34,14 +34,11 @@ const DateTimeProvider = ({ children }: { children: React.ReactNode }) => {
         }).format(date);
     };
 
-
-	return (
-		<DateTimeContext.Provider value={{
-            formatDate
-        }}>
-			{children}
-		</DateTimeContext.Provider>
-	)
+    return (
+        <DateTimeContext.Provider value={{ formatDate }}>
+            {children}
+        </DateTimeContext.Provider>
+    );
 }
 
 export default DateTimeProvider;

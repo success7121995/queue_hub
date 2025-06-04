@@ -36,3 +36,4 @@ export { default as ExportBtn } from "./common/export-btn";
 export { default as NumberCard } from "./common/number-card";
 export { default as DateSelect } from "./common/date-select";
 export { default as VerifyEmail } from "./verify-email";
+export { default as Success } from "./common/multistep-form/success";

@@ -1,4 +1,4 @@
-import { PrismaClient, ActivityType } from "@prisma/client";
+import { PrismaClient, ActivityType, Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "./app-error";
 
@@ -21,18 +21,24 @@ export const insertActivityLog = async (
     tx = prisma
 ) => {
     try {
-        await tx.activityLog.create({
-            data: {
-                log_id: uuidv4() + "-" + Date.now(),
-                user_id: params.userId || null,
-                action: params.actionType,
-                action_data: params.actionData,
-                success: params.success,
-                error: params.error
-            }
+
+        const result = await prisma.$transaction(async (tx) => {
+            const activityLog = await tx.activityLog.create({
+                data: {
+                    log_id: uuidv4() + "-" + Date.now(),
+                    action: params.actionType,
+                    action_data: params.actionData,
+                    user_id: params.userId,
+                    success: params.success,
+                    status: params.status,
+                    error: params.error
+                }
+            })
+        }, {
+            isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
         });
 
-        return;
+        return result;
     } catch (error) {
         throw new AppError("Failed to create activity log", 400);
     } finally {

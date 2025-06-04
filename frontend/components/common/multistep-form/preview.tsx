@@ -4,14 +4,20 @@ import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useMutation } from "@tanstack/react-query";
 import { AddAdminFormFields, AddBranchFormFields, SignupFormFields } from "@/types/form";
+import Success from "./success";
+import LoadingIndicator from "@/components/common/loading-indicator";
 
-interface CompleteProps {
+interface PreviewProps {
     form?: "signup" | "add-branch" | "add-admin" | "add-employee";
+    onPrev: () => void;
 }
 
 const COOKIE_KEY = "signupForm";
 
-const Complete: React.FC<CompleteProps> = ({ form }) => {
+const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [countdown, setCountdown] = useState(8);
+
     let apiPath = "";
     switch (form) {
         case "signup":
@@ -52,10 +58,11 @@ const Complete: React.FC<CompleteProps> = ({ form }) => {
 
     const submitMutation = useMutation({
         mutationFn: async (data: SignupFormFields | AddBranchFormFields | AddAdminFormFields) => {
-            const res = await fetch(`http://localhost:5500/api${apiPath}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth${apiPath}`, {
                 method: "POST",
                 body: JSON.stringify(data),
                 headers: { "Content-Type": "application/json" },
+                credentials: 'include' // Important for session cookies
             }); 
     
             const result = await res.json();
@@ -66,10 +73,38 @@ const Complete: React.FC<CompleteProps> = ({ form }) => {
     
             return result;
         },
-        onSuccess: (data) => {
-            console.log("Signup success", data);
-            // 例如 redirect：
-            window.location.href = data.redirect;
+        onSuccess: async (data) => {
+            setShowSuccess(true);
+            
+            // Start countdown
+            const timer = setInterval(() => {
+                setCountdown((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            // After 8 seconds, get the redirect URL from backend
+            setTimeout(async () => {
+                try {
+                    const redirectRes = await fetch(`${process.env.BACKEND_URL}/api/redirect/${data.redirect_token}`, {
+                        credentials: 'include' // Important for session cookies
+                    });
+                    const redirectData = await redirectRes.json();
+                    
+                    if (redirectRes.ok && redirectData.success) {
+                        window.location.href = redirectData.redirect_url;
+                    } else {
+                        window.location.href = '/';
+                    }
+                } catch (err) {
+                    console.error("Redirect error:", err);
+                    window.location.href = '/';
+                }
+            }, 8000);
         },
         onError: (err: any) => {
             console.error("Signup error:", err.message);
@@ -85,20 +120,25 @@ const Complete: React.FC<CompleteProps> = ({ form }) => {
         }
     }
 
+    if (showSuccess) {
+        return <Success form={form || "signup"} countdown={countdown} />;
+    }
+
     return (
         <div className="w-full min-h-[60vh] flex justify-center items-center to-white py-16 font-regular-eng">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-10 border border-gray-100 relative flex flex-col items-center">
+            {/* Loading overlay */}
+            {submitMutation.isPending && (
+                <LoadingIndicator 
+                    fullScreen 
+                    text="Submitting..." 
+                    className="bg-white/80"
+                />
+            )}
 
-            {/* Success Icon */}
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-primary-light/10 mb-6">
-                <svg className="w-12 h-12 text-primary-light" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="11" stroke="currentColor" strokeOpacity="0.15" strokeWidth="2.5" fill="none" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 13l3 3 6-6" />
-                </svg>
-            </div>
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-10 border border-gray-100 relative flex flex-col items-center">
             
-            <h2 className="text-3xl font-bold text-center mb-2 text-primary-light">Signup Complete!</h2>
-            <p className="text-gray-600 text-center mb-8 text-base max-w-md">Thank you for joining QueueHub. Your account has been created and your details are saved. You can now start managing your queues efficiently!</p>
+            <h2 className="text-3xl font-bold text-center mb-2 text-primary-light">Preview</h2>
+            
             {/* Data Summary */}
             <div className="w-full bg-gray-50 rounded-xl p-5 mb-8 border border-gray-100">
                 <h3 className="text-lg font-semibold mb-3 text-primary-light">Summary</h3>
@@ -143,17 +183,25 @@ const Complete: React.FC<CompleteProps> = ({ form }) => {
                 )}
             </div>
 
-            {/* Continue Button */}
-            <button
-                type="button"
-                className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-primary-dark transition-all cursor-pointer"
-                onClick={handleSubmit}
-            >
-                Continue
-            </button>
+            {/* Submit Button */}
+            <div className="flex justify-end w-full mt-6">
+                <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={submitMutation.isPending}
+                    className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-md hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center min-w-[100px]"
+                >
+                    {submitMutation.isPending ? (
+                        <LoadingIndicator size="sm" className="!mt-0" />
+                    ) : (
+                        'Submit'
+                    )}
+                </button>
+            </div>
+
             </div>
         </div>
     );
 };
 
-export default Complete;
+export default Preview;

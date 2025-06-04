@@ -1,0 +1,12 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main {
+    flex: 1;
+    margin-top: 3.75rem; /* mt-15 equivalent */
+}
+
+/* Add any other public layout specific styles here */ 
