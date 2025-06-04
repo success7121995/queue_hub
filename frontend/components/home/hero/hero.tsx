@@ -52,7 +52,7 @@ const Hero = () => {
                         QueueHub is a platform that helps you manage your queues smarter.
                     </p>
                     <a
-                        href="#"
+                        href="/signup"
                         className="mt-8 bg-transparent text-primary px-5 py-2 rounded-md border-2 border-primary hover:bg-primary hover:text-text-light font-semibold transition-all duration-300"
                     >
                         Get Started

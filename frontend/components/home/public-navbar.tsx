@@ -31,7 +31,7 @@ const PublicNavbar = () => {
     const menuItems = [
         { label: "Features", href: "/features/real-time-updates" },
         { label: "How It Work", href: "#how-it-work" },
-        { label: "Why QueueHub", href: "#why-queuehub" },
+        { label: "Why QueueHub", href: "/about-us" },
         { label: "Pricing", href: "#pricing" },
     ];
 

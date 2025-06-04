@@ -249,7 +249,7 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                 {/* Privacy Policy and Terms of Service */}
                 <div className="text-xs mb-2">
                     By proceeding, I agree to <span className="font-bold text-primary">QueueHub</span>'s <br />
-                    <Link href="#" className="underline">Privacy Policy</Link> and <Link href="#" className="underline">Terms of Service</Link>
+                    <Link href="/privacy-policy" className="underline">Privacy Policy</Link> and <Link href="/terms-of-service" className="underline">Terms of Service</Link>
                 </div>
 
                 {/* Next Button */}

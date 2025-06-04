@@ -82,8 +82,8 @@ const Login = () => {
             <div className="flex-1 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-md mx-auto">
                     <div className="text-center">
-                        <h1 className="text-2xl font-bold">Welcome back</h1>
-                        <p className="mt-2 text-gray-600">Please sign in to your account</p>
+                        <h1 className="text-3xl font-bold text-primary-light">Welcome Back</h1>
+                        <p className="mt-2 text-text-main">Please sign in to your account</p>
                     </div>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
@@ -134,12 +134,17 @@ const Login = () => {
                                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                             )}
                         </div>
+                                        {/* Privacy Policy and Terms of Service */}
+                        <div className="text-xs mb-2">
+                            By proceeding, I agree to <span className="font-bold text-primary">QueueHub</span>'s <br />
+                            <Link href="/privacy-policy" className="underline">Privacy Policy</Link> and <Link href="/terms-of-service" className="underline">Terms of Service</Link>
+                        </div>
 
-                        <div>
+                        <div className="flex justify-end">
                             <button
                                 type="submit"
                                 disabled={loginMutation.isPending}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-[100px] flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                             >
                                 {loginMutation.isPending ? (
                                     <LoadingIndicator size="sm" className="!mt-0" />
@@ -152,7 +157,7 @@ const Login = () => {
                         <div className="text-center">
                             <p className="text-sm text-gray-600">
                                 Don't have an account?{' '}
-                                <Link href="/signup" className="font-medium text-orange-600 hover:text-orange-500">
+                                <Link href="/signup" className="font-medium text-primary hover:text-primary-hover">
                                     Sign up
                                 </Link>
                             </p>

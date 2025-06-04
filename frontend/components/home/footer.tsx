@@ -37,7 +37,7 @@ const Footer = () => {
                     <ul className="space-y-1 text-sm">
                     <li><a href="#" className="hover:underline">How It Works</a></li>
                     <li><a href="/feature/real-time-updates" className="hover:underline">Features</a></li>
-                    <li><a href="#" className="hover:underline">Pricing</a></li>
+                    <li><a href="#pricing" className="hover:underline">Pricing</a></li>
                     <li><a href="#" className="hover:underline">FAQ</a></li>
                     <li><a href="/signup" className="hover:underline">Try it Free</a></li>
                     </ul>
@@ -47,10 +47,10 @@ const Footer = () => {
                 <div>
                     <div className="font-bold mb-2 text-primary">Company</div>
                     <ul className="space-y-1 text-sm">
-                    <li><a href="#" className="hover:underline">About QueueHub</a></li>
+                    <li><a href="/about-us" className="hover:underline">About QueueHub</a></li>
                     <li><a href="#" className="hover:underline">Career</a></li>
-                    <li><a href="#" className="hover:underline">Privacy Policy</a></li>
-                    <li><a href="#" className="hover:underline">Terms of Service</a></li>
+                    <li><a href="/privacy-policy" className="hover:underline">Privacy Policy</a></li>
+                    <li><a href="/terms-of-service" className="hover:underline">Terms of Service</a></li>
                     </ul>
                 </div>
 
