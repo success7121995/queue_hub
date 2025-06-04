@@ -5,7 +5,7 @@ import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const DashboardNavbar = () => {
@@ -57,6 +57,16 @@ const DashboardNavbar = () => {
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
+
+
+	const { data, isLoading, error } = useQuery({
+		queryKey: ['merchant-data'],
+		queryFn: () => fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/get-user`, {
+			method: 'GET',
+			credentials: 'include',
+		}),
+		enabled: false,
+	});
 
 	/**
 	 * Logout mutation

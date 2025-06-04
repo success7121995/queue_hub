@@ -44,11 +44,11 @@ export const middleware = async (request: NextRequest) => {
 
                 // Handle admin roles first (including SUPER_ADMIN)
                 if (data.user.role === 'SUPER_ADMIN' || data.user.role === 'OPS_ADMIN' || data.user.role === 'SUPPORT_AGENT' || data.user.role === 'DEVELOPER') {
-                    return NextResponse.redirect(new URL(`/dashboard/2a0b68db-d948-44d3-8967-ec3d106f31ff-1749016133439/view-live-queues`, request.url));
+                    return NextResponse.redirect(new URL(`/dashboard/view-live-queues`, request.url));
                 }
                 // Then handle merchant role
                 else if (data.user.role === 'MERCHANT' && data.user.merchant_id) {
-                    return NextResponse.redirect(new URL(`/dashboard/${data.user.merchant_id}/view-live-queues`, request.url));
+                    return NextResponse.redirect(new URL(`/dashboard/view-live-queues`, request.url));
                 }
             }
         } catch (error) {

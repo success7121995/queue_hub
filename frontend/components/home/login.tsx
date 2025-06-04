@@ -45,7 +45,8 @@ const Login = () => {
         },
         onSuccess: (data) => {
             if (data.redirect) {
-                router.push(data.redirect);
+                const redirectUrl = data.redirect.replace(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/auth/`, "");
+                router.push(redirectUrl);
             } else {
                 router.push('/404');
             }
