@@ -34,13 +34,14 @@ export const middleware = async (request: NextRequest) => {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify-session`, {
                 credentials: 'include',
                 headers: {
+                    'Content-Type': 'application/json',
                     Cookie: request.headers.get('cookie') || '',
                 },
+                cache: 'no-store'
             });
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Session verification response:', data);
             
                 if (data?.user) {
                     const { role, merchant_id } = data.user;
@@ -76,8 +77,10 @@ export const middleware = async (request: NextRequest) => {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify-session`, {
                 credentials: 'include',
                 headers: {
+                    'Content-Type': 'application/json',
                     Cookie: request.headers.get('cookie') || '',
                 },
+                cache: 'no-store'
             });
 
             if (!response.ok) {

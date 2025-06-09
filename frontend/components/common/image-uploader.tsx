@@ -54,7 +54,6 @@ const ImageUploader = ({
 	 */
 	const compressImage = (file: File): Promise<File> => {
 		return new Promise((resolve, reject) => {
-			console.log('compressing image', file);
 			new Compressor(file, {
 				quality: 0.8,
 				maxWidth: 1920,

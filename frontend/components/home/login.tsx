@@ -43,9 +43,20 @@ const Login = () => {
 
             return response.json();
         },
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
+            // Always fetch user data after login
+            try {
+                const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/get-user?include=user_merchant&include=merchant&include=message_sent&include=message_received`, {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+                const userData = await userRes.json();
+            } catch (err) {
+                console.error('Error fetching user after login:', err);
+            }
             if (data.redirect) {
-                const redirectUrl = data.redirect.replace(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/auth/`, "");
+                // Use callbackUrl if present
+                const redirectUrl = callbackUrl && callbackUrl !== '/' ? callbackUrl : data.redirect.replace(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/auth/`, "");
                 router.push(redirectUrl);
             } else {
                 router.push('/404');

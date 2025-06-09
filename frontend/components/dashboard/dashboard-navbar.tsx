@@ -6,6 +6,7 @@ import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
+import { useUser } from "@/hook/useUser";
 
 const DashboardNavbar = () => {
 	const [profileOpen, setProfileOpen] = useState(false);
@@ -17,6 +18,12 @@ const DashboardNavbar = () => {
 	const profileRef = useRef<HTMLDivElement>(null);
 	const mailRef = useRef<HTMLDivElement>(null);
 	const branchRef = useRef<HTMLDivElement>(null);
+	const { user, isLoading: isUserDataLoading, error: userDataError } = useUser();
+
+	// Extract user info for navbar display
+	const username = user?.user?.user?.username || "";
+	const position = user?.user?.user?.user_merchant?.[0]?.position || "";
+	const businessName = user?.user?.user?.merchant?.[0]?.business_name || "";
 
 	const languages = [
         { label: "English", value: "en", icon: <Globe size={18} /> },
@@ -55,29 +62,6 @@ const DashboardNavbar = () => {
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
-
-	/*********** Get user data ***********/
-	const { data: userData, isLoading: isUserDataLoading, error: userDataError } = useQuery({
-		queryKey: ['user-data'],
-		queryFn: () => fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/get-user?include=user_merchant&include=merchant&include=message_sent&include=message_received`, {
-			method: 'GET',
-			credentials: 'include',
-		})
-		.then(res => res.json())
-		.then(data => {
-			return data.user;
-		})
-		.catch(error => {
-			console.error("Get user data failed:", error);
-		})
-	});
-
-	// Data for display
-	const businessName = userData?.user?.merchant?.[0]?.business_name;
-	const username = userData?.user?.username;
-	const position = userData?.user?.user_merchant?.[0]?.position;
-	const lang = userData?.user?.lang;
-	const messageReceived = userData?.user?.message_received;
 
 	/**
 	 * Logout mutation
@@ -185,7 +169,7 @@ const DashboardNavbar = () => {
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
 							<ul className="py-1">
 								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									messageReceived && messageReceived.length > 0 ? messageReceived.map((message: any) => (
+									user?.message_received && user?.message_received.length > 0 ? user?.message_received.map((message: any) => (
 										<li key={message.id} className="cursor-pointer">
 											{message.title}
 										</li>

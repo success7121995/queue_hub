@@ -88,7 +88,6 @@ const ManageUsers = () => {
 
 	const handleEdit = (employee: User) => {
 		// TODO: Implement edit functionality
-		console.log('Edit employee:', employee);
 	};
 
 	const handleDelete = (employee: User) => {

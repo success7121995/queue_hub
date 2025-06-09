@@ -75,7 +75,6 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
 
     const submitMutation = useMutation({
         mutationFn: async (data: SignupFormFields | AddBranchFormFields | AddAdminFormFields) => {
-            console.log('data ', data);
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth${apiPath}`, {
                 method: "POST",
                 body: JSON.stringify(data),

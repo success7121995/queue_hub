@@ -87,15 +87,7 @@ const Table = <T extends Record<string, any>>({
 		if (dateColumnKey && (dateRange.from || dateRange.to)) {
 			result = result.filter(row => {
 				const dateValue = getRowDate(row);
-				// Debug log
-				if (dateValue) {
-					console.log('Comparing:', {
-						row,
-						dateValue,
-						from: dateRange.from,
-						to: dateRange.to
-					});
-				}
+
 				if (!(dateValue instanceof Date)) return false;
 				if (dateRange.from && dateValue < dateRange.from) return false;
 				if (dateRange.to && dateValue > dateRange.to) return false;
