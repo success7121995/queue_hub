@@ -1,73 +1,124 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
-import { SignupFormFields, } from "@/types/form";
+import { SignupFormFields, AddBranchFormFields } from "@/types/form";
 
 const COOKIE_KEY = "signupForm";
 
 interface PaymentProps {
     onNext?: () => void;
     onPrev?: () => void;
+    formType?: "signup" | "add-branch";
 }
 
-const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
+interface CookieData {
+    payment?: SignupFormFields["payment"] | AddBranchFormFields["payment"];
+    signup?: Record<string, any>;
+    [key: string]: any;
+}
+
+const Payment: React.FC<PaymentProps> = ({ onNext, onPrev, formType = "signup" }) => {
     const { formMethods } = useForm();
     const {
         register,
         handleSubmit,
         setValue,
-        formState: { errors },
         watch,
-    } = (formMethods as unknown) as UseFormReturn<SignupFormFields["payment"]>;
+        formState: { errors },
+    } = (formMethods as unknown) as UseFormReturn<SignupFormFields | AddBranchFormFields>;
 
-    /**
-     * Get the last four digits of the card number
-     */
-    const lastFourDigits = watch("card_number")?.slice(-4);
+    const [cardNumber, setCardNumber] = useState("");
+    const [expiryDate, setExpiryDate] = useState("");
+    const [cvv, setCvv] = useState("");
 
     // Load from cookie if available
     useEffect(() => {
         const cookie = Cookies.get(COOKIE_KEY);
-
         if (cookie) {
             try {
-            const parsed = JSON.parse(cookie);
-            if (parsed.payment) {
-                Object.entries(parsed.payment).forEach(([key, value]) => {
-                setValue(key as keyof SignupFormFields["payment"], value as any);
-                });
+                const parsed: CookieData = JSON.parse(cookie);
+                if (parsed.payment) {
+                    // Only load non-sensitive data
+                    if (parsed.payment.save_card !== undefined) {
+                        setValue("payment.save_card", parsed.payment.save_card);
+                    }
+                    if (parsed.payment.auto_renewal !== undefined) {
+                        setValue("payment.auto_renewal", parsed.payment.auto_renewal);
+                    }
+                }
+            } catch (error) {
+                console.error("Error parsing cookie:", error);
             }
-            } catch {}
         }
     }, [setValue]);
 
-    /**
-     * On submit, save the data to the cookie and call the onNext function
-     * 
-     * @param data - The data to save to the cookie
-     */
-    const onSubmit = (data: SignupFormFields["payment"]) => {
-        // Save to cookie
+    const formatCardNumber = (value: string) => {
+        const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+        const matches = v.match(/\d{4,16}/g);
+        const match = (matches && matches[0]) || "";
+        const parts = [];
+
+        for (let i = 0, len = match.length; i < len; i += 4) {
+            parts.push(match.substring(i, i + 4));
+        }
+
+        if (parts.length) {
+            return parts.join(" ");
+        } else {
+            return value;
+        }
+    };
+
+    const formatExpiryDate = (value: string) => {
+        const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+        if (v.length >= 3) {
+            return `${v.substring(0, 2)}/${v.substring(2, 4)}`;
+        }
+        return v;
+    };
+
+    const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatCardNumber(e.target.value);
+        setCardNumber(formatted);
+    };
+
+    const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatExpiryDate(e.target.value);
+        setExpiryDate(formatted);
+    };
+
+    const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const v = e.target.value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+        setCvv(v.substring(0, 3));
+    };
+
+    const onSubmit = (data: Record<string, any>) => {
         const cookie = Cookies.get(COOKIE_KEY);
-        let cookieData = {};
+        let cookieData: CookieData = {};
         if (cookie) {
             try {
                 cookieData = JSON.parse(cookie);
-            } catch {}
+            } catch (error) {
+                console.error("Error parsing cookie:", error);
+            }
         }
-        // Flatten and store all payment fields at the top level
+
+        // Only save non-sensitive data to cookie
+        const paymentData = {
+            save_card: data.payment.save_card,
+            auto_renewal: data.payment.auto_renewal
+        };
+
+        // Preserve existing data but update payment
+        const { payment, ...existingData } = cookieData;
         Cookies.set(COOKIE_KEY, JSON.stringify({
-            ...cookieData,
-            card_number: "**** **** **** " + lastFourDigits,
-            card_name: data.card_name,
-            expiry_date: data.expiry_date,
-            saved_card: data.saved_card,
-            auto_renewal: data.auto_renewal,
-            card_token: data.card_token,
+            ...existingData,
+            payment: paymentData
         }));
+
         if (onNext) onNext();
     };
 
@@ -76,114 +127,135 @@ const Payment: React.FC<PaymentProps> = ({ onNext, onPrev }) => {
             onSubmit={handleSubmit(onSubmit)}
             className="w-full flex justify-center items-center py-8 font-regular-eng"
         >
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8 border border-gray-300 relative">
-            <h2 className="text-2xl font-bold mb-6 text-primary-light">Payment Method</h2>
-            <div className="mb-6 flex items-center gap-2">
-                <input
-                    type="checkbox"
-                    id="saved_card"
-                    className="accent-primary-light w-4 h-4"
-                    {...register("saved_card")}
-                />
-                <label htmlFor="saved_card" className="text-sm">Save payment info for next time?</label>
-            </div>
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-6 border border-gray-100 relative">
+                <h2 className="text-3xl font-bold text-center mb-4 text-primary-light">Payment Information</h2>
 
-            <h3 className="text-xl font-bold mb-2 mt-6">Credit Card</h3>
-
-            {/* Name on Card */}
-            <div className="mb-4">
-                <label htmlFor="card_name" className="block mb-1 font-semibold text-text-main text-sm">Name on Card</label>
-                <input
-                    id="card_name"
-                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${errors.card_name ? "border-red-500" : "border-gray-400"}`}
-                    {...register("card_name", { required: "Name on card is required" })}
-                    placeholder="Enter your full name on your card"
-                />
-                {errors.card_name && <span className="text-red-500 text-xs">{errors.card_name.message}</span>}
-            </div>
-
-            {/* Card Number */}
-            <div className="mb-4">
-                <label htmlFor="card_number" className="block mb-1 font-semibold text-text-main text-sm">Card Number</label>
-                <input
-                    id="card_number"
-                    className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${errors.card_number ? "border-red-500" : "border-gray-400"}`}
-                        {...register("card_number", { required: "Card number is required" })}
-                    placeholder="Enter your card number"
-                    inputMode="numeric"
-                    maxLength={19}
-                />
-                {errors.card_number && <span className="text-red-500 text-xs">{errors.card_number.message}</span>}
-            </div>
-
-            {/* Expiration Date & CVC */}
-            <div className="flex gap-3 mb-4">
-                <div className="flex-1">
-                    <label htmlFor="expiry_date" className="block mb-1 font-semibold text-text-main text-sm">Expiration Date</label>
+                {/* Card Number */}
+                <div>
+                    <label htmlFor="payment.card_number" className="block mb-1 font-semibold text-text-main text-sm">Card Number</label>
                     <input
-                        id="expiry_date"
-                        className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${errors.expiry_date ? "border-red-500" : "border-gray-400"}`}
-                        {...register("expiry_date", { required: "Expiration date is required" })}
-                        placeholder="MM / YY"
-                        maxLength={7}
+                        id="payment.card_number"
+                        type="text"
+                        value={cardNumber}
+                        onChange={handleCardNumberChange}
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                            errors.payment?.card_number ? "border-red-500" : "border-gray-400"
+                        }`}
+                        placeholder="1234 5678 9012 3456"
+                        maxLength={19}
+                        required
                     />
-                    {errors.expiry_date && <span className="text-red-500 text-xs">{errors.expiry_date.message}</span>}
+                    {errors.payment?.card_number && (
+                        <span className="text-red-500 text-xs">{errors.payment.card_number.message}</span>
+                    )}
                 </div>
-                <div className="flex-1">
-                    <label htmlFor="cvv" className="block mb-1 font-semibold text-text-main text-sm">CVC</label>
+
+                {/* Card Name */}
+                <div>
+                    <label htmlFor="payment.card_name" className="block mb-1 font-semibold text-text-main text-sm">Card Name</label>
                     <input
-                        id="cvv"
-                        className={`w-full border rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.cvv ? "border-red-500" : "border-gray-400"}`}
-                        {...register("cvv", { required: "CVC is required" })}
-                        placeholder="123"
-                        maxLength={4}
-                        inputMode="numeric"
+                        id="payment.card_name"
+                        type="text"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                            errors.payment?.card_name ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("payment.card_name", { required: "Card name is required" })}
+                        placeholder="JOHN DOE"
+                        required
                     />
-                    {errors.cvv && <span className="text-red-500 text-xs">{errors.cvv.message}</span>}
+                    {errors.payment?.card_name && (
+                        <span className="text-red-500 text-xs">{errors.payment.card_name.message}</span>
+                    )}
                 </div>
-            </div>
 
-            {/* Save Payment Method */}
-            <div className="mb-2 flex items-center gap-2">
-                <input
-                type="checkbox"
-                id="saved_card"
-                className="accent-primary-light w-4 h-4"
-                {...register("saved_card")}
-                />
-                <label htmlFor="saved_card" className="text-sm">Save Payment Method</label>
-            </div>
+                {/* Expiry Date and CVV */}
+                <div className="flex gap-3">
+                    {/* Expiry Date */}
+                    <div className="flex-1">
+                        <label htmlFor="payment.expiry_date" className="block mb-1 font-semibold text-text-main text-sm">Expiry Date</label>
+                        <input
+                            id="payment.expiry_date"
+                            type="text"
+                            value={expiryDate}
+                            onChange={handleExpiryDateChange}
+                            className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.payment?.expiry_date ? "border-red-500" : "border-gray-400"
+                            }`}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            required
+                        />
+                        {errors.payment?.expiry_date && (
+                            <span className="text-red-500 text-xs">{errors.payment.expiry_date.message}</span>
+                        )}
+                    </div>
 
-            {/* Enable Auto Renewal */}
-            <div className="mb-6 flex items-center gap-2">
-                <input
-                type="checkbox"
-                id="auto_renewal"
-                className="accent-primary-light w-4 h-4"
-                {...register("auto_renewal")}
-                />
-                <label htmlFor="autoRenewal" className="text-sm">Enable Auto Renewal</label>
-            </div>
+                    {/* CVV */}
+                    <div className="flex-1">
+                        <label htmlFor="payment.cvv" className="block mb-1 font-semibold text-text-main text-sm">CVV</label>
+                        <input
+                            id="payment.cvv"
+                            type="text"
+                            value={cvv}
+                            onChange={handleCvvChange}
+                            className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.payment?.cvv ? "border-red-500" : "border-gray-400"
+                            }`}
+                            placeholder="123"
+                            maxLength={3}
+                            required
+                        />
+                        {errors.payment?.cvv && (
+                            <span className="text-red-500 text-xs">{errors.payment.cvv.message}</span>
+                        )}
+                    </div>
+                </div>
 
-            {/* Previous & Purchase Buttons */}
-            <div className="flex justify-between mt-6">
-                {/* Previous Button */}
-                <button
-                    type="button"
-                    className="border border-gray-300 bg-gray-200 text-gray-700 rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-gray-100 transition-all cursor-pointer"
-                    onClick={onPrev}
-                >
-                Previous
-                </button>
+                {/* Save Card */}
+                <div className="flex items-center">
+                    <input
+                        type="checkbox"
+                        id="payment.save_card"
+                        className="mr-2 h-4 w-4 text-primary-light focus:ring-primary-light border-gray-300 rounded"
+                        {...register("payment.save_card")}
+                    />
+                    <label htmlFor="payment.save_card" className="text-sm text-gray-700">
+                        Save card for future payments
+                    </label>
+                </div>
 
-                {/* Purchase Button */}
-                <button
-                    type="submit"
-                    className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-primary-dark transition-all cursor-pointer"
-                >
-                Purchase
-                </button>
-            </div>
+                {/* Auto Renewal */}
+                <div className="flex items-center">
+                    <input
+                        type="checkbox"
+                        id="payment.auto_renewal"
+                        className="mr-2 h-4 w-4 text-primary-light focus:ring-primary-light border-gray-300 rounded"
+                        {...register("payment.auto_renewal")}
+                    />
+                    <label htmlFor="payment.auto_renewal" className="text-sm text-gray-700">
+                        Enable auto-renewal
+                    </label>
+                </div>
+
+                {/* Next & Previous Buttons */}
+                <div className="flex justify-between mt-6">
+                    {/* Previous Button */}
+                    <button
+                        type="button"
+                        className="border border-gray-300 bg-gray-200 text-gray-700 rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-gray-100 transition-all cursor-pointer"
+                        onClick={onPrev}
+                    >
+                        Previous
+                    </button>
+
+                    {/* Next Button */}
+                    <button
+                        type="submit"
+                        className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-primary-dark transition-all cursor-pointer"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
         </form>
     );

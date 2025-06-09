@@ -41,14 +41,20 @@ export const middleware = async (request: NextRequest) => {
             if (response.ok) {
                 const data = await response.json();
                 console.log('Session verification response:', data);
-
-                // Handle admin roles first (including SUPER_ADMIN)
-                if (data.user.role === 'SUPER_ADMIN' || data.user.role === 'OPS_ADMIN' || data.user.role === 'SUPPORT_AGENT' || data.user.role === 'DEVELOPER') {
-                    return NextResponse.redirect(new URL(`/dashboard/view-live-queues`, request.url));
-                }
-                // Then handle merchant role
-                else if (data.user.role === 'MERCHANT' && data.user.merchant_id) {
-                    return NextResponse.redirect(new URL(`/dashboard/view-live-queues`, request.url));
+            
+                if (data?.user) {
+                    const { role, merchant_id } = data.user;
+            
+                    // Redirect for admin roles
+                    const adminRoles = ['SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'];
+                    if (adminRoles.includes(role)) {
+                        return NextResponse.redirect(new URL(`/dashboard/view-live-queues`, request.url));
+                    }
+            
+                    // Redirect for merchant role
+                    if (role === 'MERCHANT' && merchant_id) {
+                        return NextResponse.redirect(new URL(`/dashboard/view-live-queues`, request.url));
+                    }
                 }
             }
         } catch (error) {

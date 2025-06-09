@@ -11,6 +11,9 @@ import {
     rejectMerchant,
 } from "../../controllers/admin-controllers";
 import { Router } from "express";
+import { addAdmin } from "../../controllers/merchant-controllers";
+import { requireAdminAccess } from "../../middlewares/auth-middleware";
+import { RequestHandler } from "express";
 
 const router = Router();
 
@@ -25,5 +28,11 @@ router.get("/admin/merchant/:merchant_id", viewMerchant);
 router.put("/admin/merchant/:merchant_id", updateMerchant);
 router.put("/admin/merchant/:merchant_id/approve", approveMerchant);
 router.put("/admin/merchant/:merchant_id/reject", rejectMerchant);
+
+// Protected admin routes
+router.use(requireAdminAccess);
+
+// Staff management
+router.post("/admin", addAdmin as RequestHandler);
 
 export default router;

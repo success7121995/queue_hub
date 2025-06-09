@@ -21,17 +21,6 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 };
 
 /**
- * Validate user access
- * @param user - The user object
- * @param allowedRoles - The allowed roles
- */
-export const validateUserAccess = async (user: UserAccess, allowedRoles: UserRole[]) => {
-    if (!allowedRoles.includes(user.role as UserRole)) {
-        throw new AppError("Forbidden - Insufficient permissions", 403);
-    }
-};
-
-/**
  * Require merchant access
  * @param req - The request object
  * @param res - The response object

@@ -7,8 +7,18 @@ import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
 import Link from "next/link";
 
+type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
+
 interface SignupProps {
   onNext?: () => void;
+}
+
+interface CookieData {
+    address?: Record<string, any>;
+    branchAddress?: Record<string, any>;
+    signup?: Record<string, any>;
+    plan?: string;
+    [key: string]: any;
 }
 
 const plans = [
@@ -19,69 +29,76 @@ const plans = [
 
 const COOKIE_KEY = "signupForm";
 
-const defaultValues: SignupFormFields["signup"] = {
-  business_name: "",
-  fname: "",
-  lname: "",
-  username: "",
-  email: "",
-  phone: "",
-  password: "",
-  confirm_password: "",
-  lang: "EN",
-  plan: "TRIAL"
-};
-
 const Signup: React.FC<SignupProps> = ({ onNext }) => {
     const { formMethods } = useForm();
     const {
         register,
         handleSubmit,
         setValue,
+        watch,
         formState: { errors },
     } = formMethods as UseFormReturn<SignupFormFields["signup"]>;
 
     // Plan selection managed locally
-    const [selectedPlan, setSelectedPlan] = useState(plans[0].value);
+    const [selectedPlan, setSelectedPlan] = useState<Plan>("TRIAL");
 
     // Load from cookie if available
     useEffect(() => {
-    const cookie = Cookies.get(COOKIE_KEY);
-    if (cookie) {
-        try {
-        const parsed = JSON.parse(cookie);
-        if (parsed.signup) {
-            Object.entries(parsed.signup).forEach(([key, value]) => {
-            setValue(key as keyof SignupFormFields["signup"], value as string);
-            });
+        const cookie = Cookies.get(COOKIE_KEY);
+        if (cookie) {
+            try {
+                const parsed = JSON.parse(cookie);
+                if (parsed.signup) {
+                    Object.entries(parsed.signup).forEach(([key, value]) => {
+                        if (key !== 'password' && key !== 'confirm_password') {
+                            setValue(key as keyof SignupFormFields["signup"], value as string);
+                        }
+                    });
+                }
+                if (parsed.plan) {
+                    setSelectedPlan(parsed.plan);
+                }
+            } catch (error) {
+                console.error("Error parsing cookie:", error);
+            }
         }
-        if (parsed.plan) {
-            setSelectedPlan(parsed.plan);
-        }
-        } catch {}
-    }
     }, [setValue]);
 
-    /**
-     * On submit, save the data to the cookie and call the onNext function
-     * @param data - The data to save to the cookie
-     */
     const onSubmit = (data: SignupFormFields["signup"]) => {
         // Save to cookie
         const cookie = Cookies.get(COOKIE_KEY);
-        let cookieData = {};
+        let cookieData: CookieData = {};
         if (cookie) {
             try {
                 cookieData = JSON.parse(cookie);
-            } catch {}
+            } catch (error) {
+                console.error("Error parsing cookie:", error);
+            }
         }
-        // Flatten and store all signup fields at the top level
+
+        // Only store signup-specific data
+        const signupData = {
+            plan: selectedPlan,
+            lang: data.lang,
+            business_name: data.business_name,
+            fname: data.fname,
+            lname: data.lname,
+            username: data.username,
+            email: data.email,
+            phone: data.phone,
+            password: data.password,
+            confirm_password: data.confirm_password,
+            use_same_address: cookieData.signup?.use_same_address ?? true
+        };
+
+        // Preserve existing data but update signup and plan
+        const { signup, plan, ...existingData } = cookieData;
         Cookies.set(COOKIE_KEY, JSON.stringify({
-            ...cookieData,
-            ...data,
-            
+            ...existingData,
+            signup: signupData,
             plan: selectedPlan
         }));
+
         if (onNext) onNext();
     };
 
@@ -92,24 +109,24 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                 <h2 className="text-2xl font-bold mb-6 text-primary-light">Choose Your Plan</h2>
                 <div className="flex flex-col gap-5">
                     {plans.map((plan) => (
-                    <button
-                        key={plan.value}
-                        type="button"
-                        className={`w-full text-left border-2 rounded-2xl px-6 py-5 transition-all duration-200 shadow-sm flex items-center justify-between gap-4 focus:outline-none text-base font-medium ${
-                        selectedPlan === plan.value
-                            ? "bg-primary-light/10 border-primary-light ring-2 ring-primary-light"
-                            : "bg-white border-gray-200 hover:border-primary-light"
-                        }`}
-                        onClick={() => setSelectedPlan(plan.value)}
-                    >
-                        <div>
-                            <div className="font-bold text-lg mb-1 text-primary-light">{plan.name}</div>
-                            <div className="text-xs text-gray-600 font-normal">{plan.description}</div>
-                        </div>
-                        <div className="text-right font-semibold text-base whitespace-nowrap text-primary-light">
-                        {plan.price}
-                        </div>
-                    </button>
+                        <button
+                            key={plan.value}
+                            type="button"
+                            className={`w-full text-left border-2 rounded-2xl px-6 py-5 transition-all duration-200 shadow-sm flex items-center justify-between gap-4 focus:outline-none text-base font-medium ${
+                                selectedPlan === plan.value
+                                    ? "bg-primary-light/10 border-primary-light ring-2 ring-primary-light"
+                                    : "bg-white border-gray-200 hover:border-primary-light"
+                            }`}
+                            onClick={() => setSelectedPlan(plan.value as Plan)}
+                        >
+                            <div>
+                                <div className="font-bold text-lg mb-1 text-primary-light">{plan.name}</div>
+                                <div className="text-xs text-gray-600 font-normal">{plan.description}</div>
+                            </div>
+                            <div className="text-right font-semibold text-base whitespace-nowrap text-primary-light">
+                                {plan.price}
+                            </div>
+                        </button>
                     ))}
                 </div>
             </div>
@@ -121,15 +138,19 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                 {/* Language */}
                 <div>
                     <label htmlFor="lang" className="block mb-1 font-semibold text-text-main text-sm">Language</label>
-
-                    <select id="lang" className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" {...register("lang")}>
+                    <select 
+                        id="lang" 
+                        className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" 
+                        {...register("lang", { required: "Language is required" })}
+                    >
                         <option value="EN">English</option>
-                        <option value="ZH-HK">繁體中文 (香港)</option>
-                        <option value="ZH-TW">繁體中文 (台灣)</option>
-                        <option value="ZH-CN">简体中文 (中国大陆)</option>
+                        <option value="ZH_HK">繁體中文 (香港)</option>
+                        <option value="ZH_TW">繁體中文 (台灣)</option>
+                        <option value="ZH_CH">简体中文 (中国大陆)</option>
                     </select>
+                    {errors.lang && <p className="text-xs text-red-500 mt-1">{errors.lang.message}</p>}
                 </div>
-                    
+
                 {/* Business Name */}
                 <div>
                     <label htmlFor="business_name" className="block mb-1 font-semibold text-text-main text-sm">Business Name</label>
@@ -147,28 +168,28 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                 {/* First Name and Last Name */}
                 <div className="flex gap-3">
                     <div className="flex-1">
-                    <label htmlFor="firstName" className="block mb-1 font-semibold text-text-main text-sm">First Name</label>
-                    <input
-                        id="firstName"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.fname ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("fname", { required: "First name is required" })}
-                        placeholder="Enter your first name"
-                    />
-                    {errors.fname && <span className="text-red-500 text-xs">{errors.fname.message}</span>}
+                        <label htmlFor="fname" className="block mb-1 font-semibold text-text-main text-sm">First Name</label>
+                        <input
+                            id="fname"
+                            className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.fname ? "border-red-500" : "border-gray-400"
+                            }`}
+                            {...register("fname", { required: "First name is required" })}
+                            placeholder="Enter your first name"
+                        />
+                        {errors.fname && <span className="text-red-500 text-xs">{errors.fname.message}</span>}
                     </div>
                     <div className="flex-1">
-                    <label htmlFor="lastName" className="block mb-1 font-semibold text-text-main text-sm">Last Name</label>
-                    <input
-                        id="lastName"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.lname ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("lname", { required: "Last name is required" })}
-                        placeholder="Enter your last name"
-                    />
-                    {errors.lname && <span className="text-red-500 text-xs">{errors.lname.message}</span>}
+                        <label htmlFor="lname" className="block mb-1 font-semibold text-text-main text-sm">Last Name</label>
+                        <input
+                            id="lname"
+                            className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.lname ? "border-red-500" : "border-gray-400"
+                            }`}
+                            {...register("lname", { required: "Last name is required" })}
+                            placeholder="Enter your last name"
+                        />
+                        {errors.lname && <span className="text-red-500 text-xs">{errors.lname.message}</span>}
                     </div>
                 </div>
 
@@ -195,7 +216,13 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                             errors.email ? "border-red-500" : "border-gray-400"
                         }`}
                         type="email"
-                        {...register("email", { required: "Email is required" })}
+                        {...register("email", { 
+                            required: "Email is required",
+                            pattern: {
+                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                message: "Invalid email address"
+                            }
+                        })}
                         placeholder="Enter your email"
                     />
                     {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
@@ -203,18 +230,24 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
 
                 {/* Business Tel */}
                 <div>
-                    <label htmlFor="business_tel" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
+                    <label htmlFor="phone" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
                     <input
-                        id="business_tel"
+                        id="phone"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                             errors.phone ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("phone", { required: "Business Tel is required" })}
+                        {...register("phone", { 
+                            required: "Business Tel is required",
+                            pattern: {
+                                value: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
+                                message: "Invalid telephone number"
+                            }
+                        })}
                         placeholder="Enter your business tel"
                     />
                     {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
-                        
+
                 {/* Password */}
                 <div>
                     <label htmlFor="password" className="block mb-1 font-semibold text-text-main text-sm">Password</label>
@@ -224,7 +257,17 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                             errors.password ? "border-red-500" : "border-gray-400"
                         }`}
                         type="password"
-                        {...register("password", { required: "Password is required" })}
+                        {...register("password", { 
+                            required: "Password is required",
+                            minLength: {
+                                value: 8,
+                                message: "Password must be at least 8 characters"
+                            },
+                            pattern: {
+                                value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                                message: "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+                            }
+                        })}
                         placeholder="Enter your password"
                     />
                     {errors.password && <span className="text-red-500 text-xs">{errors.password.message}</span>}
@@ -232,7 +275,6 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
 
                 {/* Confirm Password */}
                 <div>
-        
                     <label htmlFor="confirm_password" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
                     <input
                         id="confirm_password"
@@ -240,9 +282,12 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                             errors.confirm_password ? "border-red-500" : "border-gray-400"
                         }`}
                         type="password"
-                        {...register("confirm_password", { required: "Confirm password is required" })}
+                        {...register("confirm_password", { 
+                            required: "Please confirm your password",
+                            validate: value => value === watch("password") || "Passwords do not match"
+                        })}
                         placeholder="Confirm your password"
-                    />  
+                    />
                     {errors.confirm_password && <span className="text-red-500 text-xs">{errors.confirm_password.message}</span>}
                 </div>
 
@@ -254,9 +299,9 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
 
                 {/* Next Button */}
                 <div className="flex justify-end">
-                <button
-                    type="submit"
-                    className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-md hover:bg-primary-dark transition-all cursor-pointer"
+                    <button
+                        type="submit"
+                        className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-md hover:bg-primary-dark transition-all cursor-pointer"
                     >
                         Next
                     </button>

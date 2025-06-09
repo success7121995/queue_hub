@@ -10,7 +10,9 @@ import {
     Prisma,
     SubscriptionStatus,
     Lang,
-    MerchantRole
+    MerchantRole,
+    DayOfWeek,
+    BranchOpeningHour
 } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
@@ -27,6 +29,72 @@ import {
 const prisma = new PrismaClient();
 const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
 
+// Helper function to convert numeric day to DayOfWeek enum
+const getDayOfWeek = (day: number): DayOfWeek => {
+    switch (day) {
+        case 1: return DayOfWeek.MONDAY;
+        case 2: return DayOfWeek.TUESDAY;
+        case 3: return DayOfWeek.WEDNESDAY;
+        case 4: return DayOfWeek.THURSDAY;
+        case 5: return DayOfWeek.FRIDAY;
+        case 6: return DayOfWeek.SATURDAY;
+        case 7: return DayOfWeek.SUNDAY;
+        default: return DayOfWeek.MONDAY; // Default to Monday if invalid
+    }
+};
+
+interface OpeningHourInput {
+    day: number;
+    open_time: string;
+    close_time: string;
+    is_closed?: boolean;
+}
+
+interface MerchantSignupRequest {
+    signup: {
+        plan?: SubscriptionStatus;
+        business_name: string;
+        fname: string;
+        lname: string;
+        username: string;
+        email: string;
+        phone: string;
+        password: string;
+        confirm_password: string;
+        lang: Lang;
+        use_same_address: boolean;
+    };
+    branchInfo: {
+        branch_name: string;
+        description?: string;
+        email?: string;
+        phone?: string;
+        opening_hours?: OpeningHourInput[];
+    };
+    address: {
+        country: string;
+        state: string;
+        city: string;
+        zip: string;
+        street: string;
+        unit: string;
+        floor: string;
+    };
+    branchAddress: {
+        country: string;
+        state: string;
+        city: string;
+        zip: string;
+        street: string;
+        unit: string;
+        floor: string;
+    };
+    payment: {
+        save_card: boolean;
+        auto_renewal: boolean;
+    };
+}
+
 /**
  * Merchant signup
  * @param req - The request object
@@ -35,22 +103,68 @@ const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
  */
 export const merchantSignup = async (req: Request, res: Response, next: NextFunction) => {
     const {
-        plan, business_name, lname, fname, username, email, phone, password, confirm_password, lang,
-        country, state, city, zip, street, unit, floor,
-        card_token, save_card, auto_renewal
-    }: {
-        plan: SubscriptionStatus;
-        business_name: string; lname: string; fname: string; username: string; email: string; phone: string;
-        password: string; confirm_password: string; lang: Lang;
-        country: string; state: string; city: string; zip: string; street: string; unit: string; floor: string;
-        card_token: string; save_card: boolean; auto_renewal: boolean;
-    } = req.body;
+        signup: {
+            plan = SubscriptionStatus.TRIAL,
+            business_name,
+            fname,
+            lname,
+            username,
+            email,
+            phone,
+            password,
+            confirm_password,
+            lang,
+            use_same_address
+        },
+        branchInfo: {
+            branch_name,
+            description: branchDescription,
+            email: branchEmail,
+            phone: branchPhone,
+            opening_hours: branchOpeningHours = []
+        },
+        address: {
+            country: mainCountry,
+            state: mainState,
+            city: mainCity,
+            zip: mainZip,
+            street: mainStreet,
+            unit: mainUnit,
+            floor: mainFloor
+        },
+        branchAddress: {
+            country: branchCountry,
+            state: branchState,
+            city: branchCity,
+            zip: branchZip,
+            street: branchStreet,
+            unit: branchUnit,
+            floor: branchFloor
+        },
+        payment: {
+            save_card,
+            auto_renewal
+        },
+    }: MerchantSignupRequest = req.body;
+
+    console.log('Merchant signup request:', {
+        signup: { ...req.body.signup, password: '[REDACTED]', confirm_password: '[REDACTED]' },
+        branchInfo: req.body.branchInfo,
+        address: req.body.address,
+        branchAddress: req.body.branchAddress,
+        payment: req.body.payment
+    });
 
     let error: string | null = null;
     let success = false;
     let result: { user: User; merchant: Merchant; } | null = null;
 
     try {
+        // Validate required fields
+        if (!business_name || !fname || !lname || !username || !email || !phone || !password || !confirm_password) {
+            throw new AppError("Missing required fields", 400);
+        }
+
         if (await checkUserExists(email, username, phone)) {
             throw new AppError("User already exists", 400);
         }
@@ -58,7 +172,29 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
         await validatePasswords(password, confirm_password);
         const password_hash = await hashPassword(password);
 
+        // If use_same_address is true, use main address for branch
+        const finalBranchAddress = use_same_address ? {
+            country: mainCountry,
+            state: mainState,
+            city: mainCity,
+            zip: mainZip,
+            street: mainStreet,
+            unit: mainUnit,
+            floor: mainFloor
+        } : {
+            country: branchCountry,
+            state: branchState,
+            city: branchCity,
+            zip: branchZip,
+            street: branchStreet,
+            unit: branchUnit,
+            floor: branchFloor
+        };
+
         result = await prisma.$transaction(async (tx) => {
+            // Use branchOpeningHours from the destructured branchInfo
+            const openingHours = branchOpeningHours;
+            // Create user
             const user: User = await tx.user.create({
                 data: {
                     user_id: uuidv4() + "-" + Date.now(),
@@ -70,10 +206,12 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
                     phone,
                     role: UserRole.MERCHANT,
                     status: UserStatus.INACTIVE,
-                    lang
+                    lang,
+                    email_verified: false
                 }
             });
 
+            // Create merchant with address
             const merchant: Merchant = await tx.merchant.create({
                 data: {
                     merchant_id: uuidv4() + "-" + Date.now(),
@@ -87,18 +225,76 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
                     address: {
                         create: {
                             address_id: uuidv4() + "-" + Date.now(),
-                            country,
-                            state,
-                            city,
-                            zip,
-                            street,
-                            unit,
-                            floor
+                            country: mainCountry,
+                            state: mainState,
+                            city: mainCity,
+                            zip: mainZip,
+                            street: mainStreet,
+                            unit: mainUnit,
+                            floor: mainFloor
                         }
                     }
                 },
             });
 
+            // Create branch (without address)
+            const branch = await tx.branch.create({
+                data: {
+                    branch_id: uuidv4() + "-" + Date.now(),
+                    merchant_id: merchant.merchant_id,
+                    branch_name,
+                    description: branchDescription,
+                    phone: branchPhone || phone,
+                    email: branchEmail || email,
+                    is_active: true
+                }
+            });
+
+            // Create branch address, linked to both branch and merchant
+            const branchAddressRecord = await tx.address.create({
+                data: {
+                    address_id: uuidv4() + "-" + Date.now(),
+                    merchant_id: merchant.merchant_id,
+                    branch_id: branch.branch_id,
+                    country: finalBranchAddress.country,
+                    state: finalBranchAddress.state,
+                    city: finalBranchAddress.city,
+                    zip: finalBranchAddress.zip,
+                    street: finalBranchAddress.street,
+                    unit: finalBranchAddress.unit,
+                    floor: finalBranchAddress.floor
+                }
+            });
+
+            // Create opening hours for the branch
+            if (openingHours && openingHours.length > 0) {
+                for (const hour of openingHours) {
+                    await tx.branchOpeningHour.create({
+                        data: {
+                            id: uuidv4() + "-" + Date.now(),
+                            branch_id: branch.branch_id,
+                            day_of_week: getDayOfWeek(hour.day),
+                            open_time: new Date(`1970-01-01T${hour.open_time}`),
+                            close_time: new Date(`1970-01-01T${hour.close_time}`),
+                            is_closed: hour.is_closed || false
+                        }
+                    });
+                }
+            } else {
+                // Default opening hours if none provided
+                await tx.branchOpeningHour.create({
+                    data: {
+                        id: uuidv4() + "-" + Date.now(),
+                        branch_id: branch.branch_id,
+                        day_of_week: DayOfWeek.MONDAY,
+                        open_time: new Date('1970-01-01T09:00:00'),
+                        close_time: new Date('1970-01-01T17:00:00'),
+                        is_closed: false
+                    }
+                });
+            }
+
+            // Create user-merchant relationship
             const userMerchant = await tx.userMerchant.create({
                 data: {
                     user_id: user.user_id,
@@ -108,7 +304,7 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
                 }
             });
 
-            return { user, merchant, userMerchant };
+            return { user, merchant, userMerchant, branch, branchAddressRecord };
         }, {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         });
@@ -117,27 +313,23 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
             throw new AppError("Failed to create merchant", 400);
         }
 
-        // Send verification email
-        console.log(result);
         // TODO: Send verification email
+        // TODO: Handle payment processing if save_card is true
 
         success = true;
-        // Generate a redirect token (in production, this should be a secure token)
         const redirect_token = uuidv4();
-        
-        // Store the redirect token in session
         req.session.redirect_token = redirect_token;
         
         res.status(200).json({ 
             message: "Merchant created successfully", 
             success: true, 
-            redirect_token 
+            redirect_token,
+            merchant_id: result.merchant.merchant_id
         });
 
     } catch (err) {
         error = err instanceof Error ? err.stack || err.message : JSON.stringify(err);
         success = false;
-
         next(err instanceof AppError ? err : new AppError("Failed to signup merchant", 500));
     } finally {
         await insertActivityLog({
@@ -146,7 +338,11 @@ export const merchantSignup = async (req: Request, res: Response, next: NextFunc
             success,
             status: res.statusCode || 500,
             error,
-            actionData: result || { message: 'Failed to signup merchant' },
+            actionData: result ? {
+                merchant_id: result.merchant.merchant_id,
+                business_name: result.merchant.business_name,
+                email: result.merchant.email
+            } : { message: 'Failed to signup merchant' },
         });
     }
 }
@@ -185,8 +381,6 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                     include: { merchant: true }
                 });
 
-                console.log(userMerchant);
-
                 if (!userMerchant?.merchant || userMerchant.merchant.approval_status !== ApprovalStatus.APPROVED) {
                     console.log(userMerchant?.merchant.approval_status);
                     throw new AppError("Merchant not approved", 400);
@@ -219,12 +413,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             success: true,
             user: result.user,
             merchant: result.merchant,
-            redirect: result.user.role === UserRole.MERCHANT
-                ? `${frontendUrl}/dashboard/${result.merchant?.merchant_id}/view-live-queues`
-                : `${frontendUrl}/dashboard/2a0b68db-d948-44d3-8967-ec3d106f31ff-1749016133439/view-live-queues`
+            redirect: "/dashboard/view-live-queues"
         });
 
     } catch (err) {
+        console.log('asdasdas');
         error = err instanceof Error ? err.stack || err.message : JSON.stringify(err);
         success = false;
         res.status(err instanceof AppError && err.statusCode ? err.statusCode : 500);
@@ -352,10 +545,12 @@ export const handleRedirect = async (req: Request, res: Response, next: NextFunc
 export const verifySession = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = req.session.user;
-        console.log('Session user in verifySession:', user); // Debug log
 
         if (!user) {
-            throw new AppError("No active session", 401);
+            return res.status(200).json({
+                success: true,
+                user: null
+            });
         }
 
         // Return minimal user info needed by frontend

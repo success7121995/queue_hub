@@ -4,12 +4,10 @@ import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const DashboardNavbar = () => {
-	const router = useRouter();
 	const [profileOpen, setProfileOpen] = useState(false);
 	const [mailOpen, setMailOpen] = useState(false);
 	const [branchOpen, setBranchOpen] = useState(false);
@@ -58,15 +56,28 @@ const DashboardNavbar = () => {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-
-	const { data, isLoading, error } = useQuery({
-		queryKey: ['merchant-data'],
-		queryFn: () => fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/get-user`, {
+	/*********** Get user data ***********/
+	const { data: userData, isLoading: isUserDataLoading, error: userDataError } = useQuery({
+		queryKey: ['user-data'],
+		queryFn: () => fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/get-user?include=user_merchant&include=merchant&include=message_sent&include=message_received`, {
 			method: 'GET',
 			credentials: 'include',
-		}),
-		enabled: false,
+		})
+		.then(res => res.json())
+		.then(data => {
+			return data.user;
+		})
+		.catch(error => {
+			console.error("Get user data failed:", error);
+		})
 	});
+
+	// Data for display
+	const businessName = userData?.user?.merchant?.[0]?.business_name;
+	const username = userData?.user?.username;
+	const position = userData?.user?.user_merchant?.[0]?.position;
+	const lang = userData?.user?.lang;
+	const messageReceived = userData?.user?.message_received;
 
 	/**
 	 * Logout mutation
@@ -125,7 +136,14 @@ const DashboardNavbar = () => {
 					<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
 						<UserCircle size={28} className="text-text-light" />
 					</div>
-					<span className="text-base font-semibold text-text-light">ABC Limited</span>
+
+
+					<span className="text-base font-semibold text-text-light">
+						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+							businessName
+						}
+					</span>
+				
 				</div>
 				<div ref={branchRef} className="relative flex items-center ml-6">
 					<span className="text-sm font-medium cursor-pointer text-text-light" onClick={() => setBranchOpen((v) => !v)}>
@@ -162,8 +180,18 @@ const DashboardNavbar = () => {
 						<ChevronDown size={16} className="text-text-light" />
 					</button>
 					{mailOpen && (
+
+						
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
-							<div className="py-1 cursor-pointer">No new messages</div>
+							<ul className="py-1">
+								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									messageReceived && messageReceived.length > 0 ? messageReceived.map((message: any) => (
+										<li key={message.id} className="cursor-pointer">
+											{message.title}
+										</li>
+									)) : "No new messages"
+								}
+							</ul>
 						</div>
 					)}
 				</div>
@@ -173,8 +201,16 @@ const DashboardNavbar = () => {
 							<UserCircle size={28} className="text-text-light" />
 						</div>
 						<div className="flex flex-col items-start">
-							<span className="text-base font-semibold text-text-light">Mr. Chan</span>
-							<span className="text-xs text-text-light font-medium">Manager</span>
+							<span className="text-base font-semibold text-text-light">
+								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									"Hi, " + username									
+								}
+							</span>
+							<span className="text-xs text-text-light font-medium">
+								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									position
+								}
+							</span>
 						</div>
 						<ChevronDown size={16} />
 					</button>
@@ -217,7 +253,11 @@ const DashboardNavbar = () => {
 						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
 							<UserCircle size={28} />
 						</div>
-						<span className="text-lg font-medium">ABC Limited</span>
+						<span className="text-lg font-medium">
+							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+								businessName
+							}
+						</span>
 					</div>
 					<div className="flex items-center mb-4">
 						<span className="text-lg font-medium cursor-pointer" onClick={() => setBranchOpen((v) => !v)}>
@@ -246,11 +286,21 @@ const DashboardNavbar = () => {
 						>
 							<span className="flex items-center">
 								<UserCircle size={28} />
-								<span className="ml-2 text-lg font-medium">Mr. Chan</span>
-								<span className="ml-2 text-xs text-gray-500">Manager</span>
+								<span className="ml-2 text-lg font-medium">
+									{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+										"Hi, " + username
+									}
+								</span>
+								<span className="ml-2 text-xs text-gray-500">
+									{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+										position
+									}
+								</span>
 							</span>
 							<ChevronDown size={18} className={profileAccordion ? "rotate-180 transition-transform" : "transition-transform"} />
 						</button>
+
+						{/* Profile accordion */}
 						{profileAccordion && (
 							<div className="flex flex-col pl-8 space-y-2 mt-1">
 								<Link href="/profile" className="text-left">Profile</Link>

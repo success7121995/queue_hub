@@ -1,5 +1,10 @@
+export type Lang = "EN" | "ZH_HK" | "ZH_TW" | "ZH_CH";
+export type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
+export type MerchantRole = "OWNER" | "MANAGER" | "FRONTLINE";
+
 export interface SignupFormFields {
     signup: {
+        plan: Plan;
         business_name: string;
         fname: string;
         lname: string;
@@ -8,67 +13,141 @@ export interface SignupFormFields {
         phone: string;
         password: string;
         confirm_password: string;
-        lang: "EN" | "ZH-HK" | "ZH-TW" | "ZH-CN";
-        plan: "TRIAL" | "ESSENTIAL" | "GROWTH";
-    },
-    address: Address,
-    payment: Payment;
+        lang: Lang;
+        use_same_address: boolean;
+    };
+    branchInfo: {
+        branch_name: string;
+        phone?: string;
+        email?: string;
+        description?: string;
+        opening_hours?: {
+            day_of_week: number;
+            open_time: string;
+            close_time: string;
+            is_closed: boolean;
+        }[];
+    };
+    address: {
+        country: string;
+        street: string;
+        unit?: string;
+        floor?: string;
+        city: string;
+        state: string;
+        zip: string;
+    };
+    branchAddress?: {
+        country: string;
+        street: string;
+        unit?: string;
+        floor?: string;
+        city: string;
+        state: string;
+        zip: string;
+    };
+    payment?: {
+        card_name: string;
+        card_number: string;
+        expiry_date: string;
+        cvv: string;
+        card_token?: string;
+        save_card: boolean;
+        auto_renewal: boolean;
+    };
 }
 
 export interface AddBranchFormFields {
     branchInfo: {
-        name: string;
-        contact_person: string;
-        email: string;
-        branch_tel: string;
-        description: string;
-        features: string[];
-        tags: string[];
-        opening_hours: {
-            id: number;
-            dayOfWeek: number;
+        branch_name: string;
+        phone?: string;
+        email?: string;
+        description?: string;
+        opening_hours?: {
+            day_of_week: number;
             open_time: string;
             close_time: string;
-            closed: boolean;
+            is_closed: boolean;
         }[];
     };
-    address: Address;
-    payment: Payment;
+    address: {
+        country: string;
+        street: string;
+        unit?: string;
+        floor?: string;
+        city: string;
+        state: string;
+        zip: string;
+    };
+    payment?: {
+        card_name: string;
+        card_number: string;
+        expiry_date: string;
+        cvv: string;
+        card_token?: string;
+        save_card: boolean;
+        auto_renewal: boolean;
+    };
 }
 
 export interface AddAdminFormFields {
     userInfo: {
-        first_name: string;
-        last_name: string;
+        fname: string;
+        lname: string;
         email: string;
         phone: string;
         position: string;
-        role: "OWNER" | "MANAGER" | "EMPLOYEE";
-    },
+        role: MerchantRole;
+    };
     accountSetup: {
         username: string;
         password: string;
         confirm_password: string;
-        lang: 'en-GB' | 'zh-CN' | 'zh-HK' | 'zh-TW';
-    }
+        lang: Lang;
+    };
 }
 
-export type Address = {
+export interface AddEmployeeFormFields {
+    userInfo: {
+        fname: string;
+        lname: string;
+        email: string;
+        phone: string;
+        position: string;
+        role: MerchantRole;
+    };
+    accountSetup: {
+        username: string;
+        password: string;
+        confirm_password: string;
+        lang: Lang;
+    };
+}
+
+// Common types
+export interface Address {
     country: string;
     street: string;
-    unit: string;
-    floor: string;
+    unit?: string;
+    floor?: string;
     city: string;
     state: string;
     zip: string;
-} 
+}
 
-export type Payment = {
+export interface Payment {
     card_name: string;
     card_number: string;
     expiry_date: string;
     cvv: string;
-    card_token: string;
-    saved_card: boolean;
+    card_token?: string;
+    save_card: boolean;
     auto_renewal: boolean;
+}
+
+export interface OpeningHours {
+    day_of_week: number;
+    open_time: string;
+    close_time: string;
+    is_closed: boolean;
 }

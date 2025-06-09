@@ -17,36 +17,36 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 		{
 			label: "Queues",
 			items: [
-				{ label: "View Live Queues", href: `/dashboard/${merchantId}/view-live-queues` },
-				{ label: "Manage Queue Entries", href: `/dashboard/${merchantId}/manage-queue-entries` },
+				{ label: "View Live Queues", href: `/dashboard/view-live-queues` },
+				{ label: "Manage Queue Entries", href: `/dashboard/manage-queue-entries` },
 			],
 		},
 		{
 			label: "Branch",
 			items: [
-				{ label: "Add Branch", href: `/dashboard/${merchantId}/add-branch` },
-				{ label: "Branch Info", href: `/dashboard/${merchantId}/branch-info` },
+				{ label: "Add Branch", href: `/dashboard/add-branch` },
+				{ label: "Branch Info", href: `/dashboard/branch-info` },
 			],
 		},
 		{
 			label: "Customers",
 			items: [
-				{ label: "View Queue History", href: `/dashboard/${merchantId}/view-queue-history` },
-				{ label: "Feedback", href: `/dashboard/${merchantId}/feedback` },
+				{ label: "View Queue History", href: `/dashboard/view-queue-history` },
+				{ label: "Feedback", href: `/dashboard/feedback` },
 			],
 		},
 		{
 			label: "Employees",
 			items: [
-				{ label: "Register New User", href: `/dashboard/${merchantId}/register-new-user` },
-				{ label: "Manage Users", href: `/dashboard/${merchantId}/manage-users` },
+				{ label: "Register New User", href: `/dashboard/register-new-user` },
+				{ label: "Manage Users", href: `/dashboard/manage-users` },
 			],
 		},
 		{
 			label: "Analytics",
 			items: [
-				{ label: "Analytics", href: `/dashboard/${merchantId}/analytics` },
-				{ label: "System Health", href: `/dashboard/${merchantId}/system-health` },
+				{ label: "Analytics", href: `/dashboard/analytics` },
+				{ label: "System Health", href: `/dashboard/system-health` },
 			],
 		},
 	];

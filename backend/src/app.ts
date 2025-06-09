@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 import routes from "./routes";
 import { errorHandler } from "./middlewares/error-hander";
 import cors from "cors";
+import PrismaSessionStore from "./utils/session-store";
 
 declare module 'express-session' {
     interface Session {
@@ -32,8 +33,10 @@ app.use(express.json());
 app.use(session({
 	name: "session_id",
 	secret: process.env.SESSION_SECRET || "",
+	store: new PrismaSessionStore(),
 	resave: false,
 	saveUninitialized: false,
+	rolling: true, // Extend session lifetime on activity
 	cookie: {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",

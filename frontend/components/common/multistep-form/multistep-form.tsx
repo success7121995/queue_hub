@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import Address from "./address";
 import BranchInfo from "./branch-info";
 import Preview from "./preview";
@@ -21,13 +21,14 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+    const [useSameAddress, setUseSameAddress] = useState(true);
 
     // Define steps for each form type
     const formSteps = {
-        "signup": ["Signup", "Address", "Payment", "Complete"],
+        "signup": ["Signup", "Branch Info", "Address", "Branch Address", "Payment", "Complete"],
         "add-branch": ["Branch Info", "Address", "Payment", "Complete"],
-        "add-employee": ["User Info", "Account Setup", "Specific Info"],
-        "add-admin": ["User Info", "Account Setup", "Specific Info"]
+        "add-employee": ["User Info", "Account Setup", "Complete"],
+        "add-admin": ["User Info", "Account Setup", "Complete"]
     };
 
     const steps = formSteps[form];
@@ -46,34 +47,85 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
     //     }
     // }, [currentStep, form, router, steps.length]);
 
-    const handleNext = () => {
+    const handleNext = useCallback(() => {
         if (currentStep < steps.length) {
             setCompletedSteps([...completedSteps, currentStep]);
             setCurrentStep(currentStep + 1);
         }
-    };
+    }, [currentStep, completedSteps, steps.length]);
 
-    const handlePrev = () => {
+    const handlePrev = useCallback(() => {
         if (currentStep > 1) {
+            // Special handling for payment step in signup flow
+            if (form === "signup" && currentStep === 5) {
+                // If we're using the same address, go back to main address
+                if (useSameAddress) {
+                    setCurrentStep(3);
+                    setCompletedSteps(completedSteps.filter(step => step !== 4));
+                } else {
+                    // If we have a separate branch address, go back to branch address
+                    setCurrentStep(4);
+                    setCompletedSteps(completedSteps.filter(step => step !== 4));
+                }
+                return;
+            }
+            
+            // Special handling for payment step in add-branch flow
+            if (form === "add-branch" && currentStep === 3) {
+                setCurrentStep(2);
+                setCompletedSteps(completedSteps.filter(step => step !== 2));
+                return;
+            }
+
+            // Default behavior for other steps
             setCurrentStep(currentStep - 1);
             setCompletedSteps(completedSteps.filter(step => step !== currentStep - 1));
         }
-    };
+    }, [currentStep, completedSteps, form, useSameAddress]);
 
     const renderStep = () => {
         switch (form) {
             case "signup":
                 switch (currentStep) {
                     case 1: return <Signup onNext={handleNext} />;
-                    case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
-                    case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 4: return <Preview form="signup" onPrev={handlePrev} />;
+                    case 2: return <BranchInfo onNext={handleNext} onPrev={handlePrev} />;
+                    case 3: return (
+                        <Address 
+                            onNext={handleNext} 
+                            onPrev={handlePrev}
+                            showUseSameAddressCheckbox={true}
+                            useSameAddress={useSameAddress}
+                            onUseSameAddressChange={setUseSameAddress}
+                        />
+                    );
+                    case 4: {
+                        if (useSameAddress) {
+                            // Skip branch address step if using same address
+                            handleNext();
+                            return null;
+                        }
+                        return (
+                            <Address 
+                                onNext={handleNext} 
+                                onPrev={handlePrev}
+                                isBranchAddress={true}
+                            />
+                        );
+                    }
+                    case 5: return <Payment onNext={handleNext} onPrev={handlePrev} />;
+                    case 6: return <Preview form="signup" onPrev={handlePrev} />;
                     default: return null;
                 }
             case "add-branch":
                 switch (currentStep) {
                     case 1: return <BranchInfo onNext={handleNext} />;
-                    case 2: return <Address onNext={handleNext} onPrev={handlePrev} />;
+                    case 2: return (
+                        <Address 
+                            onNext={handleNext} 
+                            onPrev={handlePrev}
+                            isBranchAddress={true}
+                        />
+                    );
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;
                     case 4: return <Preview form="add-branch" onPrev={handlePrev} />;
                     default: return null;
@@ -82,7 +134,7 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                 switch (currentStep) {
                     case 1: return <UserInfo onNext={handleNext} />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
-                    case 3: return <Preview form="add-employee" onPrev={handlePrev} />
+                    case 3: return <Preview form="add-employee" onPrev={handlePrev} />;
                     default: return null;
                 }
             case "add-admin":

@@ -254,7 +254,7 @@ model User {
   lang                           Lang                         @default(EN)
   oauth_accounts                 OAuthAccount[]               @relation("UserOAuthAccounts")
   merchant                       Merchant[]                   @relation("UserMerchants")
-  user_merchants                 UserMerchant[]               @relation("UserMerchantStaff")
+  user_merchant                 UserMerchant[]               @relation("UserMerchantStaff")
   queue_entries                  QueueEntry[]                 @relation("UserQueueEntries")
   favorite_merchants             FavoriteMercahnt[]           @relation("UserFavoriteMerchants")
   user_queue_reminder_references UserQueueReminderReference[] @relation("UserQueueReminders")
@@ -290,9 +290,8 @@ model Merchant {
   owner               User                  @relation("UserMerchants", fields: [owner_id], references: [user_id], onDelete: Cascade, onUpdate: Cascade)
   approval_status     ApprovalStatus        @default(PENDING)
   business_name       String
-  phone                 String                @unique
+  phone               String                @unique
   email               String                @unique
-  address             MerchantAddress[]     @relation("MerchantAddresses")
   description         String?
   subscription_status SubscriptionStatus    @default(TRIAL)
   subscription_start  DateTime?
@@ -301,27 +300,76 @@ model Merchant {
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
   approved_at         DateTime?             @updatedAt
-  opening_hours       MerchantOpeningHour[] @relation("MerchantOpeningHours")
-  features            MerchantFeature[]     @relation("MerchantFeatures")
-  images              MerchantImage[]       @relation("MerchantImages")
+
+  // Relations
+  branches            Branch[]              @relation("MerchantBranches")
   user_merchants      UserMerchant[]        @relation("MerchantStaff")
   queues              Queue[]               @relation("MerchantQueues")
   favorite_merchants  FavoriteMercahnt[]    @relation("MerchantFavorites")
   reviews             Review[]              @relation("MerchantReviews")
   news                News[]                @relation("MerchantNews")
+  address             Address?              @relation("MerchantAddress")
+  opening_hours       MerchantOpeningHour[] @relation("MerchantOpeningHours")
+  features            MerchantFeature[]     @relation("MerchantFeatures")
 }
 
-model MerchantAddress {
-  address_id String @id @default(uuid()) 
-  merchant_id String
-  merchant Merchant @relation("MerchantAddresses", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
-  street String
-  unit String
-  floor String
-  city String
-  state String
-  zip String
-  country String
+model Branch {
+  branch_id       String           @id @default(uuid())
+  merchant_id     String
+  branch_name     String
+  phone           String?
+  email           String?
+  description     String?
+  is_active       Boolean          @default(true)
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+
+  // Relations
+  merchant        Merchant         @relation("MerchantBranches", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
+  address         Address?         @relation("BranchAddress")
+  opening_hours   BranchOpeningHour[]
+  features        BranchFeature[]
+  queues          Queue[]          @relation("BranchQueues")
+  images          BranchImage[]    @relation("BranchImages")
+}
+
+model Address {
+  address_id   String   @id @default(uuid())
+  merchant_id  String?  @unique
+  merchant     Merchant? @relation("MerchantAddress", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
+  branch_id    String?  @unique
+  branch       Branch?  @relation("BranchAddress", fields: [branch_id], references: [branch_id], onDelete: Cascade, onUpdate: Cascade)
+  street       String
+  unit         String?
+  floor        String?
+  city         String
+  state        String
+  zip          String
+  country      String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model BranchOpeningHour {
+  id          String    @id @default(uuid())
+  branch_id   String
+  branch      Branch    @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade, onUpdate: Cascade)
+  day_of_week DayOfWeek
+  open_time   DateTime
+  close_time  DateTime
+  is_closed   Boolean   @default(false)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+}
+
+model BranchFeature {
+  feature_id  String   @id @default(uuid())
+  branch_id   String
+  branch      Branch   @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade, onUpdate: Cascade)
+  label       String
+  is_positive Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
 model MerchantOpeningHour {
@@ -331,21 +379,25 @@ model MerchantOpeningHour {
   day_of_week DayOfWeek
   open_time   DateTime
   close_time  DateTime
+  is_closed   Boolean   @default(false)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 }
 
 model MerchantFeature {
   feature_id  String   @id @default(uuid())
   merchant_id String
   merchant    Merchant @relation("MerchantFeatures", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
-  label       String?
+  label       String
   is_positive Boolean  @default(true)
   created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
-model MerchantImage {
+model BranchImage {
   image_id    String    @id @default(uuid())
-  merchant_id String
-  merchant    Merchant  @relation("MerchantImages", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
+  branch_id   String
+  branch      Branch    @relation("BranchImages", fields: [branch_id], references: [branch_id], onDelete: Cascade, onUpdate: Cascade)
   image_url   String
   image_type  ImageType
   uploaded_at DateTime  @default(now())
@@ -366,6 +418,8 @@ model Queue {
   queue_id          String           @id @default(uuid())
   merchant_id       String
   merchant          Merchant         @relation("MerchantQueues", fields: [merchant_id], references: [merchant_id], onDelete: Cascade, onUpdate: Cascade)
+  branch_id         String?
+  branch            Branch?          @relation("BranchQueues", fields: [branch_id], references: [branch_id], onDelete: SetNull, onUpdate: Cascade)
   queue_name        String
   queue_status      QueueEntryStatus @default(WAITING)
   created_at        DateTime         @default(now())
@@ -493,7 +547,6 @@ model EmailLog {
   failed_reason   String?
 }
 
-
 model Invoice {
   invoice_id           String        @id @default(uuid())
   merchant_id          String
@@ -598,4 +651,14 @@ model UserDevice {
   is_active     Boolean    @default(true)
   created_at    DateTime   @default(now())
   updated_at    DateTime   @updatedAt
+}
+
+model Session {
+  id           String   @id
+  data         String   @db.Text
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([expiresAt])
 }
