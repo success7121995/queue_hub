@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useQuery } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -27,16 +28,11 @@ interface AdminAction {
 const AdminActions = () => {
 	const { formatDate } = useDateTime();
 
-	const { data: actions, isLoading } = useQuery<AdminAction[]>({
-		queryKey: ['admin-actions'],
-		queryFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/actions`, {
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed to fetch admin actions');
-			return res.json();
-		},
-	});
+	// TODO: Enable when backend is ready
+	// const { data: actions, isLoading } = useQuery<AdminAction[]>({
+	// 	queryKey: ['admin-actions'],
+	// 	queryFn: async () => { ... },
+	// });
 
 	// Mock data for demo
 	const mockActions: AdminAction[] = [
@@ -82,7 +78,15 @@ const AdminActions = () => {
 		},
 	];
 
-	const data = actions || mockActions;
+	const data = mockActions;
+
+	// TODO: Enable when backend is ready
+	// const adminActions: AdminAction[] = actions || mockActions;
+	// const isLoading = isLoading;
+	const adminActions: AdminAction[] = [
+		{ id: 'ACTION-001', adminId: 'A1', adminName: 'Admin 1', adminEmail: 'admin1@example.com', action: 'Login', actionType: 'user_management', details: {}, ip: '127.0.0.1', userAgent: 'Chrome', status: 'success', createdAt: '2024-03-01T10:00:00Z' }
+	];
+	const isLoading = false;
 
 	const getActionTypeBadge = (type: AdminAction["actionType"]) => {
 		const typeConfig = {

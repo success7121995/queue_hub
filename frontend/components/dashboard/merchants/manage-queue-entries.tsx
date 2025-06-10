@@ -7,7 +7,8 @@ import NumberCard from "@/components/common/number-card";
 import { Users, Plus, Edit, Trash2, Power } from "lucide-react";
 import { useDateTime } from "@/constant/datetime-provider";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Define types based on database schema
 type QueueStatus = 'ONLINE' | 'OFFLINE' | 'PAUSED';
@@ -18,6 +19,8 @@ interface Queue {
 	queue_name: string;
 	tags?: string[];
 	queue_status: QueueStatus;
+	created_at: string;
+	updated_at: string;
 }
 
 interface QueueFormData {
@@ -66,14 +69,29 @@ const stats = [
 // API functions
 const fetchQueues = async (): Promise<Queue[]> => {
 	// TODO: Replace with actual API call
-	return queueData;
+	return [
+		{
+			queue_id: 'Q1',
+			branch_id: 'B1',
+			queue_name: 'Demo Queue 1',
+			tags: ['tag1', 'tag2'],
+			queue_status: 'ONLINE',
+			created_at: '2024-03-01T10:00:00Z',
+			updated_at: '2024-03-01T12:00:00Z',
+		},
+	];
 };
 
 const createQueue = async (data: QueueFormData): Promise<Queue> => {
 	// TODO: Replace with actual API call
 	const newQueue: Queue = {
+		queue_id: Math.random().toString(36).substring(2, 9),
+		branch_id: 'B1',
 		queue_name: data.queue_name,
 		tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+		queue_status: 'ONLINE',
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
 	};
 	return newQueue;
 };
@@ -82,8 +100,12 @@ const updateQueue = async ({ queue_id, data }: { queue_id: string; data: QueueFo
 	// TODO: Replace with actual API call
 	const updatedQueue: Queue = {
 		queue_id,
+		branch_id: 'B1',
 		queue_name: data.queue_name,
 		tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+		queue_status: 'ONLINE',
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
 	};
 	return updatedQueue;
 };
@@ -97,8 +119,12 @@ const updateQueueStatus = async ({ queue_id, data }: { queue_id: string; data: Q
 	// TODO: Replace with actual API call
 	const updatedQueue: Queue = {
 		queue_id,
+		branch_id: 'B1',
 		queue_name: data.queue_name,
 		tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+		queue_status: 'OFFLINE',
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
 	};
 	return updatedQueue;
 };
@@ -107,7 +133,8 @@ const ManageQueueEntries = () => {
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
 	const { formatDate } = useDateTime();
-	const queryClient = useQueryClient();
+	// TODO: Enable when backend is ready
+	// const queryClient = useQueryClient();
 
 	// Form handling
 	const createForm = useForm<QueueFormData>({
@@ -124,74 +151,98 @@ const ManageQueueEntries = () => {
 		},
 	});
 
-	// React Query hooks
-	const { data: queues = [], isLoading } = useQuery({
-		queryKey: ['queues'],
-		queryFn: fetchQueues,
-	});
+	// TODO: Enable when backend is ready
+	// const { data: queues = [], isLoading } = useQuery({
+	// 	queryKey: ['queues'],
+	// 	queryFn: fetchQueues,
+	// });
+	const queues = [
+		{ queue_id: 'Q1', queue_name: 'Demo Queue 1', tags: ['tag1', 'tag2'], status: 'ONLINE' as QueueStatus, branch_id: 'B1', queue_status: 'ONLINE' as QueueStatus, created_at: '2024-03-01T10:00:00Z', updated_at: '2024-03-01T12:00:00Z' },
+		{ queue_id: 'Q2', queue_name: 'Demo Queue 2', tags: ['tag3'], status: 'OFFLINE' as QueueStatus, branch_id: 'B1', queue_status: 'OFFLINE' as QueueStatus, created_at: '2024-03-02T10:00:00Z', updated_at: '2024-03-02T12:00:00Z' }
+	];
+	const isLoading = false;
 
-	const createMutation = useMutation({
-		mutationFn: createQueue,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['queues'] });
-			setIsCreateModalOpen(false);
-			createForm.reset();
-		},
-		onError: (error) => {
-			console.error('Create queue error:', error);
-		},
-	});
-
-	const updateMutation = useMutation({
-		mutationFn: updateQueue,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['queues'] });
-			setSelectedQueue(null);
-			editForm.reset();
-		},
-		onError: (error) => {
-			console.error('Update queue error:', error);
-		},
-	});
-
-	const deleteMutation = useMutation({
-		mutationFn: deleteQueue,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['queues'] });
-		},
-		onError: (error) => {
-			console.error('Delete queue error:', error);
-		},
-	});
-
-	const statusMutation = useMutation({
-		mutationFn: updateQueueStatus,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['queues'] });
-		},
-		onError: (error) => {
-			console.error('Update status error:', error);
-		},
-	});
-
-	// Form submission handlers
+	// TODO: Enable when backend is ready
+	// const createMutation = useMutation({
+	// 	mutationFn: createQueue,
+	// 	onSuccess: () => {
+	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
+	// 		setIsCreateModalOpen(false);
+	// 		createForm.reset();
+	// 	},
+	// 	onError: (error) => {
+	// 		console.error('Create queue error:', error);
+	// 	},
+	// });
 	const onCreateSubmit = (data: QueueFormData) => {
-		createMutation.mutate(data);
+		// TODO: Enable when backend is ready
+		// createMutation.mutate(data);
+		console.log('Create queue:', data);
+		setIsCreateModalOpen(false);
+		createForm.reset();
 	};
 
+	// TODO: Enable when backend is ready
+	// const updateMutation = useMutation({
+	// 	mutationFn: updateQueue,
+	// 	onSuccess: () => {
+	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
+	// 		setSelectedQueue(null);
+	// 		editForm.reset();
+	// 	},
+	// 	onError: (error) => {
+	// 		console.error('Update queue error:', error);
+	// 	},
+	// });
 	const onEditSubmit = (data: QueueFormData) => {
+		// TODO: Enable when backend is ready
+		// updateMutation.mutate({ queue_id: selectedQueue.queue_id, data });
 		if (!selectedQueue) return;
-		updateMutation.mutate({ queue_id: selectedQueue.queue_id, data });
+		console.log('Edit queue:', { queue_id: selectedQueue.queue_id, data });
+		setSelectedQueue(null);
+		editForm.reset();
+	};
+
+	// TODO: Enable when backend is ready
+	// const deleteMutation = useMutation({
+	// 	mutationFn: deleteQueue,
+	// 	onSuccess: () => {
+	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
+	// 	},
+	// 	onError: (error) => {
+	// 		console.error('Delete queue error:', error);
+	// 	},
+	// });
+	const handleDelete = (queue_id: string) => {
+		// TODO: Enable when backend is ready
+		// deleteMutation.mutate(queue_id);
+		console.log('Delete queue:', queue_id);
+	};
+
+	// TODO: Enable when backend is ready
+	// const statusMutation = useMutation({
+	// 	mutationFn: updateQueueStatus,
+	// 	onSuccess: () => {
+	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
+	// 	},
+	// 	onError: (error) => {
+	// 		console.error('Update status error:', error);
+	// 	},
+	// });
+	const handleStatusUpdate = (queue_id: string, status: QueueStatus) => {
+		// TODO: Enable when backend is ready
+		// statusMutation.mutate({ queue_id, status });
+		console.log('Update status:', { queue_id, status });
 	};
 
 	// Queue management handlers
 	const handleStatusChange = (queue: Queue, newStatus: QueueStatus) => {
-		statusMutation.mutate({ queue_id: queue.queue_id, status: newStatus });
+		handleStatusUpdate(queue.queue_id, newStatus);
 	};
 
 	const handleDeleteQueue = (queue: Queue) => {
 		if (window.confirm('Are you sure you want to delete this queue?')) {
-			deleteMutation.mutate(queue.queue_id);
+			handleDelete(queue.queue_id);
 		}
 	};
 
@@ -200,7 +251,7 @@ const ManageQueueEntries = () => {
 		if (selectedQueue) {
 			editForm.reset({
 				queue_name: selectedQueue.queue_name,
-				tags: selectedQueue.tags.join(', '),
+				tags: selectedQueue.tags?.join(', ') || '',
 			});
 		}
 	}, [selectedQueue, editForm]);
@@ -231,13 +282,13 @@ const ManageQueueEntries = () => {
 		},
 		{ 
 			header: "Created At", 
-			accessor: (row) => formatDate(row.created_at), 
+			accessor: (row) => formatDate(new Date(row.created_at)) || 'N/A', 
 			priority: 2, 
 			sortable: true 
 		},
 		{ 
 			header: "Updated At", 
-			accessor: (row) => formatDate(row.updated_at), 
+			accessor: (row) => formatDate(new Date(row.updated_at)) || 'N/A', 
 			priority: 2, 
 			sortable: true 
 		},
@@ -245,7 +296,7 @@ const ManageQueueEntries = () => {
 			header: "Tags",
 			accessor: (row) => (
 				<div className="flex flex-wrap gap-2">
-					{row.tags.map((tag) => (
+					{(row.tags || []).map((tag) => (
 						<Tag key={tag} tagName={tag} />
 					))}
 				</div>
@@ -373,10 +424,10 @@ const ManageQueueEntries = () => {
 								</button>
 								<button
 									type="submit"
-									disabled={createMutation.isPending}
+									disabled={false}
 									className="px-4 py-2 bg-primary-light text-white rounded-md hover:bg-primary-light/90 disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									{createMutation.isPending ? 'Creating...' : 'Create'}
+									Create
 								</button>
 							</div>
 						</form>
@@ -430,10 +481,10 @@ const ManageQueueEntries = () => {
 								</button>
 								<button
 									type="submit"
-									disabled={updateMutation.isPending}
+									disabled={false}
 									className="px-4 py-2 bg-primary-light text-white rounded-md hover:bg-primary-light/90 disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									{updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+									Save Changes
 								</button>
 							</div>
 						</form>

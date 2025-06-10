@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { useMutation } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useMutation } from "@tanstack/react-query";
 import { AddAdminFormFields, AddBranchFormFields, SignupFormFields, MerchantRole, Lang } from "@/types/form";
 import Success from "./success";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -73,43 +74,14 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
         }
     }, []);
 
+    // TODO: Enable when backend is ready
+    /*
     const submitMutation = useMutation({
-        mutationFn: async (data: SignupFormFields | AddBranchFormFields | AddAdminFormFields) => {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth${apiPath}`, {
-                method: "POST",
-                body: JSON.stringify(data),
-                headers: { "Content-Type": "application/json" },
-                credentials: 'include'
-            }); 
-
-            const result = await res.json();
-    
-            if (!res.ok) {
-                throw new Error(result.message || "Submission failed");
-            }
-    
-            return result;
-        },
-        onSuccess: async (data) => {
-            Cookies.remove(COOKIE_KEY);
-            
-            setShowSuccess(true);
-            
-            // Start countdown
-            const timer = setInterval(() => {
-                setCountdown((prev) => {
-                    if (prev <= 1) {
-                        clearInterval(timer);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        },
-        onError: (err: any) => {
-            console.error("Submission error:", err.message);
-        }
+        mutationFn: async (data) => { ... },
+        onSuccess: ...,
+        onError: ...
     });
+    */
 
     const handleSubmit = () => {
         if (formData) {
@@ -152,7 +124,15 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     throw new Error("Invalid form type");
             }
 
+            // TODO: Enable when backend is ready
+            /*
             submitMutation.mutate(structuredData);
+            */
+            console.log('Submit form:', structuredData);
+            // Mock success
+            setTimeout(() => {
+                setShowSuccess(true);
+            }, 1000);
         }
     };
 
@@ -177,6 +157,7 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     return (
         <div className="w-full min-h-[60vh] flex justify-center items-center to-white py-16 font-regular-eng">
             {/* Loading overlay */}
+            {/* TODO: Enable when backend is ready
             {submitMutation.isPending && (
                 <LoadingIndicator 
                     fullScreen 
@@ -184,6 +165,7 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     className="bg-white/80"
                 />
             )}
+            */}
 
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-10 border border-gray-100 relative flex flex-col items-center">
                 <h2 className="text-3xl font-bold text-center mb-2 text-primary-light">Preview</h2>
@@ -295,14 +277,16 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     <button
                         type="button"
                         onClick={handleSubmit}
-                        disabled={submitMutation.isPending}
                         className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-md hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center min-w-[100px]"
                     >
+                        {/* TODO: Enable when backend is ready
                         {submitMutation.isPending ? (
                             <LoadingIndicator size="sm" className="!mt-0" />
                         ) : (
                             'Submit'
                         )}
+                        */}
+                        Submit
                     </button>
                 </div>
             </div>

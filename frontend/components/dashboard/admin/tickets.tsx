@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useQuery } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -55,22 +56,23 @@ interface TicketsProps {
 const Tickets = ({ filter, title }: TicketsProps) => {
 	const { formatDate } = useDateTime();
 
-	const { data: tickets, isLoading } = useQuery<Ticket[]>({
-		queryKey: ['tickets', filter],
-		queryFn: async () => {
-			const queryParams = new URLSearchParams();
-			if (filter?.status) queryParams.append('status', filter.status);
-			if (filter?.priority) queryParams.append('priority', filter.priority);
-			if (filter?.category) queryParams.append('category', filter.category);
-			if (filter?.assignedTo) queryParams.append('assignedTo', filter.assignedTo);
-
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/tickets?${queryParams}`, {
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed to fetch tickets');
-			return res.json();
-		},
-	});
+	// TODO: Enable when backend is ready
+	// const { data: tickets, isLoading } = useQuery<Ticket[]>({
+	// 	queryKey: ['tickets', filter],
+	// 	queryFn: async () => {
+	// 		const queryParams = new URLSearchParams();
+	// 		if (filter?.status) queryParams.append('status', filter.status);
+	// 		if (filter?.priority) queryParams.append('priority', filter.priority);
+	// 		if (filter?.category) queryParams.append('category', filter.category);
+	// 		if (filter?.assignedTo) queryParams.append('assignedTo', filter.assignedTo);
+	//
+	// 		const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/tickets?${queryParams}`, {
+	// 			credentials: 'include',
+	// 		});
+	// 		if (!res.ok) throw new Error('Failed to fetch tickets');
+	// 		return res.json();
+	// 	},
+	// });
 
 	// Mock data for demo
 	const mockTickets: Ticket[] = [
@@ -128,7 +130,7 @@ const Tickets = ({ filter, title }: TicketsProps) => {
 		},
 	];
 
-	const data = tickets || mockTickets;
+	const data = mockTickets;
 
 	const getStatusBadge = (status: Ticket["status"]) => {
 		const statusConfig = {
@@ -230,11 +232,7 @@ const Tickets = ({ filter, title }: TicketsProps) => {
 			),
 		},
 	];
-
-	if (isLoading) {
-		return <LoadingIndicator fullScreen />;
-	}
-
+	
 	return (
 		<div className="min-h-screen font-regular-eng p-8">
 			<div className="flex justify-between items-center mb-8">

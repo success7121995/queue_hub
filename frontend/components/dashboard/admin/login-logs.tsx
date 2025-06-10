@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useQuery } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -34,16 +35,16 @@ interface LoginLog {
 const LoginLogs = () => {
 	const { formatDate } = useDateTime();
 
-	const { data: logs, isLoading } = useQuery<LoginLog[]>({
-		queryKey: ['login-logs'],
-		queryFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/login-logs`, {
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed to fetch login logs');
-			return res.json();
-		},
-	});
+	// TODO: Enable when backend is ready
+	// const { data: loginLogs, isLoading } = useQuery<LoginLog[]>({
+	// 	queryKey: ['login-logs'],
+	// 	queryFn: async () => { ... },
+	// });
+
+	const loginLogs: LoginLog[] = [
+		{ id: 'LOG-001', userId: 'U1', userName: 'User 1', userEmail: 'user1@example.com', userRole: 'admin', ip: '127.0.0.1', userAgent: 'Chrome', status: 'success', createdAt: '2024-03-01T10:00:00Z' }
+	];
+	const isLoading = false;
 
 	// Mock data for demo
 	const mockLogs: LoginLog[] = [
@@ -107,7 +108,7 @@ const LoginLogs = () => {
 		},
 	];
 
-	const data = logs || mockLogs;
+	const data = loginLogs || mockLogs;
 
 	const getStatusBadge = (status: LoginLog["status"]) => {
 		const statusConfig = {

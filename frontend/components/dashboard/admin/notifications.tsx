@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -40,10 +41,13 @@ const Notifications = () => {
 	const { formatDate } = useDateTime();
 	const [isEditing, setIsEditing] = useState(false);
 	const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-	const queryClient = useQueryClient();
+	// TODO: Enable when backend is ready
+	// const queryClient = useQueryClient();
 
 	const { register, handleSubmit, reset, formState: { errors } } = useForm<NotificationFormData>();
 
+	// TODO: Enable when backend is ready
+	/*
 	const { data: notifications, isLoading } = useQuery<Notification[]>({
 		queryKey: ['notifications'],
 		queryFn: async () => {
@@ -105,8 +109,9 @@ const Notifications = () => {
 			queryClient.invalidateQueries({ queryKey: ['notifications'] });
 		},
 	});
+	*/
 
-	// Mock data for demo
+	// Mock data for UI development
 	const mockNotifications: Notification[] = [
 		{
 			id: "NOTIF-001",
@@ -148,7 +153,35 @@ const Notifications = () => {
 		},
 	];
 
-	const data = notifications || mockNotifications;
+	// Use mock data instead of query data
+	const notifications = mockNotifications;
+	const isLoading = false;
+
+	// Mock handlers for UI development
+	const handleCreate = async (data: NotificationFormData) => {
+		console.log('Create notification:', data);
+		reset();
+		setIsEditing(false);
+	};
+
+	const handleUpdate = async (id: string, data: NotificationFormData) => {
+		console.log('Update notification:', { id, data });
+		reset();
+		setIsEditing(false);
+		setSelectedNotification(null);
+	};
+
+	const handleDelete = async (id: string) => {
+		console.log('Delete notification:', id);
+	};
+
+	const onSubmit = (data: NotificationFormData) => {
+		if (isEditing && selectedNotification) {
+			handleUpdate(selectedNotification.id, data);
+		} else {
+			handleCreate(data);
+		}
+	};
 
 	const getTypeBadge = (type: Notification["type"]) => {
 		const typeConfig = {
@@ -266,7 +299,7 @@ const Notifications = () => {
 						<Edit2 className="w-4 h-4" />
 					</button>
 					<button
-						onClick={() => deleteMutation.mutate(row.id)}
+						onClick={() => handleDelete(row.id)}
 						className="bg-red-100 text-red-800 p-2 rounded-full hover:bg-red-200 transition-colors"
 					>
 						<Trash2 className="w-4 h-4" />
@@ -275,14 +308,6 @@ const Notifications = () => {
 			),
 		},
 	];
-
-	const onSubmit = (data: NotificationFormData) => {
-		if (isEditing && selectedNotification) {
-			updateMutation.mutate({ id: selectedNotification.id, data });
-		} else {
-			createMutation.mutate(data);
-		}
-	};
 
 	if (isLoading) {
 		return <LoadingIndicator fullScreen />;
@@ -303,7 +328,7 @@ const Notifications = () => {
 					>
 						Create Notification
 					</button>
-					<ExportBtn data={data} filename="notifications" />
+					<ExportBtn data={notifications} filename="notifications" />
 				</div>
 			</div>
 
@@ -422,7 +447,7 @@ const Notifications = () => {
 			)}
 
 			<div className="w-full overflow-x-auto">
-				<Table columns={columns} data={data} />
+				<Table columns={columns} data={notifications} />
 			</div>
 		</div>
 	);

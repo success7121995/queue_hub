@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useQuery } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -27,16 +28,11 @@ interface ApiLog {
 const ApiLogs = () => {
 	const { formatDate } = useDateTime();
 
-	const { data: logs, isLoading } = useQuery<ApiLog[]>({
-		queryKey: ['api-logs'],
-		queryFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/api-logs`, {
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed to fetch API logs');
-			return res.json();
-		},
-	});
+	// TODO: Enable when backend is ready
+	// const { data: logs, isLoading } = useQuery<ApiLog[]>({
+	// 	queryKey: ['api-logs'],
+	// 	queryFn: async () => { ... },
+	// });
 
 	// Mock data for demo
 	const mockLogs: ApiLog[] = [
@@ -80,7 +76,14 @@ const ApiLogs = () => {
 		},
 	];
 
-	const data = logs || mockLogs;
+	const data = mockLogs;
+
+	// TODO: Enable when backend is ready
+	// const apiLogs: ApiLog[] = logs || mockLogs;
+	const apiLogs: ApiLog[] = [
+		{ id: 'LOG-001', method: 'GET', endpoint: '/api/test', status: 200, responseTime: 120, ip: '127.0.0.1', userAgent: 'Chrome', createdAt: '2024-03-01T10:00:00Z' }
+	];
+	const isLoading = false;
 
 	const getMethodBadge = (method: ApiLog["method"]) => {
 		const methodConfig = {

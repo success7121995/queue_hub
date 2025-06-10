@@ -4,7 +4,8 @@ import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useMutation, useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const AdminNavbar = () => {
@@ -16,7 +17,8 @@ const AdminNavbar = () => {
 	const profileRef = useRef<HTMLDivElement>(null);
 	const mailRef = useRef<HTMLDivElement>(null);
 
-	// Fetch user data
+	// TODO: Enable when backend is ready
+	/*
 	const { data: user, isLoading: isUserDataLoading } = useQuery({
 		queryKey: ['user'],
 		queryFn: async () => {
@@ -29,12 +31,29 @@ const AdminNavbar = () => {
 			return res.json();
 		},
 	});
+	*/
+
+	// Mock data for UI development
+	const mockUser = {
+		user: {
+			user: {
+				username: "Admin User",
+				role: "Administrator",
+				language: "en"
+			},
+			message_received: []
+		}
+	};
+
+	// Use mock data instead of query data
+	const user = mockUser;
+	const isUserDataLoading = false;
 
 	// Extract user info for navbar display
 	const username = user?.user?.user?.username || "";
 	const position = user?.user?.user?.role || "";
 	const language = user?.user?.user?.language || "en";
-	const messageReceived = user?.message_received || [];
+	const messageReceived = user?.user?.message_received || [];
 	const messageCount = messageReceived.length;
 
 	const languages = [
@@ -72,46 +91,29 @@ const AdminNavbar = () => {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	/**
-	 * Logout mutation
-	 */
-	const logoutMutation = useMutation({
-		mutationFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			});
-
-			if (!res.ok) {
-				throw new Error('Failed to logout');
-			}
-
+	// Mock logout function
+	const handleLogout = async () => {
+		try {
+			// TODO: Enable when backend is ready
+			// await logoutMutation.mutateAsync();
+			console.log('Logging out...');
 			window.location.href = '/';
-			return res.json();
-		},
-		onError: (error) => {
-			console.error("Logout failed:", error);
+		} catch (error: unknown) {
+			console.error('Logout failed:', error);
 			window.location.href = '/';
-		},
-	});
-
-	const handleLogout = () => {
-		logoutMutation.mutate();
-	}
+		}
+	};
 
 	return (
 		<nav className="font-regular-eng fixed top-0 left-0 w-full z-[1000] flex items-center px-4 sm:px-8 py-3 sm:py-4 border-b border-gray-200 bg-primary shadow-sm">
 			{/* Loading overlay */}
-			{logoutMutation.isPending && (
+			{/* {logoutMutation.isPending && (
 				<LoadingIndicator 
 					fullScreen 
 					text="Logging out..." 
 					className="bg-white/80"
 				/>
-			)}
+			)} */}
 
 			{/* Logo and QueueHub always visible */}
 			<div className="flex items-center space-x-2">
@@ -181,13 +183,13 @@ const AdminNavbar = () => {
 							<button 
 								className="w-full border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
 								onClick={handleLogout}
-								disabled={logoutMutation.isPending}
+								disabled={/* logoutMutation.isPending */ false}
 							>
-								{logoutMutation.isPending ? (
+								{/* logoutMutation.isPending ? (
 									<LoadingIndicator size="sm" className="!mt-0" />
-								) : (
+								) : ( */}
 									'Logout'
-								)}
+								{/* )} */}
 							</button>
 						</div>
 					)}
@@ -249,13 +251,13 @@ const AdminNavbar = () => {
 								<button 
 									className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
 									onClick={handleLogout}
-									disabled={logoutMutation.isPending}
+									disabled={/* logoutMutation.isPending */ false}
 								>
-									{logoutMutation.isPending ? (
+									{/* logoutMutation.isPending ? (
 										<LoadingIndicator size="sm" className="!mt-0" />
-									) : (
+									) : ( */}
 										'Logout'
-									)}
+									{/* )} */}
 								</button>
 							</div>
 						)}

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
@@ -15,6 +16,7 @@ type LoginFormInputs = {
 const Login = () => {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const {
         register,
@@ -22,6 +24,8 @@ const Login = () => {
         formState: { errors }
     } = useForm<LoginFormInputs>();
 
+    // TODO: Enable when backend is ready
+    /*
     const loginMutation = useMutation({
         mutationFn: async (data: LoginFormInputs) => {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
@@ -52,16 +56,30 @@ const Login = () => {
             setError(error.message);
         }
     });
+    */
 
-    const onSubmit = (data: LoginFormInputs) => {
+    const onSubmit = async (data: LoginFormInputs) => {
         setError(null);
-        loginMutation.mutate(data);
+        setIsLoading(true);
+        try {
+            // TODO: Enable when backend is ready
+            // loginMutation.mutate(data);
+            console.log('Login data:', data);
+            // Temporary mock login - replace with actual backend integration
+            setTimeout(() => {
+                router.push('/dashboard/admin');
+                setIsLoading(false);
+            }, 1000);
+        } catch (err) {
+            setError('Login failed. Please try again.');
+            setIsLoading(false);
+        }
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center max-w-[1200px] mx-auto font-regular-eng">
             {/* Loading overlay */}
-            {loginMutation.isPending && (
+            {isLoading && (
                 <LoadingIndicator 
                     fullScreen 
                     text="Signing in..." 
@@ -141,10 +159,10 @@ const Login = () => {
                         <div className="flex justify-end">
                             <button
                                 type="submit"
-                                disabled={loginMutation.isPending}
+                                disabled={isLoading}
                                 className="w-[100px] flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                             >
-                                {loginMutation.isPending ? (
+                                {isLoading ? (
                                     <LoadingIndicator size="sm" className="!mt-0" />
                                 ) : (
                                     'Sign in'

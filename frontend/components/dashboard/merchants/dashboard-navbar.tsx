@@ -4,7 +4,8 @@ import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
-import { useMutation, useQuery } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useMutation, useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const DashboardNavbar = () => {
@@ -18,7 +19,8 @@ const DashboardNavbar = () => {
 	const mailRef = useRef<HTMLDivElement>(null);
 	const branchRef = useRef<HTMLDivElement>(null);
 
-	// Fetch user data
+	// TODO: Enable when backend is ready
+	/*
 	const { data: user, isLoading: isUserDataLoading } = useQuery({
 		queryKey: ['user'],
 		queryFn: async () => {
@@ -31,17 +33,47 @@ const DashboardNavbar = () => {
 			return res.json();
 		},
 	});
+	*/
+
+	// Mock data for UI development
+	const mockUser = {
+		user: {
+			user: {
+				username: "Merchant User",
+				role: "Merchant",
+				language: "en",
+				user_merchant: {
+					merchant: {
+						name: "Demo Merchant",
+						branches: [
+							{
+								id: "BRANCH-001",
+								name: "Main Branch",
+								address: "123 Main St"
+							}
+						]
+					}
+				}
+			},
+			message_received: []
+		}
+	};
+
+	// Use mock data instead of query data
+	const user = mockUser;
+	const isUserDataLoading = false;
 
 	// Extract user info for navbar display
 	const username = user?.user?.user?.username || "";
-	const position = user?.user?.user?.user_merchant?.[0]?.position || "";
-	const businessName = user?.user?.user?.merchant?.[0]?.business_name || "";
+	const position = user?.user?.user?.role || "";
 	const language = user?.user?.user?.language || "en";
-	const messageReceived = user?.message_received || [];
+	const merchantName = user?.user?.user?.user_merchant?.merchant?.name || "";
+	const branches = user?.user?.user?.user_merchant?.merchant?.branches || [];
+	const messageReceived = user?.user?.message_received || [];
 	const messageCount = messageReceived.length;
-	const branchNames = user?.merchant?.map((branch: any) => branch.branch_name) || [];
-	console.log(branchNames);
 
+	// Branch selection
+	const [selectedBranch, setSelectedBranch] = useState(branches[0]?.id || "");
 
 	const languages = [
         { label: "English", value: "en", icon: <Globe size={18} /> },
@@ -81,45 +113,34 @@ const DashboardNavbar = () => {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	/**
-	 * Logout mutation
-	 */
-	const logoutMutation = useMutation({
-		mutationFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			});
-
-			if (!res.ok) {
-				throw new Error('Failed to logout');
-			}
-
-			// Force a hard reload to clear any cached state
+	// Mock logout handler
+	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const handleLogout = async () => {
+		setIsLoggingOut(true);
+		try {
+			// TODO: Enable when backend is ready
+			// await logoutMutation.mutateAsync();
+			console.log('Logging out...');
 			window.location.href = '/';
-			return res.json();
-		},
-		onError: (error) => {
-			console.error("Logout failed:", error);
-			// Even on error, redirect to home page
+		} catch (error: unknown) {
+			console.error('Logout failed:', error);
 			window.location.href = '/';
-		},
-	});
+		} finally {
+			setIsLoggingOut(false);
+		}
+	};
 
-	/**
-	 * Logout handler
-	 */
-	const handleLogout = () => {
-		logoutMutation.mutate();
-	}
+	// Update branch selection dropdown items
+	const branchItems: DropdownItem[] = branches.map(branch => ({
+		label: branch.name,
+		value: branch.id,
+		icon: <Globe size={18} />
+	}));
 
 	return (
 		<nav className="font-regular-eng fixed top-0 left-0 w-full z-[1000] flex items-center px-4 sm:px-8 py-3 sm:py-4 border-b border-gray-200 bg-primary shadow-sm">
 			{/* Loading overlay */}
-			{logoutMutation.isPending && (
+			{isLoggingOut && (
 				<LoadingIndicator 
 					fullScreen 
 					text="Logging out..." 
@@ -142,7 +163,7 @@ const DashboardNavbar = () => {
 
 					<span className="text-base font-semibold text-text-light">
 						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-							businessName
+							merchantName
 						}
 					</span>
 				
@@ -153,14 +174,14 @@ const DashboardNavbar = () => {
 					</span>
 					<span className="ml-2 text-base font-semibold text-text-light">
 						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-							branchNames[0]
+							selectedBranch
 						}
 					</span>
 					{branchOpen && (
 						<div className="absolute left-0 top-10 bg-white border rounded shadow px-4 py-2 z-10">
-							{ branchNames.map((branch: string) => (
-								<div key={branch} className="py-1 cursor-pointer">
-									{branch}
+							{ branchItems.map((branch: DropdownItem) => (
+								<div key={branch.value} className="py-1 cursor-pointer" onClick={() => setSelectedBranch(branch.value)}>
+									{branch.label}
 								</div>
 							))}
 						</div>
@@ -194,7 +215,7 @@ const DashboardNavbar = () => {
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
 							<ul className="py-1">
 								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									user?.message_received && user?.message_received.length > 0 ? user?.message_received.map((message: any) => (
+									user?.user?.message_received && user?.user?.message_received.length > 0 ? user?.user?.message_received.map((message: any) => (
 										<li key={message.id} className="cursor-pointer">
 											{message.title}
 										</li>
@@ -231,11 +252,11 @@ const DashboardNavbar = () => {
 							<button className="w-full text-left py-1">Settings</button>
 							<hr className="my-2" />
 							<button 
-								className="w-full border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
 								onClick={handleLogout}
-								disabled={logoutMutation.isPending}
+								disabled={isLoggingOut}
+								className="w-full border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center"
 							>
-								{logoutMutation.isPending ? (
+								{isLoggingOut ? (
 									<LoadingIndicator size="sm" className="!mt-0" />
 								) : (
 									'Logout'
@@ -264,7 +285,7 @@ const DashboardNavbar = () => {
 						</div>
 						<span className="text-lg font-medium">
 							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-								businessName
+								merchantName
 							}
 						</span>
 					</div>
@@ -274,7 +295,7 @@ const DashboardNavbar = () => {
 						</span>
 						<span className="ml-2 text-lg">
 							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-								user?.user?.user?.user_merchant?.[0]?.branch_name
+								selectedBranch
 							}
 						</span>
 					</div>
@@ -321,11 +342,11 @@ const DashboardNavbar = () => {
 								<Link href="/billing" className="text-left">Billing</Link>
 								<Link href="/settings" className="text-left">Settings</Link>
 								<button 
-									className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
 									onClick={handleLogout}
-									disabled={logoutMutation.isPending}
+									disabled={isLoggingOut}
+									className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center"
 								>
-									{logoutMutation.isPending ? (
+									{isLoggingOut ? (
 										<LoadingIndicator size="sm" className="!mt-0" />
 									) : (
 										'Logout'

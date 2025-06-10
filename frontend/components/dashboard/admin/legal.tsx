@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// TODO: Enable when backend is ready
+// import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -44,11 +45,14 @@ const Legal = () => {
 	const [isEditing, setIsEditing] = useState(false);
 	const [selectedDocument, setSelectedDocument] = useState<LegalDocument | null>(null);
 	const [isPreviewing, setIsPreviewing] = useState(false);
-	const queryClient = useQueryClient();
+	// TODO: Enable when backend is ready
+	// const queryClient = useQueryClient();
 
 	const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<LegalDocumentFormData>();
 	const requiresConsent = watch("requiresConsent");
 
+	// TODO: Enable when backend is ready
+	/*
 	const { data: documents, isLoading } = useQuery<LegalDocument[]>({
 		queryKey: ['legal-documents'],
 		queryFn: async () => {
@@ -124,57 +128,77 @@ const Legal = () => {
 			queryClient.invalidateQueries({ queryKey: ['legal-documents'] });
 		},
 	});
+	*/
 
-	// Mock data for demo
+	// Mock data for UI development
 	const mockDocuments: LegalDocument[] = [
 		{
 			id: "LEGAL-001",
 			title: "Terms of Service",
 			type: "terms",
-			version: "2.1.0",
+			version: "1.0.0",
 			status: "published",
-			content: "By using QueueHub, you agree to these terms...",
+			content: "This is the terms of service content...",
 			effectiveDate: "2024-03-01T00:00:00Z",
 			createdBy: "ADMIN-001",
 			createdAt: "2024-02-15T10:00:00Z",
-			updatedAt: "2024-02-28T15:30:00Z",
-			lastPublishedAt: "2024-02-28T15:30:00Z",
+			updatedAt: "2024-02-15T10:00:00Z",
+			lastPublishedAt: "2024-03-01T00:00:00Z",
 			lastPublishedBy: "ADMIN-001",
 			requiresConsent: true,
-			consentRequiredFrom: ["customers", "merchants"],
+			consentRequiredFrom: ["customers", "merchants"]
 		},
 		{
 			id: "LEGAL-002",
 			title: "Privacy Policy",
 			type: "privacy",
-			version: "1.5.0",
-			status: "draft",
-			content: "This privacy policy describes how we collect and use your data...",
-			createdBy: "ADMIN-001",
-			createdAt: "2024-03-10T09:00:00Z",
-			updatedAt: "2024-03-15T11:20:00Z",
-			requiresConsent: true,
-			consentRequiredFrom: ["customers", "merchants", "admins"],
-		},
-		{
-			id: "LEGAL-003",
-			title: "Cookie Policy",
-			type: "cookie",
 			version: "1.0.0",
 			status: "published",
-			content: "We use cookies to improve your experience...",
-			effectiveDate: "2024-01-01T00:00:00Z",
+			content: "This is the privacy policy content...",
+			effectiveDate: "2024-03-01T00:00:00Z",
 			createdBy: "ADMIN-001",
-			createdAt: "2023-12-15T14:00:00Z",
-			updatedAt: "2023-12-20T16:45:00Z",
-			lastPublishedAt: "2023-12-20T16:45:00Z",
+			createdAt: "2024-02-15T10:00:00Z",
+			updatedAt: "2024-02-15T10:00:00Z",
+			lastPublishedAt: "2024-03-01T00:00:00Z",
 			lastPublishedBy: "ADMIN-001",
 			requiresConsent: true,
-			consentRequiredFrom: ["customers"],
-		},
+			consentRequiredFrom: ["customers", "merchants", "admins"]
+		}
 	];
 
-	const data = documents || mockDocuments;
+	// Use mock data instead of query data
+	const documents = mockDocuments;
+	const isLoading = false;
+
+	// Mock handlers for UI development
+	const handleCreate = async (data: LegalDocumentFormData) => {
+		console.log('Create legal document:', data);
+		reset();
+		setIsEditing(false);
+	};
+
+	const handleUpdate = async (id: string, data: LegalDocumentFormData) => {
+		console.log('Update legal document:', { id, data });
+		reset();
+		setIsEditing(false);
+		setSelectedDocument(null);
+	};
+
+	const handlePublish = async (id: string) => {
+		console.log('Publish legal document:', id);
+	};
+
+	const handleDelete = async (id: string) => {
+		console.log('Delete legal document:', id);
+	};
+
+	const onSubmit = (data: LegalDocumentFormData) => {
+		if (isEditing && selectedDocument) {
+			handleUpdate(selectedDocument.id, data);
+		} else {
+			handleCreate(data);
+		}
+	};
 
 	const getTypeBadge = (type: LegalDocument["type"]) => {
 		const typeConfig = {
@@ -283,7 +307,7 @@ const Legal = () => {
 					)}
 					{row.status === "draft" && (
 						<button
-							onClick={() => publishMutation.mutate(row.id)}
+							onClick={() => handlePublish(row.id)}
 							className="bg-green-100 text-green-800 p-2 rounded-full hover:bg-green-200 transition-colors"
 						>
 							<CheckCircle className="w-4 h-4" />
@@ -291,7 +315,7 @@ const Legal = () => {
 					)}
 					{row.status === "draft" && (
 						<button
-							onClick={() => deleteMutation.mutate(row.id)}
+							onClick={() => handleDelete(row.id)}
 							className="bg-red-100 text-red-800 p-2 rounded-full hover:bg-red-200 transition-colors"
 						>
 							<Trash2 className="w-4 h-4" />
@@ -301,14 +325,6 @@ const Legal = () => {
 			),
 		},
 	];
-
-	const onSubmit = (data: LegalDocumentFormData) => {
-		if (isEditing && selectedDocument) {
-			updateMutation.mutate({ id: selectedDocument.id, data });
-		} else {
-			createMutation.mutate(data);
-		}
-	};
 
 	if (isLoading) {
 		return <LoadingIndicator fullScreen />;
@@ -329,7 +345,7 @@ const Legal = () => {
 					>
 						Create Document
 					</button>
-					<ExportBtn data={data} filename="legal-documents" />
+					<ExportBtn data={documents} filename="legal-documents" />
 				</div>
 			</div>
 
@@ -486,7 +502,7 @@ const Legal = () => {
 			)}
 
 			<div className="w-full overflow-x-auto">
-				<Table columns={columns} data={data} />
+				<Table columns={columns} data={documents} />
 			</div>
 		</div>
 	);
