@@ -1,57 +1,44 @@
-import { notFound } from "next/navigation";
-import { MerchantDashboard, DashboardNavbar, DashboardSidenav } from "@/components";
+'use client';
 
-type Props = {
-    params: {
-        merchantId: string;
-        slug: string;
-    };
-}
+import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import MerchantDashboard from '@/components/dashboard/merchants/merchant-dashboard';
+import AdminDashboard from '@/components/dashboard/merchants/system-health';
+import { useUser } from '@/hook/useUser';
+import LoadingIndicator from '@/components/common/loading-indicator';
 
-const DashboardPage = ({ params }: Props) => {
-    try {
-        const { merchantId, slug } = params;
+export default function DashboardPage() {
+    const { slug } = useParams();
+    const { user, isLoading: authLoading } = useUser();
 
-        const allowSlug = [
-            "view-live-queues",
-            "manage-queue-entries",
-            "add-branch",
-            "branch-info",
-            "view-queue-history",
-            "feedback",
-            "replies",
-            "register-new-user",
-            "manage-users",
-            "analytics",
-            "system-health",
-        ];
+    const { data: merchant, isLoading: merchantLoading } = useQuery({
+        queryKey: ['merchant', user?.merchant_id],
+        queryFn: async () => {
+            if (!user?.merchant_id) return null;
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchants/${user.merchant_id}`);
+            if (!response.ok) throw new Error('Failed to fetch merchant');
+            return response.json();
+        },
+        enabled: !!user?.merchant_id,
+    });
 
-        if (!allowSlug.includes(slug)) {
-            return notFound();
-        }
-
-        return (
-            <div className="bg-surface">
-                <DashboardNavbar />
-
-                <div className="flex">
-                    <div className="hidden 2xl:block 2xl:fixed 2xl:inset-y-0 2xl:left-0 2xl:w-72 2xl:z-30">
-                        <DashboardSidenav merchantId={merchantId} />
-                    </div>
-                    <div className="block 2xl:hidden">
-                        <DashboardSidenav merchantId={merchantId} />
-                    </div>
-                    <div className="flex-1 w-full 2xl:max-w-[1440px] 2xl:ml-72 2xl:h-full 2xl:overflow-y-auto">
-                        <MerchantDashboard merchantId={merchantId} slug={slug} />
-                    </div>
-                </div>
-            </div>
-        );
-    } catch (error) {
-        console.error(error);
-        return notFound();
+    if (authLoading || merchantLoading) {
+        return <LoadingIndicator />;
     }
+
+    if (!user) {
+        return <div>Please log in to access the dashboard</div>;
+    }
+
+    // Admin dashboard
+    if (['SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'].includes(user.role)) {
+        return <AdminDashboard />;
+    }
+
+    // Merchant dashboard
+    if (user.role === 'MERCHANT' && merchant) {
+        return <MerchantDashboard merchantId={merchant.merchantId} slug={slug as string} />;
+    }
+
+    return <div>Access denied</div>;
 }
-
-
-export default DashboardPage;

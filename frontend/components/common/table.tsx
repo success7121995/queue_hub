@@ -18,6 +18,7 @@ interface TableProps<T> {
 	actions?: (row: T) => ReactNode;
 	rowsPerPage?: number;
 	dateColumnKey?: keyof T | ((row: T) => Date | null | undefined);
+	renderActions?: (row: T) => ReactNode;
 }
 
 const Table = <T extends Record<string, any>>({ 
@@ -26,6 +27,7 @@ const Table = <T extends Record<string, any>>({
 	actions,
 	rowsPerPage = 10,
 	dateColumnKey,
+	renderActions,
 }: TableProps<T>) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -107,7 +109,7 @@ const Table = <T extends Record<string, any>>({
 				});
 			});
 		}
-
+		
 		// Sort data
 		if (sortConfig) {
 			result.sort((a, b) => {
@@ -387,8 +389,10 @@ const Table = <T extends Record<string, any>>({
 												}
 											</td>
 										))}
-										{actions && (
-											<td className="sticky right-0 bg-white px-6 py-4 whitespace-nowrap text-sm rounded-br-xl"></td>
+											{renderActions && (
+											<td className="sticky right-0 bg-white px-6 py-4 whitespace-nowrap text-sm rounded-br-xl">
+												{renderActions(row)}
+											</td>
 										)}
 									</tr>
 								))}

@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useDateTime } from "@/constant/datetime-provider";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 type LoginFormInputs = {
@@ -15,8 +14,6 @@ type LoginFormInputs = {
 
 const Login = () => {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get('callbackUrl') || '/';
     const [error, setError] = useState<string | null>(null);
 
     const {
@@ -43,20 +40,9 @@ const Login = () => {
 
             return response.json();
         },
-        onSuccess: async (data) => {
-            // Always fetch user data after login
-            try {
-                const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/get-user?include=user_merchant&include=merchant&include=message_sent&include=message_received`, {
-                    method: 'GET',
-                    credentials: 'include',
-                });
-                const userData = await userRes.json();
-            } catch (err) {
-                console.error('Error fetching user after login:', err);
-            }
+        onSuccess: (data) => {
             if (data.redirect) {
-                // Use callbackUrl if present
-                const redirectUrl = callbackUrl && callbackUrl !== '/' ? callbackUrl : data.redirect.replace(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/auth/`, "");
+                const redirectUrl = data.redirect.replace(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/auth/`, "");
                 router.push(redirectUrl);
             } else {
                 router.push('/404');

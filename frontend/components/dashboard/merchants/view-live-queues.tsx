@@ -336,6 +336,7 @@ const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
 					<Table
 						columns={activeQueuesColumns}
 						data={activeQueues}
+						renderActions={renderActions}
 					/>
 				</div>
 
