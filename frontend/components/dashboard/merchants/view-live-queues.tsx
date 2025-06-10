@@ -2,15 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MoreVertical, UserCircle, Edit, Trash2, Users, UserCheck, AlertTriangle } from "lucide-react";
-import { type Merchant } from "./merchant-dashboard";
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
 import { useDateTime } from "@/constant/datetime-provider";
-
-interface ViewLiveQueuesProps {
-	merchant: Merchant;
-}
 
 const mockStats = {
 	servedToday: 45,
@@ -94,7 +89,7 @@ const abandon = [
 
 const queueMenuOptions = ["Call", "Serve", "Recall", "Abandon"];
 
-const ViewLiveQueues = ({ merchant }: ViewLiveQueuesProps) => {
+const ViewLiveQueues = () => {
 	const [menuOpen, setMenuOpen] = useState<string | null>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
 	const { formatDate } = useDateTime();

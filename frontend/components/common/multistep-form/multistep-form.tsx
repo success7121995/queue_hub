@@ -33,20 +33,6 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
 
     const steps = formSteps[form];
 
-    // Handle step completion and redirection
-    // useEffect(() => {
-    //     if (currentStep === steps.length) {
-    //         const timer = setTimeout(() => {
-    //             if (form === "signup") {
-    //                 router.push("/");
-    //             } else if (form === "add-branch") {
-    //                 router.push("/branch-info");
-    //             }
-    //         }, 5000);
-    //         return () => clearTimeout(timer);
-    //     }
-    // }, [currentStep, form, router, steps.length]);
-
     const handleNext = useCallback(() => {
         if (currentStep < steps.length) {
             setCompletedSteps([...completedSteps, currentStep]);
@@ -132,14 +118,14 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                 }
             case "add-employee":
                 switch (currentStep) {
-                    case 1: return <UserInfo onNext={handleNext} />;
+                    case 1: return <UserInfo onNext={handleNext} formType="add-employee" />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Preview form="add-employee" onPrev={handlePrev} />;
                     default: return null;
                 }
             case "add-admin":
                 switch (currentStep) {
-                    case 1: return <UserInfo onNext={handleNext} />;
+                    case 1: return <UserInfo onNext={handleNext} formType="add-admin" />;
                     case 2: return <AccountSetup onNext={handleNext} onPrev={handlePrev} />;
                     case 3: return <Preview form="add-admin" onPrev={handlePrev} />;
                     default: return null;

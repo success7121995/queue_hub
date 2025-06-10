@@ -4,6 +4,7 @@ import React from "react";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
 import { AddAdminFormFields } from "@/types/form";
+import { ImageUploader } from "@/components";
 import Cookies from "js-cookie";
 
 const COOKIE_KEY = "signupForm";
@@ -14,12 +15,19 @@ const roleOptions = [
     { value: "EMPLOYEE", label: "Employee" },
 ];
 
+const adminRoleOptions = [
+    { value: "OPS_ADMIN", label: "Operations Admin" },
+    { value: "SUPPORT_AGENT", label: "Support Agent" },
+    { value: "DEVELOPER", label: "Developer" }
+]
+
 interface UserInfoProps {
     onNext?: () => void;
     onPrev?: () => void;
+    formType: "add-admin" | "add-employee";
 }
 
-const UserInfo: React.FC<UserInfoProps> = ({ onNext }) => {
+const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
     const { formMethods } = useForm();
     const {
         register,
@@ -73,12 +81,12 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext }) => {
                         <input
                             id="firstName"
                             className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                                errors.first_name ? "border-red-500" : "border-gray-400"
+                                errors.fname ? "border-red-500" : "border-gray-400"
                             }`}
-                            {...register("first_name", { required: "First name is required" })}
+                            {...register("fname", { required: "First name is required" })}
                             placeholder="Enter first name"
                         />
-                        {errors.first_name && <span className="text-red-500 text-xs">{errors.first_name.message}</span>}
+                        {errors.fname && <span className="text-red-500 text-xs">{errors.fname.message}</span>}
                     </div>
 
                     <div className="flex-1">
@@ -86,12 +94,12 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext }) => {
                         <input
                             id="lastName"
                             className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                                errors.last_name ? "border-red-500" : "border-gray-400"
+                                errors.lname ? "border-red-500" : "border-gray-400"
                             }`}
-                            {...register("last_name", { required: "Last name is required" })}
+                            {...register("lname", { required: "Last name is required" })}
                             placeholder="Enter last name"
                         />
-                        {errors.last_name && <span className="text-red-500 text-xs">{errors.last_name.message}</span>}
+                        {errors.lname && <span className="text-red-500 text-xs">{errors.lname.message}</span>}
                     </div>
                 </div>
 
@@ -156,13 +164,29 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext }) => {
                         defaultValue=""
                     >
                         <option value="" disabled>Select Role</option>
-                        {roleOptions.map((option) => (
+                        {formType === "add-admin" ? adminRoleOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        )) : roleOptions.map((option) => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>
                         ))}
                     </select>
                     {errors.role && <span className="text-red-500 text-xs">{errors.role.message}</span>}
+                </div>
+
+                {/* Avatar */}
+                <div>
+                    <label htmlFor="avatar" className="block mb-1 font-semibold text-text-main text-sm">Avatar</label>
+                    
+                    <ImageUploader
+                        frameWidth="200px"
+                        frameHeight="200px"
+                        className="w-full"
+                        removeImage={() => {}}
+                    />
                 </div>
 
                 {/* Navigation Buttons */}

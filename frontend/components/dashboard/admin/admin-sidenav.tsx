@@ -5,51 +5,63 @@ import Link from "next/link";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-interface DashboardSidenavProps {
+interface AdminSidenavProps {
 	merchantId: string;
 }
 
-const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
+const AdminSidenav = ({ merchantId }: AdminSidenavProps) => {
 	const pathname = usePathname();
 	const currentSlug = pathname.split('/').pop();
 
 	const menuData = [
 		{
-			label: "Queues",
+			label: "Overview",
 			items: [
-				{ label: "View Live Queues", href: `/merchant/view-live-queues` },
-				{ label: "Manage Queue Entries", href: `/merchant/manage-queue-entries` },
+			{ label: "Metrics & Graphs", href: `/admin/metrics` },
+			{ label: "System Health", href: `/admin/system-health` },
 			],
 		},
 		{
-			label: "Branch",
+			label: "Users",
 			items: [
-				{ label: "Add Branch", href: `/merchant/add-branch` },
-				{ label: "Branch Info", href: `/merchant/branch-info` },
+			{ label: "Add User", href: `/admin/add-admin` },
+			{ label: "View Users", href: `/admin/org-chart` },
 			],
 		},
 		{
-			label: "Customers",
+			label: "Merchants",
 			items: [
-				{ label: "View Queue History", href: `/merchant/view-queue-history` },
-				{ label: "Feedback", href: `/merchant/feedback` },
+			{ label: "View Merchants", href: `/admin/view-merchants` },
+			{ label: "Pending Approvals", href: `/admin/approve-merchants` },
 			],
 		},
 		{
-			label: "Employees",
+			label: "Tickets",
 			items: [
-				{ label: "Register New User", href: `/merchant/register-new-user` },
-				{ label: "Manage Users", href: `/merchant/manage-users` },
+			{ label: "All Tickets", href: `/admin/tickets` },
+			{ label: "Unresolved Tickets", href: `/admin/unresolved-tickets` },
+			{ label: "Resolved Tickets", href: `/admin/resolved-tickets` },
+			{ label: "Assigned Tickets", href: `/admin/assigned-tickets` },
 			],
 		},
 		{
-			label: "Analytics",
+			label: "Logs",
 			items: [
-				{ label: "Analytics", href: `/merchant/analytics` },
-				{ label: "System Health", href: `/merchant/system-health` },
-			],
+			{ label: "Recent Logs", href: `/admin/logs` },
+			{ label: "API Logs", href: `/admin/api-logs` },
+			{ label: "Admin Actions", href: `/admin/admin-actions` },
+			{ label: "Login Attempts", href: `/admin/login-logs` },
+			]
 		},
+		{
+			label: "System",
+			items: [
+			{ label: "Notification Settings", href: `/admin/notifications` },
+			{ label: "Legal Pages", href: `/admin/legal` },
+			]
+		}
 	];
+	  
 	
 	const [open, setOpen] = useState(false);
 	const [accordion, setAccordion] = useState<string | null>(null);
@@ -79,7 +91,7 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 			>
 				<span className="font-bold text-lg text-primary-light flex items-center">
 					<Menu size={20} className="mr-2" />
-					Merchant Dashboard
+					Admin Dashboard
 				</span>
 			</button>
 
@@ -156,5 +168,3 @@ const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
 		</>
 	);
 };
-
-export default DashboardSidenav;

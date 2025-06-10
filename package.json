@@ -1,5 +1,24 @@
 {
   "dependencies": {
     "cookie-parser": "^1.4.7"
-  }
+  },
+  "name": "queue_hub",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/success7121995/queue_hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/success7121995/queue_hub/issues"
+  },
+  "homepage": "https://github.com/success7121995/queue_hub#readme",
+  "description": ""
 }

@@ -105,25 +105,6 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     return prev - 1;
                 });
             }, 1000);
-
-            // After 8 seconds, get the redirect URL from backend
-            setTimeout(async () => {
-                try {
-                    const redirectRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/redirect/${data.redirect_token}`, {
-                        credentials: 'include'
-                    });
-                    const redirectData = await redirectRes.json();
-                    
-                    if (redirectRes.ok && redirectData.success) {
-                        window.location.href = redirectData.redirect_url;
-                    } else {
-                        window.location.href = '/';
-                    }
-                } catch (err) {
-                    console.error("Redirect error:", err);
-                    window.location.href = '/';
-                }
-            }, 8000);
         },
         onError: (err: any) => {
             console.error("Submission error:", err.message);

@@ -7,16 +7,14 @@ import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
-const DashboardNavbar = () => {
+const AdminNavbar = () => {
 	const [profileOpen, setProfileOpen] = useState(false);
 	const [mailOpen, setMailOpen] = useState(false);
-	const [branchOpen, setBranchOpen] = useState(false);
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const [profileAccordion, setProfileAccordion] = useState(false);
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const profileRef = useRef<HTMLDivElement>(null);
 	const mailRef = useRef<HTMLDivElement>(null);
-	const branchRef = useRef<HTMLDivElement>(null);
 
 	// Fetch user data
 	const { data: user, isLoading: isUserDataLoading } = useQuery({
@@ -34,21 +32,17 @@ const DashboardNavbar = () => {
 
 	// Extract user info for navbar display
 	const username = user?.user?.user?.username || "";
-	const position = user?.user?.user?.user_merchant?.[0]?.position || "";
-	const businessName = user?.user?.user?.merchant?.[0]?.business_name || "";
+	const position = user?.user?.user?.role || "";
 	const language = user?.user?.user?.language || "en";
 	const messageReceived = user?.message_received || [];
 	const messageCount = messageReceived.length;
-	const branchNames = user?.merchant?.map((branch: any) => branch.branch_name) || [];
-	console.log(branchNames);
-
 
 	const languages = [
-        { label: "English", value: "en", icon: <Globe size={18} /> },
-        { label: "繁體（香港）", value: "zh-HK", icon: <Globe size={18} /> },
-        { label: "繁體（台灣）", value: "zh-TW", icon: <Globe size={18} /> },
-        { label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
-    ];
+		{ label: "English", value: "en", icon: <Globe size={18} /> },
+		{ label: "繁體（香港）", value: "zh-HK", icon: <Globe size={18} /> },
+		{ label: "繁體（台灣）", value: "zh-TW", icon: <Globe size={18} /> },
+		{ label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
+	];
 
 	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages[0]);
 
@@ -73,9 +67,6 @@ const DashboardNavbar = () => {
 			if (mailRef.current && !mailRef.current.contains(event.target as Node)) {
 				setMailOpen(false);
 			}
-			if (branchRef.current && !branchRef.current.contains(event.target as Node)) {
-				setBranchOpen(false);
-			}
 		};
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -98,20 +89,15 @@ const DashboardNavbar = () => {
 				throw new Error('Failed to logout');
 			}
 
-			// Force a hard reload to clear any cached state
 			window.location.href = '/';
 			return res.json();
 		},
 		onError: (error) => {
 			console.error("Logout failed:", error);
-			// Even on error, redirect to home page
 			window.location.href = '/';
 		},
 	});
 
-	/**
-	 * Logout handler
-	 */
 	const handleLogout = () => {
 		logoutMutation.mutate();
 	}
@@ -129,47 +115,12 @@ const DashboardNavbar = () => {
 
 			{/* Logo and QueueHub always visible */}
 			<div className="flex items-center space-x-2">
-				<span className="font-bold text-xl text-text-light cursor-pointer">QueueHub</span>
+				<span className="font-bold text-xl text-text-light cursor-pointer">QueueHub Admin</span>
 			</div>
 
-			{/* Desktop navbar: left group (company + branch) */}
-			<div className="hidden lg:flex items-center space-x-6 ml-8">
-				<div className="flex items-center space-x-2">
-					<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
-						<UserCircle size={28} className="text-text-light" />
-					</div>
-
-
-					<span className="text-base font-semibold text-text-light">
-						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-							businessName
-						}
-					</span>
-				
-				</div>
-				<div ref={branchRef} className="relative flex items-center ml-6">
-					<span className="text-sm font-medium cursor-pointer text-text-light" onClick={() => setBranchOpen((v) => !v)}>
-						Branch <ChevronDown size={16} className="inline ml-1" />
-					</span>
-					<span className="ml-2 text-base font-semibold text-text-light">
-						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-							branchNames[0]
-						}
-					</span>
-					{branchOpen && (
-						<div className="absolute left-0 top-10 bg-white border rounded shadow px-4 py-2 z-10">
-							{ branchNames.map((branch: string) => (
-								<div key={branch} className="py-1 cursor-pointer">
-									{branch}
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-			</div>
 			{/* Spacer to push right group to the end */}
-
 			<div className="flex-1 hidden lg:block" />
+
 			{/* Desktop navbar: right group (language, mail, profile) */}
 			<div className="hidden lg:flex items-center space-x-6">
 				<span className="flex items-center text-sm">
@@ -189,12 +140,10 @@ const DashboardNavbar = () => {
 						<ChevronDown size={16} className="text-text-light" />
 					</button>
 					{mailOpen && (
-
-						
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
 							<ul className="py-1">
-								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									user?.message_received && user?.message_received.length > 0 ? user?.message_received.map((message: any) => (
+								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									messageReceived.length > 0 ? messageReceived.map((message: any) => (
 										<li key={message.id} className="cursor-pointer">
 											{message.title}
 										</li>
@@ -211,12 +160,12 @@ const DashboardNavbar = () => {
 						</div>
 						<div className="flex flex-col items-start">
 							<span className="text-base font-semibold text-text-light">
-								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 									"Hi, " + username									
 								}
 							</span>
 							<span className="text-xs text-text-light font-medium">
-								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 									position
 								}
 							</span>
@@ -227,7 +176,6 @@ const DashboardNavbar = () => {
 						<div className="absolute right-0 top-12 bg-white border rounded shadow px-4 py-2 z-10 min-w-[160px]">
 							<button className="w-full text-left py-1">Profile</button>
 							<button className="w-full text-left py-1">Account</button>
-							<button className="w-full text-left py-1">Billing</button>
 							<button className="w-full text-left py-1">Settings</button>
 							<hr className="my-2" />
 							<button 
@@ -246,7 +194,7 @@ const DashboardNavbar = () => {
 				</div>
 			</div>
 
-			{/* Mobile hamburger and menu toggler always on the far right */}
+			{/* Mobile hamburger and menu toggler */}
 			<button
 				className="lg:hidden ml-auto text-text-light cursor-pointer"
 				onClick={() => setMobileNavOpen((v) => !v)}
@@ -258,26 +206,6 @@ const DashboardNavbar = () => {
 			{/* Mobile dropdown */}
 			{mobileNavOpen && (
 				<div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-white shadow z-50 flex flex-col p-4 2xl:hidden">
-					<div className="flex items-center space-x-2 mb-4">
-						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
-							<UserCircle size={28} />
-						</div>
-						<span className="text-lg font-medium">
-							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-								businessName
-							}
-						</span>
-					</div>
-					<div className="flex items-center mb-4">
-						<span className="text-lg font-medium cursor-pointer" onClick={() => setBranchOpen((v) => !v)}>
-							Branch <ChevronDown size={16} className="inline ml-1" />
-						</span>
-						<span className="ml-2 text-lg">
-							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-								user?.user?.user?.user_merchant?.[0]?.branch_name
-							}
-						</span>
-					</div>
 					<span className="flex items-center text-sm mb-4">
 						<Dropdown
 							className="w-[140px]"
@@ -300,12 +228,12 @@ const DashboardNavbar = () => {
 							<span className="flex items-center">
 								<UserCircle size={28} />
 								<span className="ml-2 text-lg font-medium">
-									{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 										"Hi, " + username
 									}
 								</span>
 								<span className="ml-2 text-xs text-gray-500">
-									{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 										position
 									}
 								</span>
@@ -313,12 +241,10 @@ const DashboardNavbar = () => {
 							<ChevronDown size={18} className={profileAccordion ? "rotate-180 transition-transform" : "transition-transform"} />
 						</button>
 
-						{/* Profile accordion */}
 						{profileAccordion && (
 							<div className="flex flex-col pl-8 space-y-2 mt-1">
 								<Link href="/profile" className="text-left">Profile</Link>
 								<Link href="/account" className="text-left">Account</Link>
-								<Link href="/billing" className="text-left">Billing</Link>
 								<Link href="/settings" className="text-left">Settings</Link>
 								<button 
 									className="text-left border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center" 
@@ -340,4 +266,4 @@ const DashboardNavbar = () => {
 	);
 };
 
-export default DashboardNavbar;
+export default AdminNavbar;

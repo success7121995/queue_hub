@@ -344,7 +344,7 @@ const Table = <T extends Record<string, any>>({
 										{sortedColumns.map((column, index) => (
 											<th 
 											key={index} 
-											className={`px-6 py-4 text-left text-base font-bold text-primary-light tracking-wider whitespace-nowrap ${
+											className={`px-6 py-4 text-left text-sm font-bold text-primary-light tracking-wider whitespace-nowrap ${
 												index === 0 ? 'rounded-tl-xl' : ''
 											}${index === sortedColumns.length - 1 && !actions ? 'rounded-tr-xl' : ''}`}
 										>
