@@ -168,3 +168,5 @@ const AdminSidenav = ({ merchantId }: AdminSidenavProps) => {
 		</>
 	);
 };
+
+export default AdminSidenav;
