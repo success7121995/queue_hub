@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode } from "react";
 import DashboardNavbar from "@/components/dashboard/merchants/dashboard-navbar";
 import DashboardSidenav from "@/components/dashboard/merchants/dashboard-sidenav";

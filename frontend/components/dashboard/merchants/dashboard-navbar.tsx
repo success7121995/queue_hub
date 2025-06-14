@@ -4,8 +4,7 @@ import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
-// TODO: Enable when backend is ready
-// import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLogout, useAuth } from "@/hooks/auth-hooks";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const DashboardNavbar = () => {
@@ -19,61 +18,28 @@ const DashboardNavbar = () => {
 	const mailRef = useRef<HTMLDivElement>(null);
 	const branchRef = useRef<HTMLDivElement>(null);
 
-	// TODO: Enable when backend is ready
-	/*
-	const { data: user, isLoading: isUserDataLoading } = useQuery({
-		queryKey: ['user'],
-		queryFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
-				credentials: 'include',
-			});
-			if (!res.ok) {
-				throw new Error('Failed to fetch user data');
-			}
-			return res.json();
-		},
-	});
-	*/
-
-	// Mock data for UI development
-	const mockUser = {
-		user: {
-			user: {
-				username: "Merchant User",
-				role: "Merchant",
-				language: "en",
-				user_merchant: {
-					merchant: {
-						name: "Demo Merchant",
-						branches: [
-							{
-								id: "BRANCH-001",
-								name: "Main Branch",
-								address: "123 Main St"
-							}
-						]
-					}
-				}
-			},
-			message_received: []
-		}
-	};
-
-	// Use mock data instead of query data
-	const user = mockUser;
-	const isUserDataLoading = false;
+	const { mutate: logout } = useLogout();
+	const { data: userData, isLoading: isUserDataLoading } = useAuth();
 
 	// Extract user info for navbar display
-	const username = user?.user?.user?.username || "";
-	const position = user?.user?.user?.role || "";
-	const language = user?.user?.user?.language || "en";
-	const merchantName = user?.user?.user?.user_merchant?.merchant?.name || "";
-	const branches = user?.user?.user?.user_merchant?.merchant?.branches || [];
-	const messageReceived = user?.user?.message_received || [];
+	const user = userData?.user?.user || {};
+	const merchant = userData?.user?.merchant || {};
+	const branches = userData?.user?.branches || [];
+	const username = user.username || '';
+	const position = user.role || '';
+	const language = user.lang || 'en';
+	const merchantName = merchant.business_name || '';
+	const messageReceived = userData?.user?.message_received || [];
 	const messageCount = messageReceived.length;
+	const merchantId = merchant.merchant_id || '';
+	const branchId = userData?.user?.branchId || '';
 
 	// Branch selection
-	const [selectedBranch, setSelectedBranch] = useState(branches[0]?.id || "");
+	const [selectedBranch, setSelectedBranch] = useState(branchId || (branches[0]?.branch_id ?? ""));
+
+	// Find the selected branch object
+	const selectedBranchObj = branches.find((b: any) => b.branch_id === selectedBranch) || branches[0] || {};
+	const selectedBranchName = selectedBranchObj.branch_name || '';
 
 	const languages = [
         { label: "English", value: "en", icon: <Globe size={18} /> },
@@ -82,7 +48,7 @@ const DashboardNavbar = () => {
         { label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
     ];
 
-	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages[0]);
+	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages.find(lang => lang.value === language) || languages[0]);
 
 	// Close mobile menu on outside click
 	useEffect(() => {
@@ -131,9 +97,9 @@ const DashboardNavbar = () => {
 	};
 
 	// Update branch selection dropdown items
-	const branchItems: DropdownItem[] = branches.map(branch => ({
-		label: branch.name,
-		value: branch.id,
+	const branchItems: DropdownItem[] = branches.map((branch: any) => ({
+		label: branch.branch_name,
+		value: branch.branch_id,
 		icon: <Globe size={18} />
 	}));
 
@@ -174,7 +140,7 @@ const DashboardNavbar = () => {
 					</span>
 					<span className="ml-2 text-base font-semibold text-text-light">
 						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-							selectedBranch
+							selectedBranchName
 						}
 					</span>
 					{branchOpen && (
@@ -215,7 +181,7 @@ const DashboardNavbar = () => {
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
 							<ul className="py-1">
 								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									user?.user?.message_received && user?.user?.message_received.length > 0 ? user?.user?.message_received.map((message: any) => (
+									messageReceived && messageReceived.length > 0 ? messageReceived.map((message: any) => (
 										<li key={message.id} className="cursor-pointer">
 											{message.title}
 										</li>
@@ -295,7 +261,7 @@ const DashboardNavbar = () => {
 						</span>
 						<span className="ml-2 text-lg">
 							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-								selectedBranch
+								selectedBranchName
 							}
 						</span>
 					</div>

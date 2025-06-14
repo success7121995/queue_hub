@@ -1,27 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
 import { Users, Plus, Edit, Trash2, Power } from "lucide-react";
 import { useDateTime } from "@/constant/datetime-provider";
 import { useForm } from "react-hook-form";
-// TODO: Enable when backend is ready
-// import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	type QueueData,
+	type QueueWithTags,
+	type Tag as QueueTag,
+	useCreateQueue,
+	useViewQueuesByBranch,
+	useUpdateQueue,
+	useDeleteQueue,
+	prefetchQueues
+} from "@/hooks/merchant-hook";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/auth-hooks";
 
 // Define types based on database schema
-type QueueStatus = 'ONLINE' | 'OFFLINE' | 'PAUSED';
-
-interface Queue {
-	queue_id: string;
-	branch_id: string;
-	queue_name: string;
-	tags?: string[];
-	queue_status: QueueStatus;
-	created_at: string;
-	updated_at: string;
-}
+type QueueStatus = 'OPEN' | 'CLOSED';
 
 interface QueueFormData {
 	queue_name: string;
@@ -34,109 +34,25 @@ const stats = [
 	{ label: "Current Queue Volume", value: 7 },
 ];
 
-// // Mock data based on database schema
-// const queueData: Queue[] = [
-// 	{
-// 		queue_id: "1",
-// 		branch_id: "1",
-// 		queue_name: "A",
-// 		tags: ["3-4 Persons"],
-// 		queue_status: 'ONLINE',
-// 	},
-// 	{
-// 		queue_id: "2",
-// 		branch_id: "1",
-// 		queue_name: "B",
-// 		tags: ["1-2 Persons"],
-// 		queue_status: 'ONLINE',
-// 	},
-// 	{
-// 		queue_id: "3",
-// 		branch_id: "1",
-// 		queue_name: "Reserved",
-// 		tags: ["Reserved", "Express", "5-8 Persons"],
-// 		queue_status: 'ONLINE',
-// 	},
-// 	{
-// 		queue_id: "4",
-// 		branch_id: "1",
-// 		queue_name: "C",
-// 		tags: ["1-4 Persons"],
-// 		queue_status: 'ONLINE',
-// 	},
-// ];
-
-// API functions
-const fetchQueues = async (): Promise<Queue[]> => {
-	// TODO: Replace with actual API call
-	return [
-		{
-			queue_id: 'Q1',
-			branch_id: 'B1',
-			queue_name: 'Demo Queue 1',
-			tags: ['tag1', 'tag2'],
-			queue_status: 'ONLINE',
-			created_at: '2024-03-01T10:00:00Z',
-			updated_at: '2024-03-01T12:00:00Z',
-		},
-	];
-};
-
-const createQueue = async (data: QueueFormData): Promise<Queue> => {
-	// TODO: Replace with actual API call
-	const newQueue: Queue = {
-		queue_id: Math.random().toString(36).substring(2, 9),
-		branch_id: 'B1',
-		queue_name: data.queue_name,
-		tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-		queue_status: 'ONLINE',
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	};
-	return newQueue;
-};
-
-const updateQueue = async ({ queue_id, data }: { queue_id: string; data: QueueFormData }): Promise<Queue> => {
-	// TODO: Replace with actual API call
-	const updatedQueue: Queue = {
-		queue_id,
-		branch_id: 'B1',
-		queue_name: data.queue_name,
-		tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-		queue_status: 'ONLINE',
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	};
-	return updatedQueue;
-};
-
-const deleteQueue = async (queue_id: string): Promise<void> => {
-	// TODO: Replace with actual API call
-	console.log('Deleting queue:', queue_id);
-};
-
-const updateQueueStatus = async ({ queue_id, data }: { queue_id: string; data: QueueFormData }): Promise<Queue> => {
-	// TODO: Replace with actual API call
-	const updatedQueue: Queue = {
-		queue_id,
-		branch_id: 'B1',
-		queue_name: data.queue_name,
-		tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-		queue_status: 'OFFLINE',
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	};
-	return updatedQueue;
-};
-
 const ManageQueueEntries = () => {
+	const queryClient = useQueryClient();
+	const { data: currentUser } = useAuth();
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-	const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
+	const [selectedQueue, setSelectedQueue] = useState<QueueWithTags | null>(null);
 	const { formatDate } = useDateTime();
-	// TODO: Enable when backend is ready
-	// const queryClient = useQueryClient();
+	const createMutation = useCreateQueue();
+	const updateMutation = useUpdateQueue();
+	const deleteMutation = useDeleteQueue();
+	const { data: queuesData, isLoading: isLoadingQueues, refetch } = useViewQueuesByBranch();
 
-	// Form handling
+	// Prefetch queue data as soon as we have the branch ID
+	useEffect(() => {
+		if (currentUser?.user?.branchId) {
+			prefetchQueues(queryClient, currentUser.user.branchId);
+		}
+	}, [currentUser?.user?.branchId, queryClient]);
+
+	// Form handling	
 	const createForm = useForm<QueueFormData>({
 		defaultValues: {
 			queue_name: '',
@@ -151,72 +67,60 @@ const ManageQueueEntries = () => {
 		},
 	});
 
-	// TODO: Enable when backend is ready
-	// const { data: queues = [], isLoading } = useQuery({
-	// 	queryKey: ['queues'],
-	// 	queryFn: fetchQueues,
-	// });
-	const queues = [
-		{ queue_id: 'Q1', queue_name: 'Demo Queue 1', tags: ['tag1', 'tag2'], status: 'ONLINE' as QueueStatus, branch_id: 'B1', queue_status: 'ONLINE' as QueueStatus, created_at: '2024-03-01T10:00:00Z', updated_at: '2024-03-01T12:00:00Z' },
-		{ queue_id: 'Q2', queue_name: 'Demo Queue 2', tags: ['tag3'], status: 'OFFLINE' as QueueStatus, branch_id: 'B1', queue_status: 'OFFLINE' as QueueStatus, created_at: '2024-03-02T10:00:00Z', updated_at: '2024-03-02T12:00:00Z' }
-	];
-	const isLoading = false;
-
-	// TODO: Enable when backend is ready
-	// const createMutation = useMutation({
-	// 	mutationFn: createQueue,
-	// 	onSuccess: () => {
-	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
-	// 		setIsCreateModalOpen(false);
-	// 		createForm.reset();
-	// 	},
-	// 	onError: (error) => {
-	// 		console.error('Create queue error:', error);
-	// 	},
-	// });
+	/**
+	 * Create a new queue
+	 * @param data - The form data
+	 */
 	const onCreateSubmit = (data: QueueFormData) => {
-		// TODO: Enable when backend is ready
-		// createMutation.mutate(data);
-		console.log('Create queue:', data);
-		setIsCreateModalOpen(false);
-		createForm.reset();
+		const payload: QueueData = {
+			queue_name: data.queue_name,
+			tags:  data.tags,
+		};
+		createMutation.mutate(payload, {
+			onSuccess: () => {
+				setIsCreateModalOpen(false);
+				createForm.reset();
+				refetch();
+			},
+			onError: (error) => {
+				console.error('Create queue error:', error);
+			},
+		});
 	};
 
-	// TODO: Enable when backend is ready
-	// const updateMutation = useMutation({
-	// 	mutationFn: updateQueue,
-	// 	onSuccess: () => {
-	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
-	// 		setSelectedQueue(null);
-	// 		editForm.reset();
-	// 	},
-	// 	onError: (error) => {
-	// 		console.error('Update queue error:', error);
-	// 	},
-	// });
+	/**
+	 * Update a queue
+	 * @param data - The form data
+	 */
 	const onEditSubmit = (data: QueueFormData) => {
-		// TODO: Enable when backend is ready
-		// updateMutation.mutate({ queue_id: selectedQueue.queue_id, data });
 		if (!selectedQueue) return;
-		console.log('Edit queue:', { queue_id: selectedQueue.queue_id, data });
-		setSelectedQueue(null);
-		editForm.reset();
+
+		const payload: QueueData = {
+			queue_name: data.queue_name,
+			tags: data.tags,
+		};
+
+		updateMutation.mutate({ queue_id: selectedQueue.queue_id, data: payload }, {
+			onSuccess: () => {
+				setSelectedQueue(null);
+				editForm.reset();
+				refetch();
+			},
+			onError: (error) => {
+				console.error('Update queue error:', error);
+			},
+		});
 	};
 
-	// TODO: Enable when backend is ready
-	// const deleteMutation = useMutation({
-	// 	mutationFn: deleteQueue,
-	// 	onSuccess: () => {
-	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
-	// 	},
-	// 	onError: (error) => {
-	// 		console.error('Delete queue error:', error);
-	// 	},
-	// });
 	const handleDelete = (queue_id: string) => {
-		// TODO: Enable when backend is ready
-		// deleteMutation.mutate(queue_id);
-		console.log('Delete queue:', queue_id);
+		deleteMutation.mutate(queue_id, {
+			onSuccess: () => {
+				refetch();
+			},
+			onError: (error) => {
+				console.error('Delete queue error:', error);
+			},
+		});
 	};
 
 	// TODO: Enable when backend is ready
@@ -236,11 +140,11 @@ const ManageQueueEntries = () => {
 	};
 
 	// Queue management handlers
-	const handleStatusChange = (queue: Queue, newStatus: QueueStatus) => {
+	const handleStatusChange = (queue: QueueWithTags, newStatus: QueueStatus) => {
 		handleStatusUpdate(queue.queue_id, newStatus);
 	};
 
-	const handleDeleteQueue = (queue: Queue) => {
+	const handleDeleteQueue = (queue: QueueWithTags) => {
 		if (window.confirm('Are you sure you want to delete this queue?')) {
 			handleDelete(queue.queue_id);
 		}
@@ -251,7 +155,7 @@ const ManageQueueEntries = () => {
 		if (selectedQueue) {
 			editForm.reset({
 				queue_name: selectedQueue.queue_name,
-				tags: selectedQueue.tags?.join(', ') || '',
+				tags: selectedQueue.tags.map((tag: QueueTag) => tag.tag_name).join(', '),
 			});
 		}
 	}, [selectedQueue, editForm]);
@@ -259,7 +163,7 @@ const ManageQueueEntries = () => {
 	/**
 	 * Columns for the table
 	 */
-	const columns: Column<Queue>[] = [
+	const columns: Column<QueueWithTags>[] = [
 		{ 
 			header: "Name", 
 			accessor: "queue_name", 
@@ -271,8 +175,8 @@ const ManageQueueEntries = () => {
 			accessor: (row) => (
 				<div className="flex items-center gap-2">
 					<div className={`w-2 h-2 rounded-full ${
-						row.queue_status === 'ONLINE' ? 'bg-green-500' : 
-						row.queue_status === 'PAUSED' ? 'bg-yellow-500' : 'bg-gray-500'
+						row.queue_status === 'OPEN' ? 'bg-green-500' : 
+						row.queue_status === 'CLOSED' ? 'bg-red-500' : 'bg-gray-500'
 					}`} />
 					<span>{row.queue_status}</span>
 				</div>
@@ -296,8 +200,8 @@ const ManageQueueEntries = () => {
 			header: "Tags",
 			accessor: (row) => (
 				<div className="flex flex-wrap gap-2">
-					{(row.tags || []).map((tag) => (
-						<Tag key={tag} tagName={tag} />
+					{row.tags.map((tag) => (
+						<Tag key={tag.tag_id} tagName={tag.tag_name} />
 					))}
 				</div>
 			),
@@ -309,18 +213,18 @@ const ManageQueueEntries = () => {
 	/**
 	 * Render actions for each queue
 	 */
-	const renderActions = (row: Queue) => (
+	const renderActions = (row: QueueWithTags) => (
 		<div className="flex gap-2">
 			<button 
-				onClick={() => handleStatusChange(row, row.queue_status === 'ONLINE' ? 'OFFLINE' : 'ONLINE')}
+				onClick={() => handleStatusChange(row, row.queue_status === 'OPEN' ? 'CLOSED' : 'OPEN')}
 				className={`flex items-center gap-1 px-3 py-1 rounded border ${
-					row.queue_status === 'ONLINE' 
+					row.queue_status === 'OPEN' 
 						? 'border-red-500 text-red-500 hover:bg-red-50' 
 						: 'border-green-500 text-green-500 hover:bg-green-50'
 				}`}
 			>
 				<Power size={16} />
-				{row.queue_status === 'ONLINE' ? 'Close' : 'Open'}
+				{row.queue_status === 'OPEN' ? 'Close' : 'Open'}
 			</button>
 			<button 
 				onClick={() => setSelectedQueue(row)}
@@ -364,15 +268,16 @@ const ManageQueueEntries = () => {
 			</div>
 
 			<div className="bg-white p-4 rounded-lg shadow-sm">
-				{isLoading ? (
+				{isLoadingQueues ? (
 					<div className="flex justify-center items-center py-8">
 						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-light"></div>
 					</div>
 				) : (
 					<Table
 						columns={columns}
-						data={queues}
+						data={queuesData || []}
 						renderActions={renderActions}
+						loading={isLoadingQueues}
 					/>
 				)}
 			</div>
@@ -390,7 +295,7 @@ const ManageQueueEntries = () => {
 								<input
 									{...createForm.register('queue_name', { 
 										required: 'Queue name is required',
-										minLength: { value: 2, message: 'Queue name must be at least 2 characters' }
+										minLength: { value: 1, message: 'Queue name is required' }
 									})}
 									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light"
 									placeholder="Enter queue name"
@@ -409,6 +314,8 @@ const ManageQueueEntries = () => {
 									{...createForm.register('tags')}
 									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light"
 									placeholder="Enter tags (comma separated)"
+									value={createForm.watch('tags')}
+									onChange={e => createForm.setValue('tags', e.target.value)}
 								/>
 							</div>
 							<div className="flex justify-end gap-2 mt-6">
@@ -448,7 +355,7 @@ const ManageQueueEntries = () => {
 								<input
 									{...editForm.register('queue_name', { 
 										required: 'Queue name is required',
-										minLength: { value: 2, message: 'Queue name must be at least 2 characters' }
+										minLength: { value: 1, message: 'Queue name is required' }
 									})}
 									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light"
 								/>
@@ -466,6 +373,8 @@ const ManageQueueEntries = () => {
 									{...editForm.register('tags')}
 									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-light"
 									placeholder="Enter tags (comma separated)"
+									value={editForm.watch('tags')}
+									onChange={e => editForm.setValue('tags', e.target.value)}
 								/>
 							</div>
 							<div className="flex justify-end gap-2 mt-6">

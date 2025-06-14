@@ -4,8 +4,7 @@ import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
-// TODO: Enable when backend is ready
-// import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLogout, useAuth } from "@/hooks/auth-hooks";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const AdminNavbar = () => {
@@ -16,45 +15,16 @@ const AdminNavbar = () => {
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const profileRef = useRef<HTMLDivElement>(null);
 	const mailRef = useRef<HTMLDivElement>(null);
+	const { mutate: logout } = useLogout();
+	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const { data: userData, isLoading: isUserDataLoading } = useAuth();
 
-	// TODO: Enable when backend is ready
-	/*
-	const { data: user, isLoading: isUserDataLoading } = useQuery({
-		queryKey: ['user'],
-		queryFn: async () => {
-			const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
-				credentials: 'include',
-			});
-			if (!res.ok) {
-				throw new Error('Failed to fetch user data');
-			}
-			return res.json();
-		},
-	});
-	*/
-
-	// Mock data for UI development
-	const mockUser = {
-		user: {
-			user: {
-				username: "Admin User",
-				role: "Administrator",
-				language: "en"
-			},
-			message_received: []
-		}
-	};
-
-	// Use mock data instead of query data
-	const user = mockUser;
-	const isUserDataLoading = false;
-
-	// Extract user info for navbar display
-	const username = user?.user?.user?.username || "";
-	const position = user?.user?.user?.role || "";
-	const language = user?.user?.user?.language || "en";
-	const messageReceived = user?.user?.message_received || [];
-	const messageCount = messageReceived.length;
+	// Display name
+	const username = userData?.user.username;
+	const role = userData?.user.role;
+	const messageReceived = userData?.user.message_received;
+	const messageCount = messageReceived?.length;
+	const language = userData?.user.lang;
 
 	const languages = [
 		{ label: "English", value: "en", icon: <Globe size={18} /> },
@@ -63,7 +33,7 @@ const AdminNavbar = () => {
 		{ label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
 	];
 
-	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages[0]);
+	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages.find(lang => lang.value === language) || languages[0]);
 
 	// Close mobile menu on outside click
 	useEffect(() => {
@@ -93,27 +63,24 @@ const AdminNavbar = () => {
 
 	// Mock logout function
 	const handleLogout = async () => {
+		setIsLoggingOut(true);
 		try {
-			// TODO: Enable when backend is ready
-			// await logoutMutation.mutateAsync();
-			console.log('Logging out...');
+			await logout();
 			window.location.href = '/';
 		} catch (error: unknown) {
 			console.error('Logout failed:', error);
 			window.location.href = '/';
+		} finally {
+			setIsLoggingOut(false);
 		}
 	};
 
 	return (
 		<nav className="font-regular-eng fixed top-0 left-0 w-full z-[1000] flex items-center px-4 sm:px-8 py-3 sm:py-4 border-b border-gray-200 bg-primary shadow-sm">
 			{/* Loading overlay */}
-			{/* {logoutMutation.isPending && (
-				<LoadingIndicator 
-					fullScreen 
-					text="Logging out..." 
-					className="bg-white/80"
-				/>
-			)} */}
+			{isLoggingOut && (
+				<LoadingIndicator fullScreen text="Logging out..." className="bg-white/80" />
+			)}
 
 			{/* Logo and QueueHub always visible */}
 			<div className="flex items-center space-x-2">
@@ -145,7 +112,7 @@ const AdminNavbar = () => {
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
 							<ul className="py-1">
 								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									messageReceived.length > 0 ? messageReceived.map((message: any) => (
+									messageCount > 0 ? messageReceived?.map((message: any) => (
 										<li key={message.id} className="cursor-pointer">
 											{message.title}
 										</li>
@@ -168,7 +135,7 @@ const AdminNavbar = () => {
 							</span>
 							<span className="text-xs text-text-light font-medium">
 								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									position
+									role
 								}
 							</span>
 						</div>
@@ -236,7 +203,7 @@ const AdminNavbar = () => {
 								</span>
 								<span className="ml-2 text-xs text-gray-500">
 									{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-										position
+										role
 									}
 								</span>
 							</span>

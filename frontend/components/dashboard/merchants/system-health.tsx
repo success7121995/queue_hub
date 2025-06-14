@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Table, { Column } from "@/components/common/table";
 
 // Dummy data for SystemHealth
@@ -71,6 +73,16 @@ const analyticsLogColumns: Column<typeof analyticsLogData[0]>[] = [
 ];
 
 const SystemHealth = () => {
+	const [isLoading, setIsLoading] = useState(true);
+
+	// Simulate loading state for demo
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setIsLoading(false);
+		}, 1000);
+		return () => clearTimeout(timer);
+	}, []);
+
 	return (
 		<div className="p-8 min-h-screen font-regular-eng">
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">System Health</h1>
@@ -94,9 +106,9 @@ const SystemHealth = () => {
 				))}
 			</div>
 			{/* Analytics Log Table */}
-			<div className="bg-white rounded-lg p-6 shadow-sm">
-				<h2 className="text-xl font-bold text-primary-light mb-4">Analytics Log</h2>
-				<Table columns={analyticsLogColumns} data={analyticsLogData} rowsPerPage={5} />
+			<div className="bg-white rounded-lg p-8 shadow-sm">
+				<div className="text-xl mb-2 text-primary-light font-bold">Analytics Log</div>
+				<Table columns={analyticsLogColumns} data={analyticsLogData} />
 			</div>
 		</div>
 	);

@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode, useState, useMemo } from "react";
+import { ReactNode, useState, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Search, ArrowUpDown, Inbox } from "lucide-react";
 import DateTimePicker from "./datetime-picker";
+import LoadingIndicator from "./loading-indicator";
 
 export interface Column<T> {
 	header: string;
@@ -19,6 +20,7 @@ interface TableProps<T> {
 	rowsPerPage?: number;
 	dateColumnKey?: keyof T | ((row: T) => Date | null | undefined);
 	renderActions?: (row: T) => ReactNode;
+	loading?: boolean;
 }
 
 const Table = <T extends Record<string, any>>({ 
@@ -28,11 +30,17 @@ const Table = <T extends Record<string, any>>({
 	rowsPerPage = 10,
 	dateColumnKey,
 	renderActions,
+	loading = false,
 }: TableProps<T>) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [sortConfig, setSortConfig] = useState<{ key: keyof T | ((row: T) => unknown); direction: 'asc' | 'desc' } | null>(null);
 	const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({ from: null, to: null });
+	const [isLoading, setIsLoading] = useState(loading);
+
+	useEffect(() => {
+		setIsLoading(loading);
+	}, [loading]);
 
 	/**
 	 * Get value from accessor
@@ -322,9 +330,13 @@ const Table = <T extends Record<string, any>>({
 		);
 	};
 
+	if (isLoading) {
+		console.log( "loading", isLoading);
+		return <LoadingIndicator fullScreen={true} size="lg" />;
+	}
+
 	return (
 		<div className="flex flex-col w-full">
-
 			{/* Redesigned Filter/Search Bar */}
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 bg-gradient-to-r from-gray-50 to-white border border-gray-200 p-4 rounded-xl shadow-sm">
 				{dateColumnKey && renderDateFilter()}

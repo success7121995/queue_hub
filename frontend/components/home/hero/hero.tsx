@@ -33,10 +33,12 @@ const Hero = () => {
             {/* Hero section with backdrop image */}
             <div className="relative w-full h-[500px] flex items-center justify-center overflow-hidden">
                 {/* Backdrop Image */}
-                <img
+                <Image
                     src="/images/hero-bg.png"
                     alt="Backdrop"
                     className="absolute inset-0 w-full h-full object-cover z-0"
+                    width={1000}
+                    height={1000}
                 />
                 {/* Dark Overlay */}
                 <div className="absolute inset-0 bg-black/65 z-10" />

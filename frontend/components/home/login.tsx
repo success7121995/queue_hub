@@ -2,21 +2,18 @@
 
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
-// TODO: Enable when backend is ready
-// import { useMutation } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
-
-type LoginFormInputs = {
-    email: string;
-    password: string;
-};
+import { useLogin, LoginFormInputs } from "@/hooks/auth-hooks";
+import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
+import Cookies from 'js-cookie';
 
 const Login = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const loginMutation = useLogin();
 
     const {
         register,
@@ -24,57 +21,48 @@ const Login = () => {
         formState: { errors }
     } = useForm<LoginFormInputs>();
 
-    // TODO: Enable when backend is ready
-    /*
-    const loginMutation = useMutation({
-        mutationFn: async (data: LoginFormInputs) => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Login failed');
-            }
-
-            return response.json();
-        },
-        onSuccess: (data) => {
-            if (data.redirect) {
-                const redirectUrl = data.redirect.replace(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/auth/`, "");
-                router.push(redirectUrl);
-            } else {
-                router.push('/404');
-            }
-        },
-        onError: (error: Error) => {
-            setError(error.message);
-        }
-    });
-    */
-
     const onSubmit = async (data: LoginFormInputs) => {
         setError(null);
-        setIsLoading(true);
         try {
-            // TODO: Enable when backend is ready
-            // loginMutation.mutate(data);
-            console.log('Login data:', data);
-            // Temporary mock login - replace with actual backend integration
-            setTimeout(() => {
-                router.push('/dashboard/admin');
-                setIsLoading(false);
-            }, 1000);
+            const res = await loginMutation.mutateAsync(data);
+            const { result, sessionId } = res;
+
+            // Set session and role cookies
+            if (sessionId) {
+                Cookies.set('session_id', sessionId, {
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+            }
+
+            if (result.user.role) {
+                Cookies.set('role', result.user.role, {
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+            }
+
+            // Handle redirect based on role and return URL
+            const returnUrl = searchParams.get('from') || '/';
+            const isAdmin = ['SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'].includes(result.user.role);
+            
+            if (isAdmin) {
+                const firstAdminSlug = getFirstAdminSlug();
+                router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
+            } else if (result.user.role === 'MERCHANT') {
+                const firstMerchantSlug = getFirstMerchantSlug();
+                router.push(returnUrl.startsWith('/merchant') ? returnUrl : `/merchant/${firstMerchantSlug}`);
+            } else {
+                router.push(returnUrl);
+            }
         } catch (err) {
-            setError('Login failed. Please try again.');
-            setIsLoading(false);
+            setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
         }
     };
+
+    const isLoading = loginMutation.isPending;
 
     return (
         <div className="min-h-screen flex items-center justify-center max-w-[1200px] mx-auto font-regular-eng">

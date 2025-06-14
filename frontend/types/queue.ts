@@ -9,7 +9,7 @@ export interface Queue {
   tags?: QueueTag[];
 }
 
-export type QueueStatus = 'active' | 'inactive' | 'archived';
+export type QueueStatus = 'OPEN' | 'CLOSED';
 
 export interface QueueEntry {
   id: number;
@@ -19,7 +19,7 @@ export interface QueueEntry {
   leftAt: Date | null;
 }
 
-export type QueueEntryStatus = 'waiting' | 'served' | 'cancelled' | 'no_show';
+export type QueueEntryStatus = 'WAITING' | 'SERVED' | 'CANCELLED' | 'NO_SHOW';
 
 export interface QueueHistory {
   id: number;
