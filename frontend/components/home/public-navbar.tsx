@@ -7,6 +7,7 @@ import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
+import { useLang, type Lang } from "@/constant/lang-provider";
 
 const PublicNavbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,6 +15,8 @@ const PublicNavbar = () => {
 
     const router = useRouter();
     const pathname = usePathname();
+
+    const { langsOptions, lang, setLang } = useLang();
 
     useEffect(() => {
         if (!isMenuOpen) return;
@@ -34,15 +37,6 @@ const PublicNavbar = () => {
         { label: "Why QueueHub", href: "/about-us" },
         { label: "Pricing", href: "#pricing" },
     ];
-
-    const languages = [
-        { label: "English", value: "en", icon: <Globe size={18} /> },
-        { label: "繁體（香港）", value: "zh-HK", icon: <Globe size={18} /> },
-        { label: "繁體（台灣）", value: "zh-TW", icon: <Globe size={18} /> },
-        { label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
-    ];
-
-    const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages[0]);
 
     const handleLinkClick = (e: React.MouseEvent, href: string) => {
         if (href.startsWith("#")) {
@@ -98,9 +92,9 @@ const PublicNavbar = () => {
                 <span className="flex items-center text-sm">
                 <Dropdown
                     className="w-[140px]"
-                    items={languages}
-                    selected={selectedLanguage}
-                    onSelect={(item) => setSelectedLanguage(item)}
+                    items={langsOptions}
+                    selected={langsOptions.find(option => option.value === lang)}
+                    onSelect={(item) => setLang(item.value as Lang)}
                 />
                 </span>
 
@@ -154,9 +148,9 @@ const PublicNavbar = () => {
                 <span className="flex items-center text-sm mt-3">
                     <Dropdown
                     className="w-[140px]"
-                    items={languages}
-                    selected={selectedLanguage}
-                    onSelect={(item) => setSelectedLanguage(item)}
+                    items={langsOptions}
+                    selected={langsOptions.find(option => option.value === lang)}
+                    onSelect={(item) => {setLang(item.value as Lang)}}
                     />
                 </span>
 

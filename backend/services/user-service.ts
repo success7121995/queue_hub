@@ -43,7 +43,7 @@ export const userService = {
         // Create new queue entry
         const entry = await prisma.queueEntry.create({
             data: {
-                entry_id: uuidv4() + "-" + Date.now(),
+                entry_id: uuidv4(),
                 queue_id,
                 user_id,
                 number: nextNumber,

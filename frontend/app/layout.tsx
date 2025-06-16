@@ -3,6 +3,7 @@ import "./globals.css";
 import localFont from "next/font/local";
 import DateTimeProvider from "@/constant/datetime-provider";
 import QueryProvider from "@/constant/query-provider";
+import LangProvider from "@/constant/lang-provider";
 
 const urbanistItalic = localFont({
     src: "../public/fonts/Urbanist-Italic-VariableFont_wght.ttf",
@@ -23,29 +24,31 @@ export const metadata: Metadata = {
     }
 };
 
-const RootLayout = ({
+const RootLayout = async ({
     children
 }: Readonly<{
     children: React.ReactNode;
 }>) => {
 
-return (
-    <html lang="en">
-        <body
-            className={`
-                ${urbanistItalic.variable}
-                ${unbanist.variable}
-                antialiased
-            `}
-        >
-            <QueryProvider>
-                <DateTimeProvider>
-                    {children}
-                </DateTimeProvider>
-            </QueryProvider>
-        </body>
-    </html>
-);
+    return (
+        <html lang="en">
+            <body
+                className={`
+                    ${urbanistItalic.variable}
+                    ${unbanist.variable}
+                    antialiased
+                `}
+            >
+                <QueryProvider>
+                    <LangProvider>
+                        <DateTimeProvider>
+                            {children}
+                        </DateTimeProvider>
+                    </LangProvider>
+                </QueryProvider>
+            </body>
+        </html>
+    );
 }
 
 export default RootLayout;

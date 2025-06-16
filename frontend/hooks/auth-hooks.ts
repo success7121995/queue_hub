@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Cookies from 'js-cookie';
+import { useLang } from "@/constant/lang-provider";
 
 export type LoginFormInputs = {
     email: string;
@@ -13,7 +14,7 @@ export type LoginFormInputs = {
 export const useLogin = () => {
     return useMutation({
         mutationFn: async (data: LoginFormInputs) => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -22,12 +23,12 @@ export const useLogin = () => {
                 body: JSON.stringify(data),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
+            if (!res.ok) {
+                const error = await res.json();
                 throw new Error(error.message || 'Login failed');
             }
 
-            return response.json();
+            return res.json();
         },
     });
 };
@@ -39,12 +40,12 @@ export const useLogin = () => {
 export const useLogout = () => {
     return useMutation({
         mutationFn: async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
                 method: 'POST',
                 credentials: 'include',
             });
 
-            if (!response.ok) {
+            if (!res.ok) {
                 throw new Error('Logout failed');
             }
 
@@ -52,7 +53,7 @@ export const useLogout = () => {
             Cookies.remove('session_id', { path: '/' });
             Cookies.remove('role', { path: '/' });
 
-            return response.json();
+            return res.json();
         },
     });
 };
@@ -65,15 +66,21 @@ export const useAuth = () => {
     return useQuery({
         queryKey: ['auth'],
         queryFn: async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
                 credentials: 'include',
             });
 
-            if (!response.ok) {
+            if (!res.ok) {
                 throw new Error('Failed to fetch auth data');
             }
 
-            return response.json();
+            const result = await res.json();
+
+            // Set lang to cookie
+            const { setLang } = useLang();
+            setLang(result.user.lang);
+
+            return result;
         },
         retry: false,
         staleTime: 1000 * 60 * 5, // 5 minutes

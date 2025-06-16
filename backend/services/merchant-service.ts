@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
 import { Prisma, Queue, Tag } from "@prisma/client";
+import { BranchSchema } from "../controllers/merchant-controller";
 
 interface QueueAnalyticsParams {
     start_date?: string;
@@ -256,4 +257,19 @@ export const merchantService = {
             avg_wait_time: Math.round(avg_wait_time / 1000 / 60), // Convert to minutes
         };
     },
+
+    /**
+     * Create a new branch
+     * @param branch_name - The branch name
+     * @param branch_address - The branch address
+     * @param branch_phone - The branch phone
+     * @param branch_email - The branch email
+     * @param branch_website - The branch website
+     */
+    async createBranch(data: BranchSchema) {
+        const result = await prisma.$transaction(async (tx) => {
+        });
+
+        return result;
+    }
 }; 

@@ -12,7 +12,7 @@ export const authService = {
      * @param merchant - The merchant object
      */
     async registerMerchant(data: MerchantSchema) {
-        const { signup, branchInfo, address, branch_address, payment } = data;
+        const { signup, branchInfo, address, branchAddress, payment } = data;
 
         // Hash password
         const password_hash = await bcrypt.hash(signup.password, 10);
@@ -22,7 +22,7 @@ export const authService = {
             // 1. Create user
             const user = await tx.user.create({
                 data: {
-                    user_id: uuidv4() + "-" + Date.now(),
+                    user_id: uuidv4(),
                     username: signup.email, // Using email as username
                     fname: signup.fname,
                     lname: signup.lname,
@@ -41,9 +41,9 @@ export const authService = {
             // 2. Create merchant
             const merchant = await tx.merchant.create({
                 data: {
-                    merchant_id: uuidv4() + "-" + Date.now(),
+                    merchant_id: uuidv4(),
                     owner_id: user.user_id,
-                    business_name: branchInfo.business_name,
+                    business_name: signup.business_name,
                     phone: signup.phone,
                     email: signup.email,
                     description: branchInfo.description,
@@ -53,10 +53,21 @@ export const authService = {
                 }
             });
 
-            // 3. Create address
+            // 3. Create staff record for owner (UserMerchant)
+            const staff = await tx.userMerchant.create({
+                data: {
+                    staff_id: uuidv4(),
+                    user_id: user.user_id,
+                    merchant_id: merchant.merchant_id,
+                    position: "Owner",
+                    role: "OWNER"
+                }
+            });
+
+            // 4. Create address
             await tx.address.create({
                 data: {
-                    address_id: uuidv4() + "-" + Date.now(),
+                    address_id: uuidv4(),
                     merchant_id: merchant.merchant_id,
                     street: address.street,
                     unit: address.unit,
@@ -69,48 +80,38 @@ export const authService = {
                 }
             });
 
-            // 4. Create branch
+            // 5. Create branch
             const branch = await tx.branch.create({
                 data: {
-                    branch_id: uuidv4() + "-" + Date.now(),
+                    branch_id: uuidv4(),
+                    contact_person_id: staff.staff_id, // Use staff_id as contact_person_id
                     merchant_id: merchant.merchant_id,
                     branch_name: branchInfo.branch_name,
-                    phone: branchInfo.branch_phone,
-                    email: branchInfo.branch_email,
+                    phone: branchInfo.phone,
+                    email: branchInfo.email,
                     description: branchInfo.description,
                     is_active: true,
                     updated_at: new Date()
                 }
             });
 
-            // 5. Create branch address if different from merchant address
-            if (branch_address) {
+            // 6. Create branch address if different from merchant address
+            if (branchAddress) {
                 await tx.address.create({
                     data: {
-                        address_id: uuidv4() + "-" + Date.now(),
+                        address_id: uuidv4(),
                         branch_id: branch.branch_id,
-                        street: branch_address.street,
-                        unit: branch_address.unit,
-                        floor: branch_address.floor,
-                        city: branch_address.city,
-                        state: branch_address.state,
-                        zip: branch_address.zip,
-                        country: branch_address.country,
+                        street: branchAddress.street,
+                        unit: branchAddress.unit,
+                        floor: branchAddress.floor,
+                        city: branchAddress.city,
+                        state: branchAddress.state,
+                        zip: branchAddress.zip,
+                        country: branchAddress.country,
                         updated_at: new Date()
                     }
                 });
             }
-
-            // 6. Create merchant staff record
-            await tx.userMerchant.create({
-                data: {
-                    staff_id: uuidv4() + "-" + Date.now(),
-                    user_id: user.user_id,
-                    merchant_id: merchant.merchant_id,
-                    position: "Owner",
-                    role: "OWNER"
-                }
-            });
 
             return { user, merchant, branch };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -170,9 +171,8 @@ export const authService = {
      * Get user by ID
      * @param userId - The user ID
      */
-    async getAdminOrMerchantById(userId: string, role: UserRole, merchantId?: string, branchId?: string, availableBranches?: string[]) {
+    async getAdminOrMerchantById(userId: string, role: UserRole, availableBranches?: string[]) {
 
-        
         const result = await prisma.$transaction(async (tx) => {
             const user = await prisma.user.findUnique({
                 where: { user_id: userId },

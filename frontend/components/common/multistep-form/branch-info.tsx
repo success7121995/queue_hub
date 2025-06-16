@@ -68,6 +68,7 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
 
         // Only store branch-specific data
         const branchInfoData = {
+            contact_person_id: data.contact_person_id,
             branch_name: data.branch_name,
             email: data.email,
             phone: data.phone,

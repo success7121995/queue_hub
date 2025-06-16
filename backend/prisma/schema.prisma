@@ -70,6 +70,7 @@ model Branch {
   branch_id            String                 @id
   merchant_id          String
   branch_name          String
+  contact_person_id    String                 // Reference to UserMerchant staff_id
   phone                String?
   email                String?
   description          String?
@@ -84,6 +85,7 @@ model Branch {
   Queue                Queue[]
   Tag                  Tag[]
   UserMerchantOnBranch UserMerchantOnBranch[]
+  ContactPerson        UserMerchant           @relation("BranchContactPerson", fields: [contact_person_id], references: [staff_id], onDelete: Restrict)
 }
 
 model BranchFeature {
@@ -401,6 +403,7 @@ model UserMerchant {
   Merchant             Merchant               @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
   User                 User                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   UserMerchantOnBranch UserMerchantOnBranch[]
+  Branch               Branch[]                 @relation("BranchContactPerson")
 }
 
 model UserMerchantOnBranch {
@@ -445,6 +448,9 @@ enum ActivityType {
   CREATE_MERCHANT
   UPDATE_MERCHANT
   DELETE_MERCHANT
+  CREATE_BRANCH
+  UPDATE_BRANCH
+  DELETE_BRANCH
   APPROVE_MERCHANT
   REJECT_MERCHANT
   VIEW_QUEUE
@@ -542,8 +548,7 @@ enum InvoiceStatus {
 }
 
 enum Lang {
-  ZH_HK
-  ZH_TW
+  ZH
   ZH_CH
   EN
 }

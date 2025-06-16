@@ -3,6 +3,7 @@
 import { createContext, useContext, useState } from "react";
 import { useForm as useFormHook, UseFormReturn } from "react-hook-form";
 import { SignupFormFields, AddBranchFormFields, AddAdminFormFields } from "@/types/form";
+import { useLang } from "@/constant/lang-provider";
 
 interface FormContextType {
     form: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -21,9 +22,10 @@ export const useForm = () => {
 }
 
 export const FormProvider = ({ children, formType }: { children: React.ReactNode, formType: "signup" | "add-branch" | "add-admin" | "add-employee" }) => {
+    const { lang } = useLang();
     const [form, setForm] = useState<"signup" | "add-branch" | "add-admin" | "add-employee">("signup");
     const formMethods = useFormHook<SignupFormFields["signup"] | AddBranchFormFields["branchInfo"] | AddAdminFormFields["userInfo"]>({
-        defaultValues: {},
+        defaultValues: formType === "signup" ? { lang } : { },
     });
 
     return (

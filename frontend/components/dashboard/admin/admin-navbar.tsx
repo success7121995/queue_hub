@@ -28,9 +28,9 @@ const AdminNavbar = () => {
 
 	const languages = [
 		{ label: "English", value: "en", icon: <Globe size={18} /> },
-		{ label: "繁體（香港）", value: "zh-HK", icon: <Globe size={18} /> },
-		{ label: "繁體（台灣）", value: "zh-TW", icon: <Globe size={18} /> },
-		{ label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
+		{ label: "繁體（香港）", value: "zh_HK", icon: <Globe size={18} /> },
+		{ label: "繁體（台灣）", value: "zh_TW", icon: <Globe size={18} /> },
+		{ label: "简体", value: "zh_CN", icon: <Globe size={18} /> },
 	];
 
 	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages.find(lang => lang.value === language) || languages[0]);

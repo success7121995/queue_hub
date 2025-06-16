@@ -9,50 +9,52 @@ const merchantSchema = z.object({
     // Step 1: Signup
     signup: z.object({
         plan: z.enum(["TRIAL", "ESSENTIAL", "GROWTH"]),
-        email: z.string().email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
-        confirm_password: z.string().min(8, "Password must be at least 8 characters"),
+        lang: z.enum(["EN", "ZH", "ZH_CH"]),
+        business_name: z.string().min(1, "Business name is required"),
         fname: z.string().min(1, "First name is required"),
         lname: z.string().min(1, "Last name is required"),
+        username: z.string().min(3, "Username must be at least 3 characters"),
+        email: z.string().email("Invalid email address"),
         phone: z.string().min(1, "Phone number is required"),
-        lang: z.enum(["EN", "ZH-HK", "ZH-TW", "ZH-CN"]),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+        confirm_password: z.string().min(8, "Password must be at least 8 characters"),
+        use_same_address: z.boolean().default(true),
     }),
 
     // Step 2: Branch Info
     branchInfo: z.object({
-        business_name: z.string().min(1, "Business name is required"),
         branch_name: z.string().min(1, "Branch name is required"),
+        email: z.string().email("Invalid email address").optional(),
+        phone: z.string().optional(),
         description: z.string().optional(),
-        branch_phone: z.string().optional(),
-        branch_email: z.string().email("Invalid email address").optional()
     }),
 
     // Step 3: Address
     address: z.object({
         street: z.string().min(1, "Street is required"),
-        unit: z.string().optional(),
-        floor: z.string().optional(),
         city: z.string().min(1, "City is required"),
         state: z.string().min(1, "State is required"),
         zip: z.string().min(1, "ZIP code is required"),
-        country: z.string().min(1, "Country is required")
+        country: z.string().min(1, "Country is required"),
+        unit: z.string().optional(),
+        floor: z.string().optional(),
     }),
 
     // Step 4: Branch Address (optional)
-    branch_address: z.object({
+    branchAddress: z.object({
         street: z.string().min(1, "Street is required"),
-        unit: z.string().optional(),
-        floor: z.string().optional(),
         city: z.string().min(1, "City is required"),
         state: z.string().min(1, "State is required"),
         zip: z.string().min(1, "ZIP code is required"),
-        country: z.string().min(1, "Country is required")
+        country: z.string().min(1, "Country is required"),
+        unit: z.string().optional(),
+        floor: z.string().optional(),
     }).optional(),
 
     // Step 5: Payment
     payment: z.object({
-        payment_method: z.string().min(1, "Payment method is required"),
-        auto_renewal: z.boolean().default(false)
+        save_card: z.boolean().default(false),
+        auto_renewal: z.boolean().default(false),
     })
 });
 
@@ -175,8 +177,6 @@ export const authController = {
             const user = await authService.getAdminOrMerchantById(
                 userId,
                 role as UserRole,
-                merchantId,
-                branchId,
                 availableBranches
             );
             
@@ -209,6 +209,7 @@ export const authController = {
         async (req: Request<{}, {}, MerchantSchema>, res: Response) => {
             // Validate request body against schema
             const validatedData = merchantSchema.parse(req.body);
+            console.log(validatedData);
 
             // Check if passwords match
             if (validatedData.signup.password !== validatedData.signup.confirm_password) {

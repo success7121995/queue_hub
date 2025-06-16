@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { ActivityType, Queue, Tag } from "@prisma/client";
+import { ActivityType, Queue, Tag, Prisma, UserRole, MerchantRole, Lang } from "@prisma/client";
+import { z } from "zod";
 import { withActivityLog } from "../utils/with-activity-log";
 import { merchantService } from "../services/merchant-service";
 import { queueService } from "../services/queue-service";
@@ -16,6 +17,64 @@ declare global {
         }
     }
 }
+
+const branchSchema = z.object({
+
+    // Branch Information 
+    branch_name: z.string().min(1, "Branch name is required"),
+    phone: z.string().min(1, "Branch phone is required").optional(),
+    email: z.string().email("Invalid email address").optional(),
+    description: z.string().optional(),
+
+    // Branch Address
+    address: z.object({
+        country: z.string().min(1, "Country is required"),
+        unit: z.string().optional(),
+        floor: z.string().optional(),
+        street: z.string().min(1, "Street is required"),
+        city: z.string().min(1, "City is required"),
+        state: z.string().min(1, "State is required"),
+        zip: z.string().min(1, "ZIP code is required"),
+    })
+});
+
+export type BranchSchema = z.infer<typeof branchSchema>;
+
+// Validation schemas
+const signupSchema = z.object({
+    userInfo: z.object({
+        username: z.string().min(3, "Username must be at least 3 characters"),
+        email: z.string().email("Invalid email address"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+        fname: z.string().min(1, "First name is required"),
+        lname: z.string().min(1, "Last name is required"),
+        phone: z.string().min(1, "Phone number is required"),
+        position: z.string().min(1, "Position is required"),
+        role: z.nativeEnum(MerchantRole),
+        lang: z.nativeEnum(Lang),
+    }),
+    branchInfo: z.object({
+        branch_name: z.string().min(1, "Branch name is required"),
+        phone: z.string().optional(),
+        email: z.string().email("Invalid email address").optional(),
+        description: z.string().optional(),
+        opening_hours: z.array(z.object({
+            day_of_week: z.number().min(1).max(7),
+            open_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+            close_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+            is_closed: z.boolean().default(false),
+        })).optional(),
+    }),
+    address: z.object({
+        country: z.string().min(1, "Country is required"),
+        street: z.string().min(1, "Street is required"),
+        city: z.string().min(1, "City is required"),
+        state: z.string().min(1, "State is required"),
+        zip: z.string().min(1, "ZIP code is required"),
+        unit: z.string().optional(),
+        floor: z.string().optional(),
+    }),
+});
 
 // Merchant controller
 // Handles: profile management, queue operations, analytics
@@ -83,8 +142,6 @@ export const merchantController = {
     viewQueuesByBranch: withActivityLog(
         async (req: Request, res: Response) => {
             const { branch_id } = req.params;
-
-            console.log(branch_id)
 
             const result = await queueService.viewQueuesByBranch(branch_id);
             res.status(200).json({ success: true, result });
@@ -174,4 +231,24 @@ export const merchantController = {
             }),
         }
     ),
+
+    /**
+     * Create a new branch
+     * @param req - The request object
+     * @param res - The response object
+     */
+    createBranch: withActivityLog(
+        async (req: Request, res: Response) => {
+            const validatedData = branchSchema.parse(req.body);
+
+            const result = await merchantService.createBranch(validatedData);
+        },
+        {
+            action: ActivityType.CREATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+
+            }),
+        }
+    )
 }; 

@@ -38,7 +38,7 @@ export const adminService = {
     }: ActivityLogData) {
         const activityLog = await prisma.activityLog.create({
             data: {
-                log_id: uuidv4() + "-" + Date.now(),
+                log_id: uuidv4(),
                 user_id: user_id ?? null,
                 action,
                 action_data,
@@ -64,7 +64,7 @@ export const adminService = {
     async createAPILog(method: string, endpoint: string, status: number, response_time: number, ip_address: string, user_agent: string, error?: string | null, user_id?: string | null) {
         const apiLog = await prisma.aPILog.create({
             data: {
-                log_id: uuidv4() + "-" + Date.now(),
+                log_id: uuidv4(),
                 method,
                 endpoint,
                 status,

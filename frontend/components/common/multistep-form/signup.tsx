@@ -6,6 +6,7 @@ import { SignupFormFields } from "@/types/form";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
 import Link from "next/link";
+import { useLang } from "@/constant/lang-provider";
 
 type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
 
@@ -30,6 +31,7 @@ const plans = [
 const COOKIE_KEY = "signupForm";
 
 const Signup: React.FC<SignupProps> = ({ onNext }) => {
+    const { lang, langsOptions } = useLang();
     const { formMethods } = useForm();
     const {
         register,
@@ -143,10 +145,11 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                         className="w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" 
                         {...register("lang", { required: "Language is required" })}
                     >
-                        <option value="EN">English</option>
-                        <option value="ZH_HK">繁體中文 (香港)</option>
-                        <option value="ZH_TW">繁體中文 (台灣)</option>
-                        <option value="ZH_CH">简体中文 (中国大陆)</option>
+                        
+                        {langsOptions.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+
                     </select>
                     {errors.lang && <p className="text-xs text-red-500 mt-1">{errors.lang.message}</p>}
                 </div>

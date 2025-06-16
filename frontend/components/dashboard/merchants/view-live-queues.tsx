@@ -10,6 +10,7 @@ import { connectSocket, disconnectSocket, onQueueStatusChange } from "@/lib/sock
 import { useViewQueuesByBranch } from "@/hooks/merchant-hook";
 import { useAuth } from "@/hooks/auth-hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import type { QueueWithTags } from "@/hooks/merchant-hook";
 
 const mockStats = {
 	servedToday: 45,
@@ -117,19 +118,6 @@ const ViewLiveQueues = () => {
 			header: "Name", 
 			accessor: "queue_name",
 			priority: 3,
-			sortable: true
-		},
-		{ 
-			header: "Status", 
-			accessor: (row) => (
-				<div className="flex items-center gap-2">
-					<div className={`w-2 h-2 rounded-full ${
-						row.queue_status === 'OPEN' ? 'bg-green-500' : 'bg-red-500'
-					}`} />
-					<span>{row.queue_status}</span>
-				</div>
-			),
-			priority: 2,
 			sortable: true
 		},
 		{ 
@@ -347,8 +335,9 @@ const ViewLiveQueues = () => {
 					) : (
 						<Table
 							columns={activeQueuesColumns}
-							data={queuesData || []}
+							data={(queuesData || []).filter((queue: QueueWithTags) => queue.queue_status === 'OPEN')}
 							renderActions={renderActions}
+							message="No active queue"
 						/>
 					)}
 				</div>

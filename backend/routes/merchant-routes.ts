@@ -26,9 +26,15 @@ router.get('/profile', () => {});  // Get merchant profile
 router.put('/profile', () => {});  // Update merchant profile
 router.put('/settings', () => {});  // Update merchant settings
 
+// Branch management (merchant only)
+router.get('/branches', () => {});  // Get merchant's branches
+router.post('/branches/create', requireAuth([UserRole.MERCHANT], [MerchantRole.OWNER]), () => {});  // Create new branch
+router.put('/branches/:branch_id', () => {});  // Update branch details
+router.delete('/branches/:branch_id', () => {});  // Delete branch
+
 // Queue management (merchant only)
 router.get('/queues/:branch_id', requireAuth([UserRole.MERCHANT], [MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);  // Get merchant's queues
-router.post('/queues/create', requireAuth([UserRole.MERCHANT], [MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.createQueue);  // Create new queue
+router.post('/queues/create', requireAuth([UserRole.MERCHANT], [MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createQueue);  // Create new queue
 router.put('/queues/:queue_id', requireAuth([UserRole.MERCHANT], [MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateQueue);  // Update queue details
 router.delete('/queues/:queue_id', requireAuth([UserRole.MERCHANT], [MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteQueue);  // Delete queue
 router.put('/queues/:queue_id/status', () => {});  // Update queue status (active/paused/closed)

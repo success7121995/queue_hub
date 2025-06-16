@@ -21,6 +21,7 @@ interface TableProps<T> {
 	dateColumnKey?: keyof T | ((row: T) => Date | null | undefined);
 	renderActions?: (row: T) => ReactNode;
 	loading?: boolean;
+	message?: string
 }
 
 const Table = <T extends Record<string, any>>({ 
@@ -31,6 +32,7 @@ const Table = <T extends Record<string, any>>({
 	dateColumnKey,
 	renderActions,
 	loading = false,
+	message = "No data available",
 }: TableProps<T>) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -325,7 +327,7 @@ const Table = <T extends Record<string, any>>({
 		return (
 			<div className="flex flex-col items-center justify-center py-8 text-gray-500">
 				<Inbox size={48} className="mb-4" />
-				<p>No data available</p>
+				<p>{message}</p>
 			</div>
 		);
 	};
