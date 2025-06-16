@@ -6,6 +6,10 @@ import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
 import { useDateTime } from "@/constant/datetime-provider";
+import { connectSocket, disconnectSocket, onQueueStatusChange } from "@/lib/socket";
+import { useViewQueuesByBranch } from "@/hooks/merchant-hook";
+import { useAuth } from "@/hooks/auth-hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 const mockStats = {
 	servedToday: 45,
@@ -27,44 +31,6 @@ const noShow = [
 	{ id: 'A21', label: "A", number: 21 },
 	{ id: 'A22', label: "A", number: 22 },
 	{ id: 'A23', label: "A", number: 23 },
-];
-
-const activeQueues = [
-	{
-		name: "A",
-		currentNumber: 12,
-		queueVolume: 23,
-		avgWait: 12,
-		servingTime: 30,
-		tags: [
-			{ id: "1", tagName: "3-4 Persons" },
-			{ id: "2", tagName: "Express" },
-			{ id: "3", tagName: "5-8 Persons" },
-		],
-	},
-	{
-		name: "B",
-		currentNumber: 1,
-		queueVolume: 2,
-		avgWait: 5,
-		servingTime: 0,
-		tags: [
-			{ id: "1", tagName: "A" },
-			{ id: "2", tagName: "1-2 Persons" },
-		],
-	},
-	{
-		name: "Reserved",
-		currentNumber: 1,
-		queueVolume: 2,
-		avgWait: 0,
-		servingTime: 0,
-		tags: [
-			{ id: "4", tagName: "Reserved" },
-			{ id: "5", tagName: "Express" },
-			{ id: "6", tagName: "5-8 Persons" },
-		],
-	},
 ];
 
 const completed = [
@@ -90,9 +56,39 @@ const abandon = [
 const queueMenuOptions = ["Call", "Serve", "Recall", "Abandon"];
 
 const ViewLiveQueues = () => {
+	const queryClient = useQueryClient();
 	const [menuOpen, setMenuOpen] = useState<string | null>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
 	const { formatDate } = useDateTime();
+	const { data: currentUser } = useAuth();
+	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useViewQueuesByBranch();
+
+	// Connect to socket and listen for queue status changes
+	useEffect(() => {
+		if (!currentUser?.user?.branchId) return;
+
+		connectSocket();
+
+		// Register callback for queue status changes
+		const unregister = onQueueStatusChange(({ queueId, status }) => {
+			// Optimistically update the UI
+			queryClient.setQueryData(['queues', currentUser.user.branchId], (oldData: any) => {
+				if (!oldData) return oldData;
+				return oldData.map((queue: any) => 
+					queue.queue_id === queueId 
+						? { ...queue, queue_status: status }
+						: queue
+				);
+			});
+
+			refetch();
+		});
+
+		return () => {
+			unregister();
+			disconnectSocket();
+		};
+	}, [currentUser?.user?.branchId, refetch, queryClient]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -107,34 +103,50 @@ const ViewLiveQueues = () => {
 		};
 	}, []);
 
-	const activeQueuesColumns: Column<typeof activeQueues[0]>[] = [
+	const formatTimeFromMinutes = (minutes: number | null | undefined) => {
+		if (minutes === null || minutes === undefined || isNaN(minutes)) {
+			return 'N/A';
+		}
+		const hours = Math.floor(minutes / 60);
+		const mins = minutes % 60;
+		return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+	};
+
+	const activeQueuesColumns: Column<typeof queuesData[0]>[] = [
 		{ 
 			header: "Name", 
-			accessor: "name",
+			accessor: "queue_name",
 			priority: 3,
 			sortable: true
 		},
 		{ 
-			header: "Current Number", 
-			accessor: "currentNumber",
+			header: "Status", 
+			accessor: (row) => (
+				<div className="flex items-center gap-2">
+					<div className={`w-2 h-2 rounded-full ${
+						row.queue_status === 'OPEN' ? 'bg-green-500' : 'bg-red-500'
+					}`} />
+					<span>{row.queue_status}</span>
+				</div>
+			),
 			priority: 2,
 			sortable: true
 		},
 		{ 
 			header: "Current Queue Volume", 
-			accessor: "queueVolume",
+			accessor: "queue_volume",
 			priority: 1,
 			sortable: true
 		},
 		{ 
 			header: "Average Wait Time", 
-			accessor: (row) => formatDate(new Date(row.avgWait * 60 * 1000)),
+			accessor: (row) => formatTimeFromMinutes(row.avg_wait_time),
 			priority: 1,
 			sortable: true
 		},
 		{ 
 			header: "Serving Time", 
-			accessor: (row) => formatDate(new Date(row.servingTime * 60 * 1000)),
+			accessor: (row) => formatTimeFromMinutes(row.serving_time),
 			priority: 1,
 			sortable: true
 		},
@@ -142,8 +154,8 @@ const ViewLiveQueues = () => {
 			header: "Tags", 
 			accessor: (row) => (
 				<div className="flex flex-wrap gap-2">
-					{row.tags.map((tag) => (
-						<Tag key={tag.id} tagName={tag.tagName} />
+					{row.tags.map((tag: { tag_id: string; tag_name: string }) => (
+						<Tag key={tag.tag_id} tagName={tag.tag_name} />
 					))}
 				</div>
 			),
@@ -239,13 +251,13 @@ const ViewLiveQueues = () => {
 	 * @param row - The row data
 	 * @returns The actions
 	 */
-	const renderActions = (row: any) => (
+	const renderActions = (row: typeof queuesData[0]) => (
 		<div className="flex flex-col gap-2">
-			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20  rounded-[10px] text-primary-light cursor-pointer">Call Next</button>
+
+			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">Call Next</button>
 			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">Recall</button>
 			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">Serve</button>
 			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">No Show</button>
-			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">Close</button>
 		</div>
 	);
 
@@ -328,11 +340,17 @@ const ViewLiveQueues = () => {
 				{/* Active Queues */}
 				<div className="bg-white rounded-lg p-8 shadow-sm">
 					<div className="text-xl mb-2 text-primary-light font-bold">Active Queues</div>
-					<Table
-						columns={activeQueuesColumns}
-						data={activeQueues}
-						renderActions={renderActions}
-					/>
+					{isLoadingQueue ? (
+						<div className="flex justify-center items-center py-8">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-light"></div>
+						</div>
+					) : (
+						<Table
+							columns={activeQueuesColumns}
+							data={queuesData || []}
+							renderActions={renderActions}
+						/>
+					)}
 				</div>
 
 				{/* Completed */}

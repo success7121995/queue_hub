@@ -7,6 +7,7 @@ import NumberCard from "@/components/common/number-card";
 import { Users, Plus, Edit, Trash2, Power } from "lucide-react";
 import { useDateTime } from "@/constant/datetime-provider";
 import { useForm } from "react-hook-form";
+import { connectSocket, disconnectSocket, onQueueStatusChange, openOrCloseQueue } from "@/lib/socket";
 import {
 	type QueueData,
 	type QueueWithTags,
@@ -15,7 +16,7 @@ import {
 	useViewQueuesByBranch,
 	useUpdateQueue,
 	useDeleteQueue,
-	prefetchQueues
+	prefetchQueues,
 } from "@/hooks/merchant-hook";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/auth-hooks";
@@ -43,14 +44,27 @@ const ManageQueueEntries = () => {
 	const createMutation = useCreateQueue();
 	const updateMutation = useUpdateQueue();
 	const deleteMutation = useDeleteQueue();
-	const { data: queuesData, isLoading: isLoadingQueues, refetch } = useViewQueuesByBranch();
+	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useViewQueuesByBranch();
 
-	// Prefetch queue data as soon as we have the branch ID
+	// Prefetch queue data as soon as we have the branch ID and not loading
 	useEffect(() => {
-		if (currentUser?.user?.branchId) {
+		if (currentUser?.user?.branchId && !isLoadingQueue) {
 			prefetchQueues(queryClient, currentUser.user.branchId);
 		}
-	}, [currentUser?.user?.branchId, queryClient]);
+	}, [currentUser?.user?.branchId, queryClient, isLoadingQueue]);
+
+	// Connect to socket when component mounts
+	useEffect(() => {
+		connectSocket();
+
+		const unregister = onQueueStatusChange(({ queueId, status }) => {
+			refetch();
+		});
+
+		return () => {
+			disconnectSocket();
+		};
+	}, []);
 
 	// Form handling	
 	const createForm = useForm<QueueFormData>({
@@ -76,8 +90,9 @@ const ManageQueueEntries = () => {
 			queue_name: data.queue_name,
 			tags:  data.tags,
 		};
+		
 		createMutation.mutate(payload, {
-			onSuccess: () => {
+			onSuccess: async () => {
 				setIsCreateModalOpen(false);
 				createForm.reset();
 				refetch();
@@ -87,6 +102,8 @@ const ManageQueueEntries = () => {
 			},
 		});
 	};
+
+
 
 	/**
 	 * Update a queue
@@ -100,48 +117,54 @@ const ManageQueueEntries = () => {
 			tags: data.tags,
 		};
 
-		updateMutation.mutate({ queue_id: selectedQueue.queue_id, data: payload }, {
-			onSuccess: () => {
+		updateMutation.mutate(
+			{ queue_id: selectedQueue.queue_id, data: payload },
+			{
+			  onSuccess: async () => {
 				setSelectedQueue(null);
 				editForm.reset();
 				refetch();
-			},
-			onError: (error) => {
+			  },
+			  onError: (error) => {
 				console.error('Update queue error:', error);
-			},
-		});
+			  },
+			}
+		);
 	};
 
+	/**
+	 * Open or close a queue
+	 * @param queue_id - The queue ID
+	 * @param status - The new status
+	 */
+	const handleOpenOrClose = (queue_id: string, status: QueueStatus) => {
+		// Optimistically update the UI
+		queryClient.setQueryData(['queues', currentUser?.user?.branchId], (oldData: any) => {
+			if (!oldData) return oldData;
+			return oldData.map((queue: QueueWithTags) => 
+				queue.queue_id === queue_id 
+					? { ...queue, queue_status: status }
+					: queue
+			);
+		});
+
+		// Send the status change to the server
+		openOrCloseQueue(queue_id, status);
+	};
+
+	/**
+	 * Delete a queue
+	 * @param queue_id - The queue ID
+	 */
 	const handleDelete = (queue_id: string) => {
 		deleteMutation.mutate(queue_id, {
-			onSuccess: () => {
+			onSuccess: async () => {
 				refetch();
 			},
 			onError: (error) => {
 				console.error('Delete queue error:', error);
 			},
 		});
-	};
-
-	// TODO: Enable when backend is ready
-	// const statusMutation = useMutation({
-	// 	mutationFn: updateQueueStatus,
-	// 	onSuccess: () => {
-	// 		queryClient.invalidateQueries({ queryKey: ['queues'] });
-	// 	},
-	// 	onError: (error) => {
-	// 		console.error('Update status error:', error);
-	// 	},
-	// });
-	const handleStatusUpdate = (queue_id: string, status: QueueStatus) => {
-		// TODO: Enable when backend is ready
-		// statusMutation.mutate({ queue_id, status });
-		console.log('Update status:', { queue_id, status });
-	};
-
-	// Queue management handlers
-	const handleStatusChange = (queue: QueueWithTags, newStatus: QueueStatus) => {
-		handleStatusUpdate(queue.queue_id, newStatus);
 	};
 
 	const handleDeleteQueue = (queue: QueueWithTags) => {
@@ -216,7 +239,7 @@ const ManageQueueEntries = () => {
 	const renderActions = (row: QueueWithTags) => (
 		<div className="flex gap-2">
 			<button 
-				onClick={() => handleStatusChange(row, row.queue_status === 'OPEN' ? 'CLOSED' : 'OPEN')}
+				onClick={() => handleOpenOrClose(row.queue_id, row.queue_status === 'OPEN' ? 'CLOSED' : 'OPEN')}
 				className={`flex items-center gap-1 px-3 py-1 rounded border ${
 					row.queue_status === 'OPEN' 
 						? 'border-red-500 text-red-500 hover:bg-red-50' 
@@ -268,7 +291,7 @@ const ManageQueueEntries = () => {
 			</div>
 
 			<div className="bg-white p-4 rounded-lg shadow-sm">
-				{isLoadingQueues ? (
+				{isLoadingQueue ? (
 					<div className="flex justify-center items-center py-8">
 						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-light"></div>
 					</div>
@@ -277,7 +300,7 @@ const ManageQueueEntries = () => {
 						columns={columns}
 						data={queuesData || []}
 						renderActions={renderActions}
-						loading={isLoadingQueues}
+						loading={isLoadingQueue}
 					/>
 				)}
 			</div>

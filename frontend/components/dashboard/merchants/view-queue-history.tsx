@@ -94,14 +94,14 @@ const queueHistory: QueueHistoryProps[] = [
 			id: 1,
 			name: "Queue 1",
 			description: "Queue 1",
-			status: "active",
+			status: "OPEN",
 			createdAt: new Date("2021-01-01"),
 			updatedAt: new Date("2021-01-01"),
 			entries: [
 				{
 					id: 1,
 					userId: 1,
-					status: "served",
+					status: "SERVED",
 					joinedAt: new Date("2025-05-29T10:00:00"),
 					leftAt: new Date("2025-05-29T12:12:00"),
 				},

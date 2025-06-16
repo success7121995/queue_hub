@@ -60,7 +60,7 @@ export const merchantService = {
 
             if (tags) {
                 const tagData = tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => ({
-                    tag_id: uuidv4() + '-' + Date.now(),
+                    tag_id: uuidv4(),
                     entity_id: newQueue.queue_id,
                     branch_id,
                     tag_name: tag,
@@ -94,13 +94,13 @@ export const merchantService = {
         return result;
     },
 
+
     /**
      * Update queue details
      * @param queue_id - The queue ID
      * @param updateData - The data to update
      */
     async updateQueue(queue_id: string, queue_name: string, tags: string) {
-        console.log( "tags", tags);
         const result = await prisma.$transaction(async (tx) => {
             let queue = await tx.queue.findUnique({
                 where: { queue_id },
@@ -121,7 +121,7 @@ export const merchantService = {
             }
     
             let tagRecords: Tag[] = [];
-
+            
             if (tags) {
                 // Delete existing tags for this queue
                 await tx.tag.deleteMany({
@@ -130,7 +130,7 @@ export const merchantService = {
 
                 // Generate tag data
                 const tagData = tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => ({
-                    tag_id: uuidv4() + '-' + Date.now(),
+                    tag_id: uuidv4(),
                     entity_id: queue.queue_id,
                     branch_id: queue.branch_id!,
                     tag_name: tag,
@@ -156,6 +156,12 @@ export const merchantService = {
                         branch_id: queue.branch_id!,
                     },
                 });
+            } else {
+                await tx.tag.deleteMany({
+                    where: { entity_id: queue_id },
+                });
+
+                tagRecords = [];
             }
     
             return { queue, tags: tagRecords };
@@ -167,11 +173,29 @@ export const merchantService = {
             throw new AppError("Failed to update queue", 500);
         }
 
-        console.log( "result", result);
+        return result;
+    },
+
+    /**
+     * Open or close a queue
+     * @param queue_id - The queue ID
+     * @param status - The status to set
+     */
+    async openOrCloseQueue(queue_id: string, status: "OPEN" | "CLOSED") {
+        const result = await prisma.$transaction(async (tx) => {
+            const queue = await tx.queue.update({
+                where: { queue_id },
+                data: { queue_status: status },
+            });
+            return { queue };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to open or close queue", 500);
+        }
 
         return result;
     },
-    
 
     /**
      * Delete a queue

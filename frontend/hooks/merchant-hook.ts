@@ -75,7 +75,6 @@ export const useViewQueuesByBranch = () => {
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                cache: 'force-cache',
             });
 
             if (!res.ok) {
@@ -83,20 +82,12 @@ export const useViewQueuesByBranch = () => {
             }
 
             const data = await res.json();
-            
-            const formattedQueues: QueueWithTags[] = data.result.queues.map((queue: Queue) => ({
-                ...queue,
-                tags: data.result.tags.filter((tag: Tag) => tag.entity_id === queue.queue_id)
-            }));
 
-            return formattedQueues;
+            return data.result;
         },
-        enabled: true,
+        enabled: !!effectiveBranchId,
         staleTime: 1000 * 60,
-        gcTime: 1000 * 60 * 5,
-        retry: 3,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        placeholderData: (previousData) => previousData,
+        gcTime: 1000 * 60,
     });
 };
 
@@ -145,6 +136,29 @@ export const useUpdateQueue = () => {
     });
 };
 
+/**
+ * Open or close a queue (update status)
+ * @returns The updated queue
+ */
+export const useOpenOrCloseQueue = () => {
+    return useMutation({
+        mutationFn: async ({ queue_id, queue_status }: { queue_id: string; queue_status: QueueStatus }) => {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/queues/${queue_id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ queue_status }),
+            });
+            if (!res.ok) {
+                throw new Error('Failed to update queue status');
+            }
+            return res.json();
+        },
+    });
+};
+
 // Add a prefetch function for queues
 export const prefetchQueues = async (queryClient: any, branchId: string) => {
     await queryClient.prefetchQuery({
@@ -156,7 +170,6 @@ export const prefetchQueues = async (queryClient: any, branchId: string) => {
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                cache: 'force-cache',
             });
 
             if (!res.ok) {
@@ -169,5 +182,8 @@ export const prefetchQueues = async (queryClient: any, branchId: string) => {
                 tags: data.result.tags.filter((tag: Tag) => tag.entity_id === queue.queue_id)
             }));
         },
+        enabled: !!branchId,
+        staleTime: 1000 * 60,
+        gcTime: 1000 * 60 * 5,
     });
 };

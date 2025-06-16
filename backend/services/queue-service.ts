@@ -21,7 +21,19 @@ export const queueService = {
                 },
             });
 
-            return { queues, tags };
+            const tagsByQueueId = tags.reduce((acc, tag) => {
+                if (!acc[tag.entity_id]) acc[tag.entity_id] = [];
+                acc[tag.entity_id].push(tag);
+                return acc;
+            }, {} as Record<string, Tag[]>);
+
+            // Attach tags to each queue
+            const queuesWithTags = queues.map((queue) => ({
+                ...queue,
+                tags: tagsByQueueId[queue.queue_id] || [],
+            }));
+
+            return queuesWithTags;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;

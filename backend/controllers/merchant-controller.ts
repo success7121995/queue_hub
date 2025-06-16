@@ -80,9 +80,11 @@ export const merchantController = {
      * @param req - The request object
      * @param res - The response object
      */
-    viewQueuesByMerchant: withActivityLog(
+    viewQueuesByBranch: withActivityLog(
         async (req: Request, res: Response) => {
             const { branch_id } = req.params;
+
+            console.log(branch_id)
 
             const result = await queueService.viewQueuesByBranch(branch_id);
             res.status(200).json({ success: true, result });

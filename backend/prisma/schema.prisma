@@ -478,6 +478,7 @@ enum ActivityType {
   IMPORT_DATA
   LOGIN_ADMIN_PANEL
   VERIFY_EMAIL
+  OPEN_OR_CLOSE_QUEUE
 }
 
 enum AnalyticsType {
