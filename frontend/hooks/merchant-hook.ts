@@ -45,11 +45,15 @@ export const useCreateQueue = () => {
                 body: JSON.stringify(data),
             });
 
+            const responseData = await res.json();
+
             if (!res.ok) {
                 throw new Error('Failed to create queue');
             }
 
-            return res.json();
+            console.log('responseData', responseData);
+
+            return responseData;
         },
     });
 };
@@ -60,7 +64,7 @@ export const useCreateQueue = () => {
  */
 export const useViewQueuesByBranch = () => {
     const { data: currentUser } = useAuth();
-    const effectiveBranchId = currentUser?.user?.branchId;
+    const effectiveBranchId = currentUser?.user?.branch_id;
 
     return useQuery({
         queryKey: ['queues', effectiveBranchId],
@@ -81,9 +85,9 @@ export const useViewQueuesByBranch = () => {
                 throw new Error('Failed to view queues');
             }
 
-            const data = await res.json();
+            const responseData = await res.json();
 
-            return data.result;
+            return responseData.result;
         },
         enabled: !!effectiveBranchId,
         staleTime: 1000 * 60,

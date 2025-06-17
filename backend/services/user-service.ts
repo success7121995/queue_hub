@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
+import { User } from "@prisma/client";
 
 interface QueueHistoryParams {
     start_date?: string;
@@ -15,7 +16,7 @@ export const userService = {
      * @param user_id - The user ID
      * @param updateData - The data to update
      */
-    async updateUserProfile(user_id: string, updateData: any) {
+    async updateUserProfile(user_id: string, updateData: Partial<User>) {
         const user = await prisma.user.update({
             where: { user_id },
             data: {

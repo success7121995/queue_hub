@@ -74,8 +74,8 @@ export const authController = {
 
             // Set session data
             let branchId = result.merchant?.Branch[0]?.branch_id;
-            if (req.session.user && req.session.user.branchId) {
-                branchId = req.session.user.branchId;
+            if (req.session.user && req.session.user.branch_id) {
+                branchId = req.session.user.branch_id;
             }
 
             // Get merchant role if user is a merchant
@@ -84,12 +84,13 @@ export const authController = {
                 merchantRole = result.userMerchant.role;
             }
 
+            // Set session data
             req.session.user = {
-                userId: result.user.user_id,
+                user_id: result.user.user_id,
                 email: result.user.email,
                 role: result.user.role,
-                merchantId: result.merchant?.merchant_id,
-                branchId,
+                merchant_id: result.merchant?.merchant_id,
+                branch_id: branchId,
                 availableBranches: result.merchant?.Branch.map(branch => branch.branch_id) ?? [],
                 merchantRole
             };
@@ -156,14 +157,15 @@ export const authController = {
      */
     me: withActivityLog(
         async (req: Request, res: Response) => {
+
             if (!req.session.user && process.env.NODE_ENV === "development") {
                 req.session.user = {
-                    userId: "c4a1168b-9c99-454f-9c12-bf8f1ae73690-1749521360313",
+                    user_id: "28059cae-cee0-4285-9f55-3850843f395a",
                     role: "MERCHANT" as UserRole,
                     email: "joechan@gmail.com",
-                    merchantId: "505815b6-346f-4664-b7de-a02eca042762-1749521360360",
-                    branchId: "fdd6074f-a4af-4581-b996-acd1bb2d6915-1749521360495",
-                    availableBranches: ["fdd6074f-a4af-4581-b996-acd1bb2d6915-1749521360495"],
+                    merchant_id: "841ccc30-7cb2-4dca-bc5d-b58cbc5401be",
+                    branch_id: "67f2d2d0-bcd7-434c-afd3-4c423a118ef5",
+                    availableBranches: ["67f2d2d0-bcd7-434c-afd3-4c423a118ef5"],
                     merchantRole: "OWNER"
                 };
             }
@@ -172,10 +174,10 @@ export const authController = {
                 throw new AppError("Not authenticated", 401);
             }
 
-            const { userId, role, merchantId, branchId, availableBranches } = req.session.user;
+            const { user_id, role, availableBranches } = req.session.user;
 
             const user = await authService.getAdminOrMerchantById(
-                userId,
+                user_id,
                 role as UserRole,
                 availableBranches
             );
@@ -185,8 +187,8 @@ export const authController = {
                 user: {
                     ...user,
                     role: req.session.user.role,
-                    merchantId: req.session.user.merchantId,
-                    branchId: req.session.user.branchId,
+                    merchant_id: req.session.user.merchant_id,
+                    branch_id: req.session.user.branch_id,
                     availableBranches: req.session.user.availableBranches
                 }
             });

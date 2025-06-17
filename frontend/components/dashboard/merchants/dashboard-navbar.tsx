@@ -5,6 +5,8 @@ import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
+import { useUpdateUserProfile } from "@/hooks/user-hooks";
+import { useLang, type Lang } from "@/constant/lang-provider";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
 const DashboardNavbar = () => {
@@ -17,9 +19,10 @@ const DashboardNavbar = () => {
 	const profileRef = useRef<HTMLDivElement>(null);
 	const mailRef = useRef<HTMLDivElement>(null);
 	const branchRef = useRef<HTMLDivElement>(null);
+	const updateUserProfile = useUpdateUserProfile();
 
-	const { mutate: logout } = useLogout();
 	const { data: userData, isLoading: isUserDataLoading } = useAuth();
+	const { langsOptions, lang, setLang } = useLang();
 
 	// Extract user info for navbar display
 	const user = userData?.user?.user || {};
@@ -27,28 +30,17 @@ const DashboardNavbar = () => {
 	const branches = userData?.user?.branches || [];
 	const username = user.username || '';
 	const position = user.role || '';
-	const language = user.lang || 'en';
 	const merchantName = merchant.business_name || '';
 	const messageReceived = userData?.user?.message_received || [];
-	const messageCount = messageReceived.length;
-	const merchantId = merchant.merchant_id || '';
-	const branchId = userData?.user?.branchId || '';
 
 	// Branch selection
-	const [selectedBranch, setSelectedBranch] = useState(branchId || (branches[0]?.branch_id ?? ""));
+	const [selectedBranch, setSelectedBranch] = useState(userData?.user?.branch_id || (branches[0]?.branch_id ?? ""));
 
 	// Find the selected branch object
 	const selectedBranchObj = branches.find((b: any) => b.branch_id === selectedBranch) || branches[0] || {};
 	const selectedBranchName = selectedBranchObj.branch_name || '';
-
-	const languages = [
-        { label: "English", value: "en", icon: <Globe size={18} /> },
-        { label: "繁體（香港）", value: "zh-HK", icon: <Globe size={18} /> },
-        { label: "繁體（台灣）", value: "zh-TW", icon: <Globe size={18} /> },
-        { label: "简体", value: "zh-CN", icon: <Globe size={18} /> },
-    ];
-
-	const [selectedLanguage, setSelectedLanguage] = useState<DropdownItem>(languages.find(lang => lang.value === language) || languages[0]);
+	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const { mutate: logout } = useLogout();
 
 	// Close mobile menu on outside click
 	useEffect(() => {
@@ -79,24 +71,38 @@ const DashboardNavbar = () => {
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
-	// Mock logout handler
-	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	/**
+	 * Logout handler
+	 */
 	const handleLogout = async () => {
 		setIsLoggingOut(true);
 		try {
-			// TODO: Enable when backend is ready
-			// await logoutMutation.mutateAsync();
-			console.log('Logging out...');
+			await logout();
 			window.location.href = '/';
-		} catch (error: unknown) {
+		} catch (error) {
 			console.error('Logout failed:', error);
-			window.location.href = '/';
 		} finally {
 			setIsLoggingOut(false);
 		}
 	};
 
-	// Update branch selection dropdown items
+	/**
+	 * Handle language change
+	 */
+	const handleLanguageChange = (lang: Lang) => {
+		updateUserProfile.mutate({ lang }, {
+			onSuccess: () => {
+				setLang(lang);
+			},
+			onError: (error) => {
+				console.error('Update user profile failed:', error);
+			}
+		});
+	};
+
+	/**
+	 * Update branch selection dropdown items
+	 */
 	const branchItems: DropdownItem[] = branches.map((branch: any) => ({
 		label: branch.branch_name,
 		value: branch.branch_id,
@@ -159,14 +165,18 @@ const DashboardNavbar = () => {
 			<div className="flex-1 hidden lg:block" />
 			{/* Desktop navbar: right group (language, mail, profile) */}
 			<div className="hidden lg:flex items-center space-x-6">
+
+				{/* Language */}
 				<span className="flex items-center text-sm">
 					<Dropdown
 						className="w-[140px]"
-						items={languages}
-						selected={selectedLanguage}
-						onSelect={(item) => setSelectedLanguage(item)}
+						items={langsOptions}
+						selected={langsOptions.find(option => option.value === lang)}
+						onSelect={(item) => handleLanguageChange(item.value as Lang)}
 					/>
 				</span>
+
+				{/* Mail */}
 				<div ref={mailRef} className="relative">
 					<button 
 						className="flex items-center" 
@@ -174,7 +184,7 @@ const DashboardNavbar = () => {
 					>
 						<Mail size={22} className="text-text-light" />
 						<ChevronDown size={16} className="text-text-light" />
-					</button>
+				</button>
 					{mailOpen && (
 
 						
@@ -191,6 +201,8 @@ const DashboardNavbar = () => {
 						</div>
 					)}
 				</div>
+
+				{/* Profile */}
 				<div ref={profileRef}>
 					<button className="flex items-center space-x-2" onClick={() => setProfileOpen((v) => !v)}>
 						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
@@ -268,9 +280,9 @@ const DashboardNavbar = () => {
 					<span className="flex items-center text-sm mb-4">
 						<Dropdown
 							className="w-[140px]"
-							items={languages}
-							selected={selectedLanguage}
-							onSelect={(item) => setSelectedLanguage(item)}
+							items={langsOptions}
+							selected={langsOptions.find(option => option.value === lang)}
+							onSelect={(item) => setLang(item.value as Lang)}
 						/>
 					</span>
 					<div className="flex items-center mb-4">

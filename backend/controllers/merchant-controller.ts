@@ -117,7 +117,7 @@ export const merchantController = {
                 throw new AppError("User not found", 404);
             }
 
-            const branch_id = user.branchId as string;
+            const branch_id = user.branch_id as string;
             const { queue_name, tags } = req.body;
             
             const result = await merchantService.createQueue(branch_id, queue_name, tags);

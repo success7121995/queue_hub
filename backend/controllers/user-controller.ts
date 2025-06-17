@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { ActivityType } from "@prisma/client";
 import { withActivityLog } from "../utils/with-activity-log";
 import { userService } from "../services/user-service";
+import { AppError } from "../utils/app-error";
 
 export const userController = {
     /**
@@ -11,10 +12,11 @@ export const userController = {
      */
     updateProfile: withActivityLog(
         async (req: Request, res: Response) => {
-            const { user_id } = req.params;
+            const user = req.session.user!;
+
             const updateData = req.body;
             
-            const result = await userService.updateUserProfile(user_id, updateData);
+            const result = await userService.updateUserProfile(user.user_id, updateData);
             res.status(200).json({ success: true, result });
             return result;
         },

@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, Globe } from "lucide-react";
 import { Dropdown } from "@/components";
-import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";

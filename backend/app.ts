@@ -12,11 +12,11 @@ import registerSocketHandlers from "./lib/socket";
 declare module 'express-session' {
     interface SessionData {
         user: {
-            userId: string;
+            user_id: string;
             role: string;
             email: string;
-            merchantId?: string;
-            branchId?: string;
+            merchant_id?: string;
+            branch_id?: string;
             availableBranches: string[];
             merchantRole?: string;
         }
@@ -46,6 +46,8 @@ const io = new Server(server, {
     path: '/socket.io'
 });
 
+app.use(cors(corsOptions));
+
 // Session configuration
 app.use(session({
     name: 'session_id',
@@ -60,10 +62,13 @@ app.use(session({
 }));
 
 // Middleware
-app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(loggingMiddleware);
+app.use((req, res, next) => {
+    console.log("Session user at global middleware:", req.session.user);
+    next();
+  });
 
 // Routes
 app.use("/api", router);

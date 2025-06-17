@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth-controller';
+import { userController } from '../controllers/user-controller';
+import { requireAuth } from '../middleware/require-auth-middleware';
 
 const router = Router();
 
@@ -7,10 +9,10 @@ const router = Router();
 router.post('/login', (req, res) => authController.login(req, res));
 router.post('/logout', (req, res) => authController.logout(req, res));
 router.get('/me', (req, res) => authController.me(req, res));
+router.put('/me', (req, res) => userController.updateProfile(req, res));
 
 // User profile routes
-router.get('/profile', () => {});  // Get current user profile
-router.put('/profile', () => {});  // Update user profile
+
 router.put('/change-password', () => {});  // Change user password
 
 // User queue management (protected)

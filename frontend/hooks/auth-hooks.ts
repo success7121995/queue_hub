@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Cookies from 'js-cookie';
-import { useLang } from "@/constant/lang-provider";
 
 export type LoginFormInputs = {
     email: string;
@@ -23,12 +22,13 @@ export const useLogin = () => {
                 body: JSON.stringify(data),
             });
 
+            const responseData = await res.json();
+
             if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Login failed');
+                throw new Error(responseData.message || 'Login failed');
             }
 
-            return res.json();
+            return responseData;
         },
     });
 };
@@ -44,16 +44,18 @@ export const useLogout = () => {
                 method: 'POST',
                 credentials: 'include',
             });
+            
+            const responseData = await res.json();
 
             if (!res.ok) {
-                throw new Error('Logout failed');
+                throw new Error(responseData.message || 'Logout failed');
             }
 
             // Clear cookies
             Cookies.remove('session_id', { path: '/' });
             Cookies.remove('role', { path: '/' });
 
-            return res.json();
+            return responseData;
         },
     });
 };
@@ -74,13 +76,7 @@ export const useAuth = () => {
                 throw new Error('Failed to fetch auth data');
             }
 
-            const result = await res.json();
-
-            // Set lang to cookie
-            const { setLang } = useLang();
-            setLang(result.user.lang);
-
-            return result;
+            return res.json();
         },
         retry: false,
         staleTime: 1000 * 60 * 5, // 5 minutes
