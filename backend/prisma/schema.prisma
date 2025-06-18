@@ -549,6 +549,7 @@ enum Entity {
 enum ImageType {
   LOGO
   IMAGE
+  FEATURE_IMAGE
 }
 
 enum InvoiceStatus {

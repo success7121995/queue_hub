@@ -29,7 +29,7 @@ router.put('/settings', requireAuth([UserRole.MERCHANT]), requireMerchantRole(),
 // Branch management (merchant only)
 router.get('/branches/:merchant_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getBranchesByMerchantId);  // Get merchant's branches
 router.post('/branches/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Create new branch
-router.put('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), () => {});  // Update branch details
+router.put('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranch);  // Update branch details// Update branch images
 router.delete('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Delete branch
 
 // Queue management (merchant only)

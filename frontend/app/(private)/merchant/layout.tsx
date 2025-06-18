@@ -18,7 +18,7 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 
 		if (!userData.user?.UserMerchant) throw Error("User merchant not found");
 
-		const merchantId = userData.user.UserMerchant[0].merchant_id;
+		const merchantId = userData.user.UserMerchant.merchant_id;
 		const branchId = userData.user.branch_id;
 
 		const merchantData = await prefetchMerchant(queryClient, merchantId);
@@ -30,7 +30,7 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 		const queuesData = await prefetchQueues(queryClient, branchesData.branches[0].branch_id);
 		queryClient.setQueryData(['queues', branchId], queuesData);
 	} catch (error) {
-		console.error('Error prefetching user data:', error);
+		console.error('Error prefetching user data:', error); 
 	}
 
 	return (

@@ -20,6 +20,7 @@ interface ImageUploaderProps {
 	onUploadComplete?: (files: PreviewImage[]) => void;
 	existingImage?: PreviewImage[];
 	removeImage?: (id: string) => void;
+	fontSize?: number;
 }
 
 const ImageUploader = ({
@@ -28,7 +29,8 @@ const ImageUploader = ({
 	className = "",
 	multiple = false,
 	existingImage = [],
-	onUploadComplete
+	onUploadComplete,
+	fontSize = 12
 }: ImageUploaderProps) => {
 	const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
 
@@ -180,10 +182,10 @@ const ImageUploader = ({
 				
 				{!(previewImages.length > 0 && !multiple) && (
 				<div className="relative z-20 h-full flex flex-col items-center justify-center text-center pointer-events-none">
-					<p className="text-gray-600 mb-2">
+					<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
 					{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
 					</p>
-					<p className="text-sm text-gray-500">Supports JPEG, PNG</p>
+					<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
 				</div>
 				)}
 			</div>

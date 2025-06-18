@@ -1,7 +1,16 @@
 
 import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import { Queue, QueueStatus } from "@/types/queue";
-import { QueuesResponse, CreateQueueResponse, UpdateQueueResponse, DeleteQueueResponse, MerchantResponse, BranchesResponse } from "@/types/response";
+import {
+    QueuesResponse,
+    CreateQueueResponse,
+    UpdateQueueResponse,
+    DeleteQueueResponse,
+    MerchantResponse,
+    BranchesResponse,
+    UpdateBranchResponse,
+} from "@/types/response";
+import { Branch } from "@/types/merchant";
 
 // Query Keys
 export const queueKeys = {
@@ -170,8 +179,8 @@ export const fetchMerchant = async (merchantId: string): Promise<MerchantRespons
  * @param merchantId 
  * @returns 
  */
-export const fetchBranches = async (merchantId: string): Promise<BranchesResponse> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${merchantId}`, {
+export const fetchBranches = async (merchantId: string, prefetch: boolean = false): Promise<BranchesResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${merchantId}?prefetch=${prefetch}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -187,7 +196,36 @@ export const fetchBranches = async (merchantId: string): Promise<BranchesRespons
     return responseData.result;
 };
 
-// Hooks
+/**
+ * Fetch update branch
+ * @param branch_id 
+ * @param data 
+ * @returns 
+ */
+export const fetchUpdateBranch = async ({ branch_id, data }: { branch_id: string; data: Branch }): Promise<UpdateBranchResponse> => {
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to update branch');
+    }
+    
+    
+    return res.json();
+};
+
+
+
+
+/********************************* Hooks *********************************/
+
 /**
  * Use queues
  * @param branchId 
@@ -210,7 +248,7 @@ export const useQueues = (branchId: string, options?: Omit<UseQueryOptions<Queue
  * @param options 
  * @returns 
  */
-    export const useCreateQueue = (options?: Omit<UseMutationOptions<CreateQueueResponse, Error, Queue>, 'mutationFn'>) => {
+export const useCreateQueue = (options?: Omit<UseMutationOptions<CreateQueueResponse, Error, Queue>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchCreateQueue,
         ...options,
@@ -287,7 +325,21 @@ export const useBranches = (merchantId: string, options?: Omit<UseQueryOptions<B
     });
 };
 
-// Prefetch Functions
+/**
+ * Use update branch
+ * @param options 
+ * @returns 
+ */
+export const useUpdateBranch = (options?: Omit<UseMutationOptions<UpdateBranchResponse, Error, { branch_id: string; data: Branch }>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchUpdateBranch,
+        ...options,
+    });
+};
+
+
+/********************************* Prefetch Functions *********************************/
+
 /**
  * Prefetch queues
  * @param queryClient 
@@ -331,10 +383,11 @@ export const prefetchMerchant = async (queryClient: any, merchantId: string) => 
 export const prefetchBranches = async (queryClient: any, merchantId: string) => {
     await queryClient.prefetchQuery({
         queryKey: branchKeys.detail(merchantId),
-        queryFn: () => fetchBranches(merchantId),
+        queryFn: () => fetchBranches(merchantId, true),
         staleTime: 1000 * 60 * 5,
         gcTime: 1000 * 60 * 10,
     });
 
     return queryClient.getQueryData(branchKeys.detail(merchantId));
 };
+

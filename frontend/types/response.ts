@@ -1,5 +1,6 @@
+import { Branch, Merchant } from "./merchant";
+import { MerchantRole } from "./form";
 import { QueueWithTags } from "./queue";
-import { Branch, Merchant } from "./user";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
@@ -27,4 +28,23 @@ export interface MerchantResponse {
 export interface BranchesResponse {
     success: boolean;
     branches: Branch[];
+    contact_person_map: Record<string, {
+        user_id: string;
+        lname: string;
+        fname: string;
+        email: string;
+        phone: string;
+        UserMerchant: { role: MerchantRole; position: string } | null;
+    }>;
 }   
+
+export interface UpdateBranchResponse {
+    success: boolean;
+    branch: {
+        branch_name?: string;
+        phone?: string;
+        email?: string;
+        description?: string;
+        is_active?: boolean;
+    };
+}

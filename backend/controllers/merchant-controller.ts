@@ -76,6 +76,14 @@ const signupSchema = z.object({
     }),
 });
 
+const branchImageSchema = z.object({
+    logo: z.string().optional(),
+    feature_image: z.string().optional(),
+    galleries: z.array(z.string()).optional(),
+});
+
+export type BranchImageSchema = z.infer<typeof branchImageSchema>;
+
 // Merchant controller
 // Handles: profile management, queue operations, analytics
 export const merchantController = {
@@ -260,11 +268,46 @@ export const merchantController = {
             const user = req.session.user;
             
             const { merchant_id } = req.params;
+            const { prefetch } = req.query;
 
-            const result = await merchantService.getBranchesByMerchantId(merchant_id);
+            const result = await merchantService.getBranchesByMerchantId(merchant_id, prefetch === 'true');
 
             res.status(200).json({ success: true, result });
             return result;
         }
-    )
+    ),
+
+    /**
+     * Update branch data
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateBranch: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id } = req.params;
+            const updateData = req.body;
+
+            const result = await merchantService.updateBranch(branch_id, updateData);
+            res.status(200).json({ success: true, result });
+            return result;
+        }
+    ),
+
+    /**
+     * Update branch images
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateBranchImages: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id } = req.params;
+            const updateData = req.body;
+
+            const result = await merchantService.updateBranchImages(branch_id, updateData);
+            res.status(200).json({ success: true, result });
+            return result;
+        }
+    ),
+
+    /** */
 }; 

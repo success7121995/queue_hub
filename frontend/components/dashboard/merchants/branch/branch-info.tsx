@@ -5,7 +5,7 @@ import { CirclePlus } from "lucide-react";
 import { BranchDetail, BranchCard } from "@/components";
 import { Branch } from "@/types/merchant";
 import { useAuth } from "@/hooks/auth-hooks";
-import { useBranches } from "@/hooks/merchant-hooks";
+import { useBranches, useUpdateBranch } from "@/hooks/merchant-hooks";
 import Link from "next/link";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
@@ -14,7 +14,6 @@ const BranchInfo = () => {
 	const { data: currentUser } = useAuth();
 	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(currentUser?.user?.UserMerchant?.merchant_id as string);
 
-	console.log(branchesData);
 	const handleReadMore = (idx: number) => {
 		setSelectedBranchIdx(idx);
 	};
@@ -38,7 +37,7 @@ const BranchInfo = () => {
 			{selectedBranchIdx === null ? (
 				<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 items-center w-full">
 					<Link href="/dashboard/1/add-branch" className="flex flex-col items-center justify-center max-w-xl cursor-pointer my-32">
-						<CirclePlus className="w-10 h-10 text-primary-light" />
+						<CirclePlus className="w-10 h-10 text-primary-light" /> 
 						<h4 className="text-primary-light text-xl font-semibold">Expand Your Business</h4>
 					</Link>
 
@@ -77,6 +76,8 @@ const BranchInfo = () => {
 						phone: branchesData?.branches[selectedBranchIdx]?.phone ?? '',
 						email: branchesData?.branches[selectedBranchIdx]?.email ?? '',
 						description: branchesData?.branches[selectedBranchIdx]?.description ?? '',
+						created_at: branchesData?.branches[selectedBranchIdx]?.created_at ?? '',
+						updated_at: branchesData?.branches[selectedBranchIdx]?.updated_at ?? '',
 					}}
 					onClose={handleCloseDetail}
 					onSave={handleSaveDetail}

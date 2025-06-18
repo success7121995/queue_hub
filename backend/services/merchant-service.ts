@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
 import { MerchantRole, Prisma, Queue, Tag, User } from "@prisma/client";
-import { BranchSchema } from "../controllers/merchant-controller";
+import { BranchSchema, BranchImageSchema } from "../controllers/merchant-controller";
 
 interface QueueAnalyticsParams {
     start_date?: string;
@@ -304,30 +304,48 @@ export const merchantService = {
      * @param merchant_id 
      * @returns 
      */
-    async getBranchesByMerchantId(merchant_id: string) {
+    async getBranchesByMerchantId(merchant_id: string, prefetch: boolean = false) {
         const result = await prisma.$transaction(async (tx) => {
-            const branches = await tx.branch.findMany({
-                where: { merchant_id },
-                include: {
-                    BranchFeature: true,
-                    BranchImage: true,
-                    BranchOpeningHour: true,
-                    Address: true,
-                    UserMerchantOnBranch: true,
-                }
-            });
+            let branches: any[] = [];
+    
+            if (prefetch) {
+                branches = await tx.branch.findMany({
+                    where: { merchant_id },
+                    select: {
+                        branch_id: true,
+                        branch_name: true,
+                    },
+                });
 
-            // Get all contact person IDs from branches, filtering out null/undefined values
-            const contactPersonIds = branches
+                return { branches };
+            } else {
+                branches = await tx.branch.findMany({
+                    where: { merchant_id },
+                    include: {
+                        BranchFeature: true,
+                        BranchImage: true,
+                        BranchOpeningHour: true,
+                        Address: true,
+                        Tag: {
+                            where: {
+                                entity_id: {
+                                    in: branches.map(branch => branch.branch_id)
+                                }
+                            }
+                        },
+                        UserMerchantOnBranch: true,
+                    },
+                });
+
+                const contactPersonIds = branches
                 .map(branch => branch.contact_person_id)
-                .filter(id => id !== null && id !== undefined);
-
-            let contact_persons: any[] = [];
+                .filter((id): id is string => !!id);
+    
             let contact_person_map: Record<string, any> = {};
-
+    
             if (contactPersonIds.length > 0) {
-                contact_persons = await tx.userMerchant.findMany({
-                    where: { 
+                const contact_persons = await tx.userMerchant.findMany({
+                    where: {
                         staff_id: { in: contactPersonIds }
                     },
                     select: {
@@ -335,41 +353,80 @@ export const merchantService = {
                         user_id: true,
                         role: true,
                         position: true,
-                        User: { 
-                            select: { 
-                                lname: true, 
-                                fname: true, 
-                                email: true, 
-                                phone: true 
-                            } 
+                        User: {
+                            select: {
+                                lname: true,
+                                fname: true,
+                                email: true,
+                                phone: true
+                            }
                         },
                     },
                 });
-
+    
                 contact_person_map = contact_persons.reduce((acc, user) => {
                     acc[user.staff_id] = user;
                     return acc;
-                }, {} as Record<string, {
-                    staff_id: string;
-                    user_id: string;
-                    role: MerchantRole;
-                    position: string;
-                    User: { lname: string; fname: string; email: string; phone: string } | null;
-                }>);
+                }, {} as Record<string, any>);
             }
-
+    
+            // 補上 contact_person
             const branchesWithContactPerson = branches.map(branch => ({
                 ...branch,
-                contact_person: contact_person_map[branch.contact_person_id] ?? null,
+                contact_person: contact_person_map[branch.contact_person_id ?? ""] ?? null,
             }));
-
+    
             return { branches: branchesWithContactPerson };
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+            }
 
+            
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    
         if (!result) {
             throw new AppError("Failed to get branches", 500);
         }
-
+    
         return result;
     },
+
+    /**
+     * Update branch data
+     */
+    async updateBranch(branch_id: string, data: BranchSchema) {
+        const result = await prisma.$transaction(async (tx) => {
+            const branch = await tx.branch.update({
+                where: { branch_id },
+                data,
+            });
+
+            return { branch };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to update branch", 500);
+        }
+    },
+
+    /**
+     * Update branch images (Logo, Feature Image, Galleries)
+     */
+    async updateBranchImages(branch_id: string, data: BranchImageSchema) {},
+
+    /**
+     * Update Branch features
+     */
+
+    /**
+     * Update branch opening hours
+     */
+
+    /**
+     * Update branch tags
+     */
+
+    /**
+     * Update branch contact person
+     */
+
+    /** */
 }; 
