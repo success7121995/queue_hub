@@ -33,6 +33,7 @@ const TimePicker: React.FC<TimePickerProps & { className?: string; style?: React
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (timePickerRef.current && !timePickerRef.current.contains(event.target as Node)) {
+                console.log("clicked outside")
 				setOpen(false);
 			}
 		};
@@ -124,7 +125,7 @@ const TimePicker: React.FC<TimePickerProps & { className?: string; style?: React
 				/>
 			</div>
 			{open && !disabled && (
-				<div className="absolute left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-4 flex flex-col gap-4 z-50 text-gray-500 text-sm" style={{ width: 320, minWidth: 220, maxWidth: 340 }}>
+				<div ref={timePickerRef} className="absolute left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-4 flex flex-col gap-4 z-50 text-gray-500 text-sm" style={{ width: 320, minWidth: 220, maxWidth: 340 }}>
 					<div className="flex flex-nowrap justify-between gap-2 w-full min-w-0">
 						{/* Hour */}
 						<div ref={hourRef} className="flex-1 flex flex-col items-center max-h-40 overflow-y-auto min-w-[60px]">

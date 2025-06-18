@@ -25,6 +25,7 @@ export interface AuthResponse {
         branch_id?: string;
         availableBranches?: string[];
         message_received?: any[];
+        lang?: string;
     };
     sessionId?: string;
 }

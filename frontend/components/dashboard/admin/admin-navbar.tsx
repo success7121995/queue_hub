@@ -112,7 +112,7 @@ const AdminNavbar = () => {
 						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
 							<ul className="py-1">
 								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									messageCount > 0 ? messageReceived?.map((message: any) => (
+									messageCount && messageCount > 0 ? messageReceived?.map((message: any) => (
 										<li key={message.id} className="cursor-pointer">
 											{message.title}
 										</li>
