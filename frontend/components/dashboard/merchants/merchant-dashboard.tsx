@@ -18,25 +18,6 @@ interface MerchantDashboardProps {
 }
 
 const MerchantDashboard = ({ slug }: MerchantDashboardProps) => {
-	// Mock merchant data
-	const mockMerchant = {
-		id: 1,
-		name: "Demo Merchant",
-		email: "demo@merchant.com",
-		phone: "+1234567890",
-		address: "123 Demo St, Demo City",
-		status: "active",
-		createdAt: new Date().toISOString(),
-		branches: [
-			{
-				id: 1,
-				name: "Main Branch",
-				address: "123 Demo St, Demo City",
-				status: "active"
-			}
-		]
-	};
-
 	const renderContent = () => {
 		switch (slug) {
 			case "view-live-queues":
@@ -65,7 +46,7 @@ const MerchantDashboard = ({ slug }: MerchantDashboardProps) => {
 	}
 
 	return (
-		<div className="lg:p-8 mt-20 h-fit">
+		<div className="pt-24 2xl:p-10">
 			{renderContent()}
 		</div>
 	)

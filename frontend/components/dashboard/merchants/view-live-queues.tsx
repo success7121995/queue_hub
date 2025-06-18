@@ -7,10 +7,10 @@ import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
 import { useDateTime } from "@/constant/datetime-provider";
 import { connectSocket, disconnectSocket, onQueueStatusChange } from "@/lib/socket";
-import { useViewQueuesByBranch } from "@/hooks/merchant-hook";
+import { useBranches, useQueues } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import type { QueueWithTags } from "@/hooks/merchant-hook";
+import type { QueueWithTags } from "@/types/queue";
 
 const mockStats = {
 	servedToday: 45,
@@ -62,18 +62,22 @@ const ViewLiveQueues = () => {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const { formatDate } = useDateTime();
 	const { data: currentUser } = useAuth();
-	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useViewQueuesByBranch();
+	const { data: branchesData } = useBranches(currentUser?.user?.UserMerchant?.merchant_id || '');
+	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(branchesData?.branches[0]?.branch_id || '');
 
 	// Connect to socket and listen for queue status changes
 	useEffect(() => {
-		if (!currentUser?.user?.branchId) return;
+		if (!branchesData?.branches[0]?.branch_id) return;
 
 		connectSocket();
 
 		// Register callback for queue status changes
 		const unregister = onQueueStatusChange(({ queueId, status }) => {
+			console.log('queueId', queueId);
+			console.log('status', status);
+			
 			// Optimistically update the UI
-			queryClient.setQueryData(['queues', currentUser.user.branchId], (oldData: any) => {
+			queryClient.setQueryData(['queues', branchesData.branches[0].branch_id], (oldData: any) => {
 				if (!oldData) return oldData;
 				return oldData.map((queue: any) => 
 					queue.queue_id === queueId 
@@ -89,7 +93,7 @@ const ViewLiveQueues = () => {
 			unregister();
 			disconnectSocket();
 		};
-	}, [currentUser?.user?.branchId, refetch, queryClient]);
+	}, [branchesData?.branches[0]?.branch_id, refetch, queryClient]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -113,28 +117,16 @@ const ViewLiveQueues = () => {
 		return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 	};
 
-	const activeQueuesColumns: Column<typeof queuesData[0]>[] = [
+	const activeQueuesColumns: Column<QueueWithTags>[] = [
 		{ 
 			header: "Name", 
 			accessor: "queue_name",
 			priority: 3,
 			sortable: true
 		},
-		{ 
-			header: "Current Queue Volume", 
-			accessor: "queue_volume",
-			priority: 1,
-			sortable: true
-		},
-		{ 
-			header: "Average Wait Time", 
-			accessor: (row) => formatTimeFromMinutes(row.avg_wait_time),
-			priority: 1,
-			sortable: true
-		},
-		{ 
-			header: "Serving Time", 
-			accessor: (row) => formatTimeFromMinutes(row.serving_time),
+		{
+			header: "Number",
+			accessor: (row) => 'N/A',
 			priority: 1,
 			sortable: true
 		},
@@ -142,14 +134,15 @@ const ViewLiveQueues = () => {
 			header: "Tags", 
 			accessor: (row) => (
 				<div className="flex flex-wrap gap-2">
-					{row.tags.map((tag: { tag_id: string; tag_name: string }) => (
+					{row.tags?.map((tag: { tag_id: string; tag_name: string }) => (
 						<Tag key={tag.tag_id} tagName={tag.tag_name} />
 					))}
 				</div>
 			),
 			priority: 2,
 			sortable: false
-		}
+		},
+
 	];
 
 	const completedColumns: Column<typeof completed[0]>[] = [
@@ -239,7 +232,7 @@ const ViewLiveQueues = () => {
 	 * @param row - The row data
 	 * @returns The actions
 	 */
-	const renderActions = (row: typeof queuesData[0]) => (
+	const renderActions = (row: QueueWithTags) => (
 		<div className="flex flex-col gap-2">
 
 			<button className="px-4 py-1 border border-primary-light hover:bg-primary-light/20 rounded-[10px] text-primary-light cursor-pointer">Call Next</button>
@@ -335,7 +328,7 @@ const ViewLiveQueues = () => {
 					) : (
 						<Table
 							columns={activeQueuesColumns}
-							data={(queuesData || []).filter((queue: QueueWithTags) => queue.queue_status === 'OPEN')}
+							data={queuesData?.filter((queue: QueueWithTags) => queue.queue_status === 'OPEN') || []}
 							renderActions={renderActions}
 							message="No active queue"
 						/>

@@ -81,6 +81,21 @@ const signupSchema = z.object({
 export const merchantController = {
 
     /**
+     * Get merchant by id
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getMerchantById: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { merchant_id } = req.params;
+
+            const result = await merchantService.getMerchantById(merchant_id);
+            res.status(200).json({ success: true, result });
+            return result;
+        }
+    ),
+
+    /**
      * Update merchant profile
      * @param req - The request object
      * @param res - The response object
@@ -144,15 +159,9 @@ export const merchantController = {
             const { branch_id } = req.params;
 
             const result = await queueService.viewQueuesByBranch(branch_id);
+            
             res.status(200).json({ success: true, result });
             return result;
-        },
-        {
-            action: ActivityType.VIEW_QUEUE,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: (req, res, result) => ({
-                merchant_id: req.params.merchant_id,
-            }),
         }
     ),
 
@@ -218,17 +227,6 @@ export const merchantController = {
             });
             res.status(200).json({ success: true, result });
             return result;
-        },
-        {
-            action: ActivityType.VIEW_QUEUE,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: (req, res, result) => ({
-                queue_id: req.params.queue_id,
-                date_range: {
-                    start: req.query.start_date,
-                    end: req.query.end_date,
-                },
-            }),
         }
     ),
 
@@ -249,6 +247,24 @@ export const merchantController = {
             extractData: (req, res, result) => ({
 
             }),
+        }
+    ),
+
+    /**
+     * Get branches by merchant id
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getBranchesByMerchantId: withActivityLog(
+        async (req: Request, res: Response) => {
+            const user = req.session.user;
+            
+            const { merchant_id } = req.params;
+
+            const result = await merchantService.getBranchesByMerchantId(merchant_id);
+
+            res.status(200).json({ success: true, result });
+            return result;
         }
     )
 }; 

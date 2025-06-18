@@ -3,13 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";		
 
-interface DashboardSidenavProps {
-	merchantId: string;
-}
-
-const DashboardSidenav = ({ merchantId }: DashboardSidenavProps) => {
+const DashboardSidenav = () => {
 	const pathname = usePathname();
 	const currentSlug = pathname.split('/').pop();
 

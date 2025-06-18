@@ -83,7 +83,7 @@ const AdminDashboard = ({ slug }: AdminDashboardProps) => {
 	}
 
 	return (
-		<div className="lg:p-8 mt-20 h-fit">
+		<div className="pt-24 2xl:p-10">
 			{renderContent()}
 		</div>
 	)

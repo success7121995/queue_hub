@@ -37,6 +37,7 @@ const RootLayout = async ({
                     ${urbanistItalic.variable}
                     ${unbanist.variable}
                     antialiased
+                    overflow-y-hidden
                 `}
             >
                 <QueryProvider>

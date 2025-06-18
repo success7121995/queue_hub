@@ -1,13 +1,16 @@
 "use client";
+
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
+import { useMerchant, useBranches } from "@/hooks/merchant-hooks";
 import { useUpdateUserProfile } from "@/hooks/user-hooks";
 import { useLang, type Lang } from "@/constant/lang-provider";
 import LoadingIndicator from "@/components/common/loading-indicator";
+import { Branch } from "@/types/merchant";
 
 const DashboardNavbar = () => {
 	const [profileOpen, setProfileOpen] = useState(false);
@@ -22,25 +25,35 @@ const DashboardNavbar = () => {
 	const updateUserProfile = useUpdateUserProfile();
 
 	const { data: userData, isLoading: isUserDataLoading } = useAuth();
+	const { data: merchantData, isLoading: isMerchantDataLoading } = useMerchant(userData?.user?.UserMerchant?.merchant_id as string);
+	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(userData?.user?.UserMerchant?.merchant_id as string);
+	
 	const { langsOptions, lang, setLang } = useLang();
 
-	// Extract user info for navbar display
-	const user = userData?.user?.user || {};
-	const merchant = userData?.user?.merchant || {};
-	const branches = userData?.user?.branches || [];
-	const username = user.username || '';
-	const position = user.role || '';
-	const merchantName = merchant.business_name || '';
+	// Extract user info for navbar display - with better fallbacks
+	const username = userData?.user?.username || userData?.user?.fname || 'User';
+	const position = userData?.user?.UserMerchant?.position || userData?.user?.role || '';
+	const merchantName = merchantData?.merchant?.business_name || 'Business';
 	const messageReceived = userData?.user?.message_received || [];
 
-	// Branch selection
-	const [selectedBranch, setSelectedBranch] = useState(userData?.user?.branch_id || (branches[0]?.branch_id ?? ""));
+	// Branch selection - use prefetched branch_id or first available branch
+	const [selectedBranch, setSelectedBranch] = useState(branchesData?.branches[0]?.branch_id || "");
 
 	// Find the selected branch object
-	const selectedBranchObj = branches.find((b: any) => b.branch_id === selectedBranch) || branches[0] || {};
-	const selectedBranchName = selectedBranchObj.branch_name || '';
+	const selectedBranchObj: Branch | undefined = branchesData?.branches?.find(
+		(branch: Branch) => branch.branch_id === selectedBranch
+	) || branchesData?.branches?.[0];
+
+	const selectedBranchName = selectedBranchObj?.branch_name || '';
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const { mutate: logout } = useLogout();
+
+	useEffect(() => {
+		if (!selectedBranch && branchesData?.branches?.length) {
+		  setSelectedBranch(userData?.user?.branch_id || branchesData.branches[0].branch_id);
+		}
+
+	  }, [branchesData, selectedBranch, userData]);
 
 	// Close mobile menu on outside click
 	useEffect(() => {
@@ -103,7 +116,7 @@ const DashboardNavbar = () => {
 	/**
 	 * Update branch selection dropdown items
 	 */
-	const branchItems: DropdownItem[] = branches.map((branch: any) => ({
+	const branchItems: DropdownItem[] = (branchesData?.branches ?? []).map((branch: Branch) => ({
 		label: branch.branch_name,
 		value: branch.branch_id,
 		icon: <Globe size={18} />
@@ -116,6 +129,14 @@ const DashboardNavbar = () => {
 				<LoadingIndicator 
 					fullScreen 
 					text="Logging out..." 
+					className="bg-white/80"
+				/>
+			)}
+
+			{isMerchantDataLoading || isUserDataLoading && (
+				<LoadingIndicator 
+					fullScreen 
+					text="Loading merchant data..." 
 					className="bg-white/80"
 				/>
 			)}
@@ -151,8 +172,12 @@ const DashboardNavbar = () => {
 					</span>
 					{branchOpen && (
 						<div className="absolute left-0 top-10 bg-white border rounded shadow px-4 py-2 z-10">
-							{ branchItems.map((branch: DropdownItem) => (
-								<div key={branch.value} className="py-1 cursor-pointer" onClick={() => setSelectedBranch(branch.value)}>
+							{branchItems.map((branch) => (
+								<div
+									key={branch.value}
+									className="py-1 cursor-pointer"
+									onClick={() => { setSelectedBranch(branch.value); setBranchOpen(false); }}
+								>
 									{branch.label}
 								</div>
 							))}

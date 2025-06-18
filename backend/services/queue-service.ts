@@ -5,7 +5,6 @@ import { AppError } from "../utils/app-error";
 // Handles: queue operations, customer management, wait time calculations
 export const queueService = {
     async viewQueuesByBranch(branch_id: string) {
-
         const result = await prisma.$transaction(async (tx) => {
             const queues = await tx.queue.findMany({
                 where: {
@@ -33,7 +32,7 @@ export const queueService = {
                 tags: tagsByQueueId[queue.queue_id] || [],
             }));
 
-            return queuesWithTags;
+            return { queues: queuesWithTags };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;

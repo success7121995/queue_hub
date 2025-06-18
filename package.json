@@ -20,5 +20,8 @@
     "url": "https://github.com/success7121995/queue_hub/issues"
   },
   "homepage": "https://github.com/success7121995/queue_hub#readme",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9"
+  }
 }

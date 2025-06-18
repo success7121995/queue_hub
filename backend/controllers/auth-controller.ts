@@ -157,43 +157,22 @@ export const authController = {
      */
     me: withActivityLog(
         async (req: Request, res: Response) => {
+            const user = req.session.user;
 
-            if (!req.session.user && process.env.NODE_ENV === "development") {
-                req.session.user = {
-                    user_id: "28059cae-cee0-4285-9f55-3850843f395a",
-                    role: "MERCHANT" as UserRole,
-                    email: "joechan@gmail.com",
-                    merchant_id: "841ccc30-7cb2-4dca-bc5d-b58cbc5401be",
-                    branch_id: "67f2d2d0-bcd7-434c-afd3-4c423a118ef5",
-                    availableBranches: ["67f2d2d0-bcd7-434c-afd3-4c423a118ef5"],
-                    merchantRole: "OWNER"
-                };
-            }
-
-            if (!req.session.user) {
+            if (!user) {
                 throw new AppError("Not authenticated", 401);
             }
 
-            const { user_id, role, availableBranches } = req.session.user;
+            const userData = await authService.getUserById(user.user_id);
 
-            const user = await authService.getAdminOrMerchantById(
-                user_id,
-                role as UserRole,
-                availableBranches
-            );
-            
             res.status(200).json({
                 success: true,
                 user: {
-                    ...user,
-                    role: req.session.user.role,
-                    merchant_id: req.session.user.merchant_id,
-                    branch_id: req.session.user.branch_id,
-                    availableBranches: req.session.user.availableBranches
+                    ...userData.user
                 }
             });
 
-            return user;
+            return userData;
         },
         {
             action: ActivityType.VIEW_PROFILE,
@@ -211,7 +190,6 @@ export const authController = {
         async (req: Request<{}, {}, MerchantSchema>, res: Response) => {
             // Validate request body against schema
             const validatedData = merchantSchema.parse(req.body);
-            console.log(validatedData);
 
             // Check if passwords match
             if (validatedData.signup.password !== validatedData.signup.confirm_password) {

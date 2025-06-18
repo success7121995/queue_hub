@@ -143,6 +143,7 @@ export const authService = {
             if (user.role === UserRole.MERCHANT) {
                 const userMerchant = await tx.userMerchant.findFirst({
                     where: { user_id: user.user_id },
+                    include: { Merchant: { select: { merchant_id: true } } }
                 });
 
                 if (!userMerchant) {
@@ -151,14 +152,14 @@ export const authService = {
 
                 const merchant = await tx.merchant.findUnique({
                     where: { merchant_id: userMerchant.merchant_id },
-                    include: { Branch: true }
+                    include: { Branch: { select: { branch_id: true } } }
                 });
                 
                 if (!merchant) {
                     throw new AppError("Merchant not found", 404);
                 }
 
-                return { user, userMerchant, merchant, redirect: "/merchant" };
+                return { user, merchant, userMerchant, redirect: "/merchant" };
             }
 
             return { user, redirect: "/admin" };
@@ -171,7 +172,7 @@ export const authService = {
      * Get user by ID
      * @param userId - The user ID
      */
-    async getAdminOrMerchantById(userId: string, role: UserRole, availableBranches?: string[]) {
+    async getUserById(userId: string) {
 
         const result = await prisma.$transaction(async (tx) => {
             const user = await prisma.user.findUnique({
@@ -189,7 +190,22 @@ export const authService = {
                     email_verified: true,
                     created_at: true,
                     updated_at: true,
-                    last_login: true
+                    last_login: true,
+                    UserAdmin: {
+                        select: {
+                            admin_id: true,
+                            role: true,
+                            position: true,
+                        }
+                    },
+                    UserMerchant: {
+                        select: {
+                            staff_id: true,
+                            merchant_id: true,
+                            role: true,
+                            position: true,
+                        }
+                    }
                 },
             });
 
@@ -197,41 +213,7 @@ export const authService = {
                 throw new AppError("User not found", 404);
             }
 
-            if (role === UserRole.MERCHANT) {
-                const userMerchant = await tx.userMerchant.findFirst({
-                    where: { user_id: user.user_id },
-                });
-                
-                if (!userMerchant) {
-                    throw new AppError("User merchant not found", 404);
-                }
-
-                const merchant = await tx.merchant.findUnique({
-                    where: { merchant_id: userMerchant.merchant_id },
-                });
-
-                if (!merchant) {
-                    throw new AppError("Merchant not found", 404);
-                }
-
-                const branches = await tx.branch.findMany({  
-                    where: { branch_id: { in: availableBranches } },
-                    include: {
-                        BranchFeature: true,
-                        BranchImage: true,
-                        BranchOpeningHour: true,
-                        Queue: true,
-                        Address: true,
-                        Merchant: true,
-                        UserMerchantOnBranch: true,                        
-                        Tag: true
-                    }
-                });
-
-                return { user, userMerchant, merchant, branches };
-            }
-
-            return user;
+            return { user };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;

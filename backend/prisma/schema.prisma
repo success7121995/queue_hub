@@ -190,7 +190,7 @@ model LegalDocuement {
 
 model Merchant {
   merchant_id         String             @id
-  owner_id            String
+  owner_id            String @unique
   approval_status     ApprovalStatus     @default(PENDING)
   business_name       String
   phone               String             @unique
@@ -206,7 +206,7 @@ model Merchant {
   Address             Address?
   Branch              Branch[]
   FavoriteMercahnt    FavoriteMercahnt[]
-  User                User               @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
+  User                User?               @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
   News                News[]
   Review              Review[]
   UserMerchant        UserMerchant[]
@@ -364,7 +364,7 @@ model User {
   APILog                            APILog[]
   EmailLog                          EmailLog[]
   FavoriteMercahnt                  FavoriteMercahnt[]
-  Merchant                          Merchant[]
+  Merchant                          Merchant?
   Message_Message_receiver_idToUser Message[]                    @relation("Message_receiver_idToUser")
   Message_Message_sender_idToUser   Message[]                    @relation("Message_sender_idToUser")
   OAuthAccount                      OAuthAccount[]
@@ -372,13 +372,24 @@ model User {
   QueueEntry                        QueueEntry[]
   Review                            Review[]
   UserDevice                        UserDevice[]
-  UserMerchant                      UserMerchant[]
-  UserQueueReminderReference        UserQueueReminderReference[]
+  UserMerchant                      UserMerchant?
+  UserQueueReminderReference        UserQueueReminderReference?
+  UserAdmin                         UserAdmin?
+}
+
+model UserAdmin {
+  admin_id String @id @default(uuid())
+  user_id  String @unique
+  role     AdminRole
+  position String
+  join_at DateTime @default(now())
+  updated_at DateTime
+  User     User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model UserDevice {
   device_id     String     @id
-  user_id       String
+  user_id       String @unique
   device_type   DeviceType
   platform      String
   browser       String
@@ -395,13 +406,13 @@ model UserDevice {
 
 model UserMerchant {
   staff_id             String                 @id
-  user_id              String
+  user_id              String @unique
   merchant_id          String
   position             String
   role                 MerchantRole
   join_at              DateTime               @default(now())
   Merchant             Merchant               @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
-  User                 User                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  User                 User?                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   UserMerchantOnBranch UserMerchantOnBranch[]
   Branch               Branch[]                 @relation("BranchContactPerson")
 }
@@ -418,13 +429,13 @@ model UserMerchantOnBranch {
 
 model UserQueueReminderReference {
   preference_id       String              @id
-  user_id             String
+  user_id             String @unique
   option_key          String
   enabled             Boolean             @default(true)
   created_at          DateTime            @default(now())
   updated_at          DateTime
   QueueReminderOption QueueReminderOption @relation(fields: [option_key], references: [option_key], onDelete: Cascade)
-  User                User                @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  User                User?                @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 enum ActivityType {
@@ -637,6 +648,10 @@ enum UserRole {
   GUEST
   CUSTOMER
   MERCHANT
+  ADMIN
+}
+
+enum AdminRole {
   SUPER_ADMIN
   OPS_ADMIN
   SUPPORT_AGENT

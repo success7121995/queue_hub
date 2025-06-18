@@ -1,46 +1,48 @@
 import { Router } from "express";
+import { requireAuth, requireAdminRole } from "../middleware/require-auth-middleware";
+import { UserRole, AdminRole } from "@prisma/client";
 
 const router = Router();
 
 // Create a new admin
-router.post("/create", () => {});
+router.post("/create", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});
 
 // Get an admin
-router.get("/:id", () => {});
+router.get("/:id", requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});
 
 // Get all admins
-router.get("/", () => {});
+router.get("/", requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});
 
 // Update an admin
-router.put("/:id", () => {});
+router.put("/:id", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});
 
 // Delete an admin
-router.delete("/:id", () => {});
+router.delete("/:id", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});
 
 // Merchant management (admin only)
-router.get('/merchants', () => {});  // Get all merchants
-router.post('/merchants', () => {});  // Create new merchant account
-router.get('/merchants/:merchantId', () => {});  // Get merchant details
-router.put('/merchants/:merchantId', () => {});  // Update merchant details
-router.delete('/merchants/:merchantId', () => {});  // Delete merchant account
-router.put('/merchants/:merchantId/status', () => {});  // Update merchant status (active/suspended)
+router.get('/merchants', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get all merchants
+router.post('/merchants', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Create new merchant account
+router.get('/merchants/:merchantId', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get merchant details
+router.put('/merchants/:merchantId', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Update merchant details
+router.delete('/merchants/:merchantId', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});  // Delete merchant account
+router.put('/merchants/:merchantId/status', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Update merchant status (active/suspended)
 
 // User management (admin only)
-router.get('/users', () => {});  // Get all users
-router.get('/users/:userId', () => {});  // Get user details
-router.put('/users/:userId/status', () => {});  // Update user status
-router.delete('/users/:userId', () => {});  // Delete user account
+router.get('/users', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get all users
+router.get('/users/:userId', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get user details
+router.put('/users/:userId/status', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Update user status
+router.delete('/users/:userId', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});  // Delete user account
 
 // Queue management (admin only)
-router.get('/queues', () => {});  // Get all queues
-router.get('/queues/:queueId', () => {});  // Get queue details
-router.delete('/queues/:queueId', () => {});  // Delete queue
-router.put('/queues/:queueId/status', () => {});  // Update queue status
+router.get('/queues', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get all queues
+router.get('/queues/:queueId', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get queue details
+router.delete('/queues/:queueId', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Delete queue
+router.put('/queues/:queueId/status', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Update queue status
 
 // Analytics (admin only)
-router.get('/analytics/overview', () => {});  // Get system overview statistics
-router.get('/analytics/merchants', () => {});  // Get merchant statistics
-router.get('/analytics/users', () => {});  // Get user statistics
-router.get('/analytics/queues', () => {});  // Get queue statistics
+router.get('/analytics/overview', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get system overview statistics
+router.get('/analytics/merchants', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get merchant statistics
+router.get('/analytics/users', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get user statistics
+router.get('/analytics/queues', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get queue statistics
 
 export default router;

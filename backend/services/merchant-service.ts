@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { Prisma, Queue, Tag } from "@prisma/client";
+import { MerchantRole, Prisma, Queue, Tag, User } from "@prisma/client";
 import { BranchSchema } from "../controllers/merchant-controller";
 
 interface QueueAnalyticsParams {
@@ -12,6 +12,32 @@ interface QueueAnalyticsParams {
 // Merchant service
 // Handles: queue management, customer operations, merchant analytics
 export const merchantService = {
+
+    /**
+     * Get merchant by id
+     * @param merchant_id - The merchant ID
+     * @returns The merchant
+     */
+    async getMerchantById(merchant_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const merchant = await tx.merchant.findUnique({
+                where: { merchant_id },
+            });
+
+            if (!merchant) {
+                throw new AppError("Merchant not found", 404);
+            }
+
+            return { merchant };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to get merchant", 500);
+        }
+
+        return result;
+    },
+
     /**
      * Update merchant profile
      * @param merchant_id - The merchant ID
@@ -271,5 +297,79 @@ export const merchantService = {
         });
 
         return result;
-    }
+    },
+
+    /**
+     * Get branches by merchant id
+     * @param merchant_id 
+     * @returns 
+     */
+    async getBranchesByMerchantId(merchant_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const branches = await tx.branch.findMany({
+                where: { merchant_id },
+                include: {
+                    BranchFeature: true,
+                    BranchImage: true,
+                    BranchOpeningHour: true,
+                    Address: true,
+                    UserMerchantOnBranch: true,
+                }
+            });
+
+            // Get all contact person IDs from branches, filtering out null/undefined values
+            const contactPersonIds = branches
+                .map(branch => branch.contact_person_id)
+                .filter(id => id !== null && id !== undefined);
+
+            let contact_persons: any[] = [];
+            let contact_person_map: Record<string, any> = {};
+
+            if (contactPersonIds.length > 0) {
+                contact_persons = await tx.userMerchant.findMany({
+                    where: { 
+                        staff_id: { in: contactPersonIds }
+                    },
+                    select: {
+                        staff_id: true,
+                        user_id: true,
+                        role: true,
+                        position: true,
+                        User: { 
+                            select: { 
+                                lname: true, 
+                                fname: true, 
+                                email: true, 
+                                phone: true 
+                            } 
+                        },
+                    },
+                });
+
+                contact_person_map = contact_persons.reduce((acc, user) => {
+                    acc[user.staff_id] = user;
+                    return acc;
+                }, {} as Record<string, {
+                    staff_id: string;
+                    user_id: string;
+                    role: MerchantRole;
+                    position: string;
+                    User: { lname: string; fname: string; email: string; phone: string } | null;
+                }>);
+            }
+
+            const branchesWithContactPerson = branches.map(branch => ({
+                ...branch,
+                contact_person: contact_person_map[branch.contact_person_id] ?? null,
+            }));
+
+            return { branches: branchesWithContactPerson };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to get branches", 500);
+        }
+
+        return result;
+    },
 }; 

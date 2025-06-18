@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 			{/* Main content area */}
 			<div className="flex flex-1 overflow-hidden">
 				{/* Fixed sidebar (sticky within full height) */}
-				<div className="sticky top-0 h-[calc(100vh-73px)] hidden md:block z-50">
+				<div className="sticky top-0 h-[calc(100vh-73px)] md:block z-50">
 					<AdminSidenav merchantId="current" />
 				</div>
 

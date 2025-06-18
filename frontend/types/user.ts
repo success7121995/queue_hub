@@ -1,4 +1,5 @@
 import { Lang } from "@/constant/lang-provider";
+import { Branch, Merchant } from "@/types/merchant";
 
 export interface User {
   user_id: string;
@@ -10,8 +11,6 @@ export interface User {
   role: string;
   status: string;
   lang: Lang;
-  created_at: string | Date;
-  updated_at: string | Date;
   last_login?: string | Date;
   email_verified?: boolean;
   merchant?: Merchant;
@@ -21,29 +20,17 @@ export interface User {
   message_received?: Message[];
 }
 
-export interface Merchant {
+export interface UserMerchant {
+  staff_id: string;
   merchant_id: string;
-  business_name: string;
-  phone: string;
-  email: string;
-  description?: string;
-  subscription_status: string;
-  approval_status: string;
-  created_at: string | Date;
-  updated_at: string | Date;
+  role: string;
+  position: string;
 }
 
-export interface Branch {
-  branch_id: string;
-  branch_name: string;
-  merchant_id: string;
-  contact_person_id: string;
-  phone?: string;
-  email?: string;
-  description?: string;
-  is_active: boolean;
-  created_at: string | Date;
-  updated_at: string | Date;
+export interface UserAdmin {
+  admin_id: string;
+  role: string;
+  position: string;
 }
 
 export interface Message {

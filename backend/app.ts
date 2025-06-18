@@ -7,14 +7,13 @@ import { createServer } from "http";
 import { loggingMiddleware } from "./middleware/logging-middleware";
 import { Server } from "socket.io";
 import registerSocketHandlers from "./lib/socket";
-
 // Extend the Session type
 declare module 'express-session' {
     interface SessionData {
         user: {
             user_id: string;
-            role: string;
             email: string;
+            role: string;
             merchant_id?: string;
             branch_id?: string;
             availableBranches: string[];
@@ -55,6 +54,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
+        path: '/',
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -65,10 +65,24 @@ app.use(session({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(loggingMiddleware);
-app.use((req, res, next) => {
-    console.log("Session user at global middleware:", req.session.user);
+
+// Development-only: always set a session user if not present
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    if (!req.session.user) {
+      req.session.user = {
+        user_id: "7d03546b-99e3-4da1-a0b8-3fc2747284a2",
+        role: "MERCHANT",
+        email: "joechan@gmail.com",
+        merchant_id: "c8d1dddc-dad7-4042-a92b-78f5de897b7a",
+        branch_id: "75e05c32-5610-4849-bed7-4c52d50b6b00",
+        availableBranches: ["75e05c32-5610-4849-bed7-4c52d50b6b00"],
+        merchantRole: "OWNER"
+      };
+    }
     next();
   });
+}
 
 // Routes
 app.use("/api", router);

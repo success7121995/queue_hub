@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
@@ -9,49 +9,37 @@ import { useDateTime } from "@/constant/datetime-provider";
 import { useForm } from "react-hook-form";
 import { connectSocket, disconnectSocket, onQueueStatusChange, openOrCloseQueue } from "@/lib/socket";
 import {
-	type QueueData,
-	type QueueWithTags,
-	type Tag as QueueTag,
+	useQueues,
 	useCreateQueue,
-	useViewQueuesByBranch,
 	useUpdateQueue,
 	useDeleteQueue,
-	prefetchQueues,
-} from "@/hooks/merchant-hook";
+} from "@/hooks/merchant-hooks";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBranches } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
+import LoadingIndicator from "@/components/common/loading-indicator";
+import { Queue, QueueWithTags, Tag as QueueTag } from "@/types/queue";
 
 // Define types based on database schema
 type QueueStatus = 'OPEN' | 'CLOSED';
 
-interface QueueFormData {
-	queue_name: string;
-	tags: string;
-}
-
 const stats = [
 	{ label: "Total Customer Served Today", value: 45 },
 	{ label: "Total Queues", value: 4 },
-	{ label: "Current Queue Volume", value: 7 },
-];
+		{ label: "Current Queue Volume", value: 7 },
+	];
 
-const ManageQueueEntries = () => {
-	const queryClient = useQueryClient();
+	const ManageQueueEntries = () => {
 	const { data: currentUser } = useAuth();
+		const queryClient = useQueryClient();
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [selectedQueue, setSelectedQueue] = useState<QueueWithTags | null>(null);
 	const { formatDate } = useDateTime();
 	const createMutation = useCreateQueue();
 	const updateMutation = useUpdateQueue();
 	const deleteMutation = useDeleteQueue();
-	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useViewQueuesByBranch();
-
-	// Prefetch queue data as soon as we have the branch ID and not loading
-	useEffect(() => {
-		if (currentUser?.user?.branchId && !isLoadingQueue) {
-			prefetchQueues(queryClient, currentUser.user.branchId);
-		}
-	}, [currentUser?.user?.branchId, queryClient, isLoadingQueue]);
+	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(currentUser?.user?.UserMerchant?.merchant_id as string);
+	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(branchesData?.branches[0].branch_id || '');
 
 	// Connect to socket when component mounts
 	useEffect(() => {
@@ -67,14 +55,14 @@ const ManageQueueEntries = () => {
 	}, []);
 
 	// Form handling	
-	const createForm = useForm<QueueFormData>({
+	const createForm = useForm<Queue>({
 		defaultValues: {
 			queue_name: '',
 			tags: '',
 		},
 	});
 
-	const editForm = useForm<QueueFormData>({
+	const editForm = useForm<Queue>({
 		defaultValues: {
 			queue_name: '',
 			tags: '',
@@ -85,10 +73,10 @@ const ManageQueueEntries = () => {
 	 * Create a new queue
 	 * @param data - The form data
 	 */
-	const onCreateSubmit = (data: QueueFormData) => {
-		const payload: QueueData = {
+	const onCreateSubmit = (data: Queue) => {
+		const payload: Queue = {
 			queue_name: data.queue_name,
-			tags:  data.tags,
+			tags: data.tags || '',
 		};
 		
 		createMutation.mutate(payload, {
@@ -103,16 +91,14 @@ const ManageQueueEntries = () => {
 		});
 	};
 
-
-
 	/**
 	 * Update a queue
 	 * @param data - The form data
 	 */
-	const onEditSubmit = (data: QueueFormData) => {
+	const onEditSubmit = (data: Queue) => {
 		if (!selectedQueue) return;
 
-		const payload: QueueData = {
+		const payload: Queue = {
 			queue_name: data.queue_name,
 			tags: data.tags,
 		};
@@ -135,11 +121,11 @@ const ManageQueueEntries = () => {
 	/**
 	 * Open or close a queue
 	 * @param queue_id - The queue ID
-	 * @param status - The new status
+	 * @param status - The new status 
 	 */
 	const handleOpenOrClose = (queue_id: string, status: QueueStatus) => {
 		// Optimistically update the UI
-		queryClient.setQueryData(['queues', currentUser?.user?.branchId], (oldData: any) => {
+			queryClient.setQueryData(['queues', currentUser?.user?.branch_id], (oldData: any) => {
 			if (!oldData) return oldData;
 			return oldData.map((queue: QueueWithTags) => 
 				queue.queue_id === queue_id 
@@ -178,10 +164,14 @@ const ManageQueueEntries = () => {
 		if (selectedQueue) {
 			editForm.reset({
 				queue_name: selectedQueue.queue_name,
-				tags: selectedQueue.tags.map((tag: QueueTag) => tag.tag_name).join(', '),
+				tags: selectedQueue.tags?.map((tag: QueueTag) => tag.tag_name).join(', ') || '',
 			});
 		}
 	}, [selectedQueue, editForm]);
+
+	if (isBranchesDataLoading || isLoadingQueue) {
+		return <LoadingIndicator fullScreen={true} />;
+	}
 
 	/**
 	 * Columns for the table
@@ -223,7 +213,7 @@ const ManageQueueEntries = () => {
 			header: "Tags",
 			accessor: (row) => (
 				<div className="flex flex-wrap gap-2">
-					{row.tags.map((tag) => (
+					{row.tags?.map((tag) => (
 						<Tag key={tag.tag_id} tagName={tag.tag_name} />
 					))}
 				</div>

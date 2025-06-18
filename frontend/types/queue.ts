@@ -1,12 +1,11 @@
+export interface QueuesWithTags {
+  queues: Queue;
+  tags: Tag[];
+}
+
 export interface Queue {
-  id: number;
-  name: string;
-  description?: string;
-  status: QueueStatus;
-  createdAt: Date;
-  updatedAt: Date;
-  entries?: QueueEntry[];
-  tags?: QueueTag[];
+  queue_name: string;
+  tags?: string;
 }
 
 export type QueueStatus = 'OPEN' | 'CLOSED';
@@ -28,9 +27,21 @@ export interface QueueHistory {
   timestamp: string;
 }
 
-export interface QueueTag {
-  id: number;
-  tagId: number;
-  createdAt: Date;
-  updatedAt: Date;
+export interface Tag {
+  tag_id: string;
+  entity_id: string;
+  branch_id: string;
+  tag_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QueueWithTags {
+  queue_id: string;
+  branch_id: string;
+  queue_name: string;
+  queue_status: QueueStatus;
+  created_at: string;
+  updated_at: string;
+  tags?: Tag[];
 }

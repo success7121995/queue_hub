@@ -1,10 +1,10 @@
 "use client"
 
 import Image from "next/image";
-import { Merchant } from "@/types/merchant";
+import { Branch } from "@/types/merchant";
 
 interface BranchCardProps {
-	branch: Merchant;
+	branch: Branch;
 	idx: number;
 	onReadMore: (idx: number) => void;
 }
@@ -13,31 +13,23 @@ const BranchCard = ({ branch, idx, onReadMore }: BranchCardProps) => (
 	<div className="rounded-2xl shadow-lg bg-white overflow-hidden max-w-xl w-full mb-8 h-full">
 		{/* Top image section with overlay */}
 		<div className="relative h-40 w-full">
-			{branch.featureImage ? (
-				<Image
-					src={branch.featureImage}
-					alt="branch-features"
-					fill
-					className="object-cover w-full h-full"
-				/>
-			) : null}
+			{/* No featureImage in new schema, fallback to placeholder */}
 			{/* Gradient overlay */}
 			<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
 			{/* Overlayed text */}
 			<div className="absolute bottom-4 left-4">
-				<div className="text-white text-lg font-bold drop-shadow-md">{branch.name}</div>
-				<div className="text-white text-sm font-semibold drop-shadow-md">{branch.address}</div>
+				<div className="text-white text-lg font-bold drop-shadow-md">{branch.branch_name}</div>
+				<div className="text-white text-sm font-semibold drop-shadow-md">{branch.Address?.street}{branch.Address?.city ? `, ${branch.Address.city}` : ''}</div>
 			</div>
 		</div>
 		{/* Card body */}
 		<div className="p-5 pb-3">
-			<div className="text-base font-bold mb-1">{branch.user.username}</div>
-			<div className="italic text-sm text-gray-700 mb-1">{branch.user.email}</div>
-			<div className="text-sm text-gray-700 mb-1">{branch.user.profile?.position}</div>
-			<div className="text-xs text-gray-500 mb-1">Subscription: <span className="font-semibold text-gray-700">{branch.subscription}</span></div>
-			<div className="text-xs text-gray-500 mb-1">Auto Renewal: <span className="font-semibold text-gray-700">{branch.autoRenewal}</span></div>
-			<div className="text-xs text-gray-500 mb-2">Registration Date: <span className="font-semibold text-gray-700">{branch.registrationDate}</span></div>
+			<div className="text-base font-bold mb-1">Contact: {branch.contact_person?.User?.fname} {branch.contact_person?.User?.lname}</div>
+			<div className="italic text-sm text-gray-700 mb-1">{branch.Address?.city}</div>
+			<div className="text-sm text-gray-700 mb-1">Active: {branch.is_active ? 'Yes' : 'No'}</div>
+			<div className="text-xs text-gray-500 mb-1">Created: <span className="font-semibold text-gray-700">{branch.created_at}</span></div>
+			<div className="text-xs text-gray-500 mb-2">Updated: <span className="font-semibold text-gray-700">{branch.updated_at}</span></div>
 			<div className="text-sm text-gray-800 mb-2">{branch.description}</div>
 		</div>
 		{/* Footer */}

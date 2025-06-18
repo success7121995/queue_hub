@@ -64,7 +64,6 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     // Define mutation outside of handleSubmit
     const mutation = useMutation({
         mutationFn: async (data: SignupFormFields | AddBranchFormFields | AddAdminFormFields) => {
-            console.log("Submitting data:", data);
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api${apiPath}`, {
                 method: "POST",
                 headers: {
@@ -79,6 +78,7 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
         },
         onSuccess: () => {
             setShowSuccess(true);
+            Cookies.remove(COOKIE_KEY);
         },
         onError: (error) => {
             console.error("Error submitting form:", error);

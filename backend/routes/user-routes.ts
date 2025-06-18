@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authController } from '../controllers/auth-controller';
 import { userController } from '../controllers/user-controller';
 import { requireAuth } from '../middleware/require-auth-middleware';
+import { UserRole } from '@prisma/client';
 
 const router = Router();
 
@@ -12,13 +13,12 @@ router.get('/me', (req, res) => authController.me(req, res));
 router.put('/me', (req, res) => userController.updateProfile(req, res));
 
 // User profile routes
-
-router.put('/change-password', () => {});  // Change user password
+router.put('/change-password', requireAuth(), () => {});  // Change user password
 
 // User queue management (protected)
-router.get('/queues', () => {});  // Get user's active queues
-router.post('/queues/:queueId/join', () => {});  // Join a queue
-router.delete('/queues/:queueId/leave', () => {});  // Leave a queue
-router.get('/queues/:queueId/status', () => {});  // Get queue status
+router.get('/queues', requireAuth(), () => {});  // Get user's active queues
+router.post('/queues/:queueId/join', requireAuth(), () => {});  // Join a queue
+router.delete('/queues/:queueId/leave', requireAuth(), () => {});  // Leave a queue
+router.get('/queues/:queueId/status', requireAuth(), () => {});  // Get queue status
 
 export default router;

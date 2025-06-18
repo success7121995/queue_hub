@@ -5,8 +5,8 @@ import { AppError } from "./app-error";
 
 export const withActivityLog = (
     handler: (req: Request, res: Response) => Promise<any>,
-    config: {
-        action: ActivityType;
+    config?: {
+        action?: ActivityType;
         extractUserId?: (req: Request, res: Response, result: any) => string | null;
         extractData?: (req: Request, res: Response, result: any) => any;
     }
@@ -19,8 +19,8 @@ export const withActivityLog = (
 
         const originalJson = res.json.bind(res);
         res.json = (body: any) => {
-        status = res.statusCode;
-        return originalJson(body);
+            status = res.statusCode;
+            return originalJson(body);
         };
 
         try {

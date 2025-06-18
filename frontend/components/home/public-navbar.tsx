@@ -11,7 +11,6 @@ import { useLang, type Lang } from "@/constant/lang-provider";
 const PublicNavbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-
     const router = useRouter();
     const pathname = usePathname();
 
@@ -29,6 +28,7 @@ const PublicNavbar = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isMenuOpen]);
+
 
     const menuItems = [
         { label: "Features", href: "/features/real-time-updates" },
@@ -112,7 +112,7 @@ const PublicNavbar = () => {
             </div>
 
             {/* Mobile Toggle Button */}
-            <div className="lg:hidden">
+            <div className="md:hidden ">
                 <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
@@ -126,13 +126,14 @@ const PublicNavbar = () => {
             {/* Mobile Dropdown with animation */}
             <AnimatePresence>
             {isMenuOpen && (
+                
                 <motion.div
-                ref={menuRef}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="lg:hidden flex flex-col px-6 pb-4 space-y-3 font-regular-eng text-sm bg-white shadow-md"
+                    ref={menuRef}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="md:hidden flex flex-col px-6 pb-4 space-y-3 font-regular-eng text-sm bg-white shadow-md"
                 >
                 {menuItems.map((item) => (
                     <button
