@@ -22,9 +22,17 @@ export interface User {
 
 export interface UserMerchant {
   staff_id: string;
+  user_id: string;
   merchant_id: string;
   role: string;
   position: string;
+  User?: {
+    user_id: string;
+    fname: string;
+    lname: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export interface UserAdmin {

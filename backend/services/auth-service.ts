@@ -23,7 +23,7 @@ export const authService = {
             const user = await tx.user.create({
                 data: {
                     user_id: uuidv4(),
-                    username: signup.email, // Using email as username
+                    username: signup.username,
                     fname: signup.fname,
                     lname: signup.lname,
                     email: signup.email,

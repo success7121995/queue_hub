@@ -52,7 +52,7 @@ model Address {
   zip         String
   country     String
   created_at  DateTime  @default(now())
-  updated_at  DateTime
+  updated_at  DateTime  @updatedAt
   Branch      Branch?   @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
   Merchant    Merchant? @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
 }
@@ -76,14 +76,13 @@ model Branch {
   description          String?
   is_active            Boolean                @default(true)
   created_at           DateTime               @default(now())
-  updated_at           DateTime
+  updated_at           DateTime               @updatedAt
   Address              Address?
   Merchant             Merchant               @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
   BranchFeature        BranchFeature[]
   BranchImage          BranchImage[]
   BranchOpeningHour    BranchOpeningHour[]
   Queue                Queue[]
-  Tag                  Tag[]
   UserMerchantOnBranch UserMerchantOnBranch[]
   ContactPerson        UserMerchant           @relation("BranchContactPerson", fields: [contact_person_id], references: [staff_id], onDelete: Restrict)
 }
@@ -94,7 +93,7 @@ model BranchFeature {
   label       String
   is_positive Boolean  @default(true)
   created_at  DateTime @default(now())
-  updated_at  DateTime
+  updated_at  DateTime @updatedAt
   Branch      Branch   @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
 }
 
@@ -185,7 +184,7 @@ model LegalDocuement {
   language      Lang              @default(EN)
   is_active     Boolean           @default(true)
   published_at  DateTime          @default(now())
-  updated_at    DateTime
+  updated_at    DateTime          @updatedAt
 }
 
 model Merchant {
@@ -201,7 +200,7 @@ model Merchant {
   subscription_end    DateTime?
   auto_renewal        Boolean            @default(false)
   created_at          DateTime           @default(now())
-  updated_at          DateTime           
+  updated_at          DateTime           @updatedAt
   approved_at         DateTime?
   Address             Address?
   Branch              Branch[]
@@ -230,7 +229,7 @@ model News {
   title       String
   content     String
   created_at  DateTime @default(now())
-  updated_at  DateTime
+  updated_at  DateTime @updatedAt
   Merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
 }
 
@@ -245,7 +244,7 @@ model OAuthAccount {
   token_expiry     DateTime
   expires_at       DateTime?
   created_at       DateTime  @default(now())
-  updated_at       DateTime
+  updated_at       DateTime  @updatedAt
   User             User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
@@ -256,12 +255,15 @@ model PasswordReset {
   reset_token_expiry DateTime
   reset_at           DateTime @default(now())
   User               User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 }
 
 model PaymentMethod {
   payment_method_id   String          @id
   payment_method_name String
   created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
   AcceptPayment       AcceptPayment[]
 }
 
@@ -298,6 +300,8 @@ model QueueReminderOption {
   is_active                  Boolean                      @default(true)
   sort_order                 Int                          @default(0)
   UserQueueReminderReference UserQueueReminderReference[]
+  created_at                 DateTime                     @default(now())
+  updated_at                 DateTime                     @updatedAt
 }
 
 model Review {
@@ -334,13 +338,12 @@ model SystemHealth {
 }
 
 model Tag {
-  tag_id     String   @id
-  entity_id  String
-  branch_id  String
-  tag_name   String
-  created_at DateTime @default(now())
-  updated_at DateTime
-  Branch     Branch   @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
+  tag_id             String   @id
+  entity_id          String
+  entity_type        TagEntity
+  tag_name           String
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 }
 
 model User {
@@ -385,6 +388,7 @@ model UserAdmin {
   join_at DateTime @default(now())
   updated_at DateTime
   User     User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  created_at DateTime @default(now())
 }
 
 model UserDevice {
@@ -415,6 +419,8 @@ model UserMerchant {
   User                 User?                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   UserMerchantOnBranch UserMerchantOnBranch[]
   Branch               Branch[]                 @relation("BranchContactPerson")
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
 }
 
 model UserMerchantOnBranch {
@@ -643,6 +649,7 @@ enum SystemHealthSource {
 enum TagEntity {
   MERCHANT
   QUEUE
+  BRANCH  
 }
 
 enum UserRole {

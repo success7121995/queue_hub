@@ -28,7 +28,7 @@ dotenv.config();
 const corsOptions = {
     origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]
 };
 
@@ -71,12 +71,12 @@ if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     if (!req.session.user) {
       req.session.user = {
-        user_id: "7d03546b-99e3-4da1-a0b8-3fc2747284a2",
+        user_id: "acdbcaf2-c034-4396-bf3a-9298d0b5da25",
         role: "MERCHANT",
         email: "joechan@gmail.com",
-        merchant_id: "c8d1dddc-dad7-4042-a92b-78f5de897b7a",
-        branch_id: "75e05c32-5610-4849-bed7-4c52d50b6b00",
-        availableBranches: ["75e05c32-5610-4849-bed7-4c52d50b6b00"],
+        merchant_id: "6f6adaf1-ac81-4740-abff-4f3717c953e9",
+        branch_id: "bd8205f4-fc93-43ad-b1e1-0b406a31d595",
+        availableBranches: ["bd8205f4-fc93-43ad-b1e1-0b406a31d595"],
         merchantRole: "OWNER"
       };
     }

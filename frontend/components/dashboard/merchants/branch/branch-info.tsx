@@ -5,7 +5,7 @@ import { CirclePlus } from "lucide-react";
 import { BranchDetail, BranchCard } from "@/components";
 import { Branch } from "@/types/merchant";
 import { useAuth } from "@/hooks/auth-hooks";
-import { useBranches, useUpdateBranch } from "@/hooks/merchant-hooks";
+import { useBranches } from "@/hooks/merchant-hooks";
 import Link from "next/link";
 import LoadingIndicator from "@/components/common/loading-indicator";
 
@@ -13,17 +13,13 @@ const BranchInfo = () => {
 	const [selectedBranchIdx, setSelectedBranchIdx] = useState<number | null>(null);
 	const { data: currentUser } = useAuth();
 	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(currentUser?.user?.UserMerchant?.merchant_id as string);
-
+	
 	const handleReadMore = (idx: number) => {
 		setSelectedBranchIdx(idx);
 	};
 
 	const handleCloseDetail = () => {
 		setSelectedBranchIdx(null);
-	};
-
-	const handleSaveDetail = (updatedBranch: any) => {
-		handleCloseDetail();
 	};
 
 	if (isBranchesDataLoading) {
@@ -80,7 +76,6 @@ const BranchInfo = () => {
 						updated_at: branchesData?.branches[selectedBranchIdx]?.updated_at ?? '',
 					}}
 					onClose={handleCloseDetail}
-					onSave={handleSaveDetail}
 				/>
 			)}
 		</div>

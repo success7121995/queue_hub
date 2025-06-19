@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
 import Compressor from 'compressorjs';
@@ -141,6 +141,98 @@ const ImageUploader = ({
 		});
 	};
 
+	// Track last uploaded image IDs
+	const lastUploadedIdsRef = useRef<string[]>([]);
+	const [hasChanged, setHasChanged] = useState(false);
+
+	// Compare previewImages with last uploaded
+	useEffect(() => {
+		const currentIds = previewImages.map(img => img.id).sort().join(',');
+		const lastIds = lastUploadedIdsRef.current.sort().join(',');
+		setHasChanged(currentIds !== lastIds && previewImages.length > 0);
+	}, [previewImages]);
+
+	const handleUpload = () => {
+		lastUploadedIdsRef.current = previewImages.map(img => img.id);
+		setHasChanged(false);
+		// You can call onUploadComplete here if you want to trigger upload
+		if (onUploadComplete) onUploadComplete(previewImages);
+	};
+
+	// For multiple mode, render uploader and images side by side
+	if (multiple) {
+		return (
+			<div className={`w-full ${className}`}>
+				<div className="flex flex-col lg:flex-row flex-wrap gap-4 items-start">
+					{/* Uploader */}
+					<div>
+						<div
+							{...getRootProps()}
+							className={`relative border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors flex-shrink-0`
+								+ (isDragActive ? ' border-primary-light bg-primary-light/10' : ' border-gray-300 hover:border-primary-light')}
+							style={{
+								width: typeof frameWidth === "number" ? `${frameWidth}px` : frameWidth,
+								height: typeof frameHeight === "number" ? `${frameHeight}px` : frameHeight,
+								minWidth: 200,
+								minHeight: 200,
+							}}
+						>
+							<input {...getInputProps()} className="z-20 relative" />
+							<div className="relative z-20 h-full flex flex-col items-center justify-center text-center pointer-events-none">
+								<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
+									{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
+								</p>
+								<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
+							</div>
+						</div>
+					</div>
+
+					<button
+						disabled={!hasChanged}
+						onClick={handleUpload}
+						className={`border px-4 py-2 rounded-md text-sm transition-all duration-200 ml-0 mt-4 lg:mt-0 lg:ml-0
+						${hasChanged
+							? 'border-primary-light text-primary-light hover:bg-primary-light hover:text-white'
+							: 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'}`}
+					>
+						Upload
+					</button>
+		
+					{/* Images Preview */}
+					<div className="flex flex-row flex-wrap gap-4">
+						{previewImages.map((img) => (
+							<div
+								key={img.id}
+								className="relative group flex-shrink-0"
+								style={{
+									width: typeof frameWidth === "number" ? `${frameWidth * 0.8}px` : frameWidth,
+									height: typeof frameHeight === "number" ? `${frameHeight * 0.8}px` : frameHeight,
+								}}
+							>
+								<Image
+									src={img.preview}
+									alt="Preview"
+									fill
+									className="object-cover rounded-lg shadow-md"
+								/>
+								<button
+									type="button"
+									onClick={() => removeImage(img.id)}
+									className="absolute top-2 right-2 bg-white text-black rounded-full p-1 shadow hover:bg-red-500 hover:text-white transition z-10"
+								>
+									<X className="w-4 h-4" />
+								</button>
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+		);
+		
+	}
+	
+
+	// Single mode
 	return (
 		<div className={`w-full ${className}`}>
 			<div
@@ -189,29 +281,6 @@ const ImageUploader = ({
 				</div>
 				)}
 			</div>
-
-			{multiple && previewImages.length > 0 && (
-				<div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-					{previewImages.map((img) => (
-						<div key={img.id} className="relative group">
-							<Image
-								src={img.preview}
-								alt="Preview"
-								width={200}
-								height={200}
-								className="object-cover w-full h-auto rounded"
-							/>
-							<button
-								type="button"
-								onClick={() => removeImage(img.id)}
-								className="absolute top-1 right-1 bg-white text-black rounded-full p-1 shadow hover:bg-red-500 hover:text-white transition z-10"
-							>
-								<X className="w-5 h-5" />
-							</button>
-						</div>
-					))}
-				</div>
-			)}
 		</div>
 	);
 };

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ActivityType, Queue, Tag, Prisma, UserRole, MerchantRole, Lang } from "@prisma/client";
+import { ActivityType, Queue, Tag, Prisma, UserRole, MerchantRole, Lang, TagEntity } from "@prisma/client";
 import { z } from "zod";
 import { withActivityLog } from "../utils/with-activity-log";
 import { merchantService } from "../services/merchant-service";
@@ -19,26 +19,40 @@ declare global {
 }
 
 const branchSchema = z.object({
-
     // Branch Information 
     branch_name: z.string().min(1, "Branch name is required"),
+    staff_id: z.string().min(1, "Staff ID is required"),
     phone: z.string().min(1, "Branch phone is required").optional(),
     email: z.string().email("Invalid email address").optional(),
     description: z.string().optional(),
-
-    // Branch Address
-    address: z.object({
-        country: z.string().min(1, "Country is required"),
-        unit: z.string().optional(),
-        floor: z.string().optional(),
-        street: z.string().min(1, "Street is required"),
-        city: z.string().min(1, "City is required"),
-        state: z.string().min(1, "State is required"),
-        zip: z.string().min(1, "ZIP code is required"),
-    })
 });
 
 export type BranchSchema = z.infer<typeof branchSchema>;
+
+const addressSchema = z.object({
+    unit: z.string().optional(),
+    floor: z.string().optional(),
+    country: z.string().min(1, "Country is required"),
+    street: z.string().min(1, "Street is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    zip: z.string().min(1, "ZIP code is required"),
+});
+
+export type AddressSchema = z.infer<typeof addressSchema>;
+
+const branchFeatureSchema = z.object({
+    feature_name: z.string().min(1, "Feature name is required"),
+});
+export type BranchFeatureSchema = z.infer<typeof branchFeatureSchema>;
+
+const branchTagSchema = z.object({
+    entity_id: z.string().min(1, "Entity ID is required"),
+    entity_type: z.nativeEnum(TagEntity).default(TagEntity.MERCHANT),
+    tag_name: z.string().min(1, "Tag name is required"),
+});
+
+export type BranchTagSchema = z.infer<typeof branchTagSchema>;
 
 // Validation schemas
 const signupSchema = z.object({
@@ -124,6 +138,22 @@ export const merchantController = {
                 merchant_id: req.params.merchant_id,
                 updated_fields: Object.keys(req.body),
             }),
+        }
+    ),
+
+    /**
+     * Get user merchants
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getUserMerchants: withActivityLog(
+        async (req: Request, res: Response) => {    
+            const { merchant_id } = req.params;
+            const { prefetch } = req.query;
+
+            const result = await merchantService.getUserMerchants(merchant_id);
+            res.status(200).json({ success: true, result });
+            return result;
         }
     ),
 
@@ -287,11 +317,132 @@ export const merchantController = {
             const { branch_id } = req.params;
             const updateData = req.body;
 
+            console.log('updateData', updateData);
+
             const result = await merchantService.updateBranch(branch_id, updateData);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
+     * Update branch address
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateBranchAddress: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id } = req.params;
+            const updateData = req.body;
+
+            const result = await merchantService.updateBranchAddress(branch_id, updateData);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
+     * Create a new branch feature
+     * @param req - The request object
+     * @param res - The response object
+     */
+    createBranchFeature: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id } = req.params;
+            const { feature_name } = req.body;
+
+            const result = await merchantService.createBranchFeature(branch_id, feature_name);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                feature_name: req.body.feature_name,
+            }),
+        }
+    ),
+
+    /**
+     * Delete a branch feature
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteBranchFeature: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { feature_id } = req.params;
+
+            const result = await merchantService.deleteBranchFeature(feature_id);
             res.status(200).json({ success: true, result });
             return result;
         }
     ),
+
+    /**
+     * Create a new branch tag
+     * @param req - The request object
+     * @param res - The response object
+     */
+    createBranchTag: withActivityLog(
+        async (req: Request, res: Response) => {    
+            const { branch_id } = req.params;
+            const { tag_name } = req.body;
+            
+            const result = await merchantService.createBranchTag(branch_id, tag_name);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                tag_name: req.body.tag_name,
+            }),
+        }
+    ),
+
+    /**
+     * Delete a branch tag
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteBranchTag: withActivityLog(
+        async (req: Request, res: Response) => {        
+            const { tag_id } = req.params;
+            
+            const result = await merchantService.deleteBranchTag(tag_id);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                tag_id: req.body.tag_id,
+            }),
+        }
+    ),  
 
     /**
      * Update branch images
@@ -306,6 +457,14 @@ export const merchantController = {
             const result = await merchantService.updateBranchImages(branch_id, updateData);
             res.status(200).json({ success: true, result });
             return result;
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                updated_fields: Object.keys(req.body),
+            }),
         }
     ),
 

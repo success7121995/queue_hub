@@ -1,21 +1,17 @@
-import { Branch, Merchant } from "./merchant";
-import { MerchantRole } from "./form";
-import { QueueWithTags } from "./queue";
+import { Branch, BranchFeature, BranchImage, Merchant } from "./merchant";
+import { Address, MerchantRole } from "./form";
+import { QueueWithTags, Tag } from "./queue";
+import { UserMerchant } from "./user";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
 
-export interface CreateQueueResponse {
+export interface QueueResponse {
     success: boolean;
     result: QueueWithTags;
 }
 
-export interface UpdateQueueResponse {
-    success: boolean;
-    queue: QueueWithTags;
-}[]
-
-export interface DeleteQueueResponse {
+export interface QueueResponse {
     success: boolean;
     message: string;
 }
@@ -38,7 +34,12 @@ export interface BranchesResponse {
     }>;
 }   
 
-export interface UpdateBranchResponse {
+export interface UserMerchantResponse {
+    success: boolean;
+    user_merchants: UserMerchant[];
+}
+
+export interface BranchResponse {
     success: boolean;
     branch: {
         branch_name?: string;
@@ -47,4 +48,24 @@ export interface UpdateBranchResponse {
         description?: string;
         is_active?: boolean;
     };
+}
+
+export interface BranchAddressResponse {
+    success: boolean;
+    address: Address;
+}
+
+export interface BranchFeatureResponse {
+    success: boolean;
+    feature: BranchFeature;
+}
+
+export interface BranchTagResponse {
+    success: boolean;
+    tag: Tag;
+}
+
+export interface BranchImagesResponse {
+    success: boolean;
+    images: BranchImage[];
 }

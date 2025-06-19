@@ -3,42 +3,34 @@
 import { useState } from "react";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
-import { Merchant } from "@/types/merchant";
+import { Merchant, UserMerchantOnBranch } from "@/types/merchant";
 import Image from "next/image";
 import { useDateTime } from "@/constant/datetime-provider";
 import { X, CheckCircle, XCircle } from "lucide-react";
 
-const merchants: Merchant[] = [
+const merchants: any[] = [
 	{
-		merchantId: 1,
-		name: "Queue Burger",
-		address: "123 Burger Street, Hong Kong",
-		subscription: "GROWTH",
-		subscriptionStartDate: "2024-01-01T00:00:00Z",
-		subscriptionEndDate: "2025-01-01T00:00:00Z",
-		createdAt: new Date("2023-12-15T12:00:00Z"),
-		updatedAt: new Date("2024-06-01T14:30:00Z"),
-		logo: "",
+		merchant_id: "1",
+		business_name: "Queue Burger",
+		phone: "+852 1234 5678",
+		email: "manager@queueburger.com",
+		description: "Queue Burger is a burger restaurant that serves burgers and fries.",
+		subscription_status: "GROWTH",
+		approval_status: "PENDING",
 		user: {
-			id: 1,
+			user_id: "1",
 			username: "queue.burger",
 			email: "manager@queueburger.com",
-			createdAt: new Date("2023-12-15T12:00:00Z"),
-			updatedAt: new Date("2024-06-01T14:30:00Z"),
-			profile: {
-				id: 1,
-				firstName: "John",
-				lastName: "Doe",
-				avatarUrl: "",
-				position: "Manager",
-				phone: "+852 1234 5678",
-				address: "123 Burger Street, Hong Kong",
-				createdAt: new Date("2023-12-15T12:00:00Z"),
-				updatedAt: new Date("2024-06-01T14:30:00Z"),
-			},
+			UserMerchant: [{
+				staff_id: "1",
+				branch_id: "1",
+				assigned_at: "2023-12-15T12:00:00Z",
+			}] as UserMerchantOnBranch[],
+			created_at: new Date("2023-12-15T12:00:00Z"),
+			updated_at: new Date("2024-06-01T14:30:00Z"),
 		},
 	},
-];
+];	
 
 const ApproveMerchant = () => {
 	const { formatDate } = useDateTime();
@@ -81,11 +73,11 @@ const ApproveMerchant = () => {
 		},
 		{
 			header: "Name",
-			accessor: "name",
+			accessor: "business_name", // Corrected to match the Merchant type
 		},
 		{
 			header: "Manager",
-			accessor: (row) => row.user?.profile ? `${row.user.profile.firstName || ''} ${row.user.profile.lastName || ''}`.trim() : 'N/A',
+			accessor: (row) => row.user?.UserMerchant[0] ? `${row.user.UserMerchant[0].staff_id}` : 'N/A', // Accessing UserMerchant
 		},
 		{
 			header: "Email",
@@ -93,19 +85,19 @@ const ApproveMerchant = () => {
 		},
 		{
 			header: "Phone",
-			accessor: (row) => row.user?.profile?.phone || 'N/A',
+			accessor: (row) => row.phone || 'N/A', // Accessing phone directly from Merchant
 		},
 		{
 			header: "Address",
-			accessor: "address",
+			accessor: (row) => row.Address ? `${row.Address.street}, ${row.Address.city}` : 'N/A', // Assuming Address is part of Merchant
 		},
 		{
 			header: "Subscription",
-			accessor: "subscription",
+			accessor: (row) => row.subscription_status, // Corrected to match the Merchant type
 		},
 		{
 			header: "Created At",
-			accessor: (row) => formatDate(row.createdAt),
+			accessor: (row) => formatDate(row.created_at), // Corrected to match the Merchant type
 		},
 		{
 			header: "Actions",

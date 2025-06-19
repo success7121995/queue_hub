@@ -8,6 +8,9 @@ export interface Merchant {
   description?: string;
   subscription_status: string;
   approval_status: string;
+  created_at: string;
+  updated_at: string;
+  user: User;
 }
 
 export interface Address {
@@ -59,6 +62,15 @@ export interface UserMerchantOnBranch {
   assigned_at: string;
 }
 
+export interface Tag {
+  tag_id: string;
+  tag_name: string;
+  entity_id: string;
+  branch_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Branch {
   branch_id: string;
   merchant_id: string;
@@ -87,4 +99,5 @@ export interface Branch {
   BranchOpeningHour: BranchOpeningHour[] | [];
   Address: Address | null;
   UserMerchantOnBranch: UserMerchantOnBranch[] | [];
+  Tag: Tag[] | [];
 }

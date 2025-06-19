@@ -10,7 +10,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
 	return (
-		<div className="h-screen flex flex-col bg-gray-50">
+		<div className="h-screen flex flex-col bg-gray-50 overflow-y-hidden">
 			{/* Navbar fixed height */}
 			<AdminNavbar />
 

@@ -26,11 +26,22 @@ router.get('/profile', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), 
 router.put('/profile', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), () => {});  // Update merchant profile
 router.put('/settings', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), () => {});  // Update merchant settings
 
+// User merchant management (merchant only)
+router.get('/user-merchants/:merchant_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getUserMerchants);
+
 // Branch management (merchant only)
 router.get('/branches/:merchant_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getBranchesByMerchantId);  // Get merchant's branches
 router.post('/branches/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Create new branch
-router.put('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranch);  // Update branch details// Update branch images
+router.patch('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranch);  // Update branch details
+router.patch('/branches/:branch_id/address', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranchAddress);  // Update branch address
+router.post('/branches/:branch_id/features', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createBranchFeature);  // Create new branch feature
+router.delete('/branches/features/:feature_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchFeature);  // Delete branch feature
+router.post('/branches/:branch_id/tags', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createBranchTag);  // Create new branch tag
+router.delete('/branches/tags/:tag_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchTag);  // Delete branch tag
 router.delete('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Delete branch
+
+// Branch images management (merchant only)
+router.put('/branches/:branch_id/images', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranchImages);  // Update branch images
 
 // Queue management (merchant only)
 router.get('/queues/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);  // Get merchant's queues

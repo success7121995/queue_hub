@@ -1,8 +1,8 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { MerchantRole, Prisma, Queue, Tag, User } from "@prisma/client";
-import { BranchSchema, BranchImageSchema } from "../controllers/merchant-controller";
+import { Branch, MerchantRole, Prisma, Queue, Tag, TagEntity, User } from "@prisma/client";
+import { BranchSchema, BranchImageSchema, AddressSchema, BranchFeatureSchema, BranchTagSchema } from "../controllers/merchant-controller";
 
 interface QueueAnalyticsParams {
     start_date?: string;
@@ -33,6 +33,38 @@ export const merchantService = {
 
         if (!result) {
             throw new AppError("Failed to get merchant", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Get user merchants
+     * @param merchant_id - The merchant ID
+     * @returns 
+     */
+    async getUserMerchants(merchant_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const userMerchants = await tx.userMerchant.findMany({
+                where: {
+                    merchant_id,
+                },
+                include: {
+                    User: true,
+                }
+            });
+            
+            const branches = await tx.branch.findMany({
+                where: {
+                    merchant_id,
+                },
+            });
+            
+            return { user_merchants: userMerchants };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to get user merchants", 500);
         }
 
         return result;
@@ -70,7 +102,7 @@ export const merchantService = {
      * @param tags - The tags to create
      * @returns The created queue and tags
      */
-    createQueue: async (branch_id: string, queue_name: string, tags?: string) => {
+    async createQueue (branch_id: string, queue_name: string, tags?: string) {
         const result = await prisma.$transaction(async (tx) => {
             const newQueue = await tx.queue.create({
                 data: {
@@ -89,7 +121,7 @@ export const merchantService = {
                 const tagData = tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => ({
                     tag_id: uuidv4(),
                     entity_id: newQueue.queue_id,
-                    branch_id,
+                    entity_type: TagEntity.QUEUE,
                     tag_name: tag,
                     updated_at: new Date()
                 }));
@@ -159,7 +191,7 @@ export const merchantService = {
                 const tagData = tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => ({
                     tag_id: uuidv4(),
                     entity_id: queue.queue_id,
-                    branch_id: queue.branch_id!,
+                    entity_type: TagEntity.QUEUE,
                     tag_name: tag,
                     created_at: new Date(),
                     updated_at: new Date(),
@@ -180,7 +212,6 @@ export const merchantService = {
                     where: {
                         entity_id: queue.queue_id,
                         tag_name: { in: tags.split(',').map(tag => tag.trim()).filter(Boolean) },
-                        branch_id: queue.branch_id!,
                     },
                 });
             } else {
@@ -306,8 +337,8 @@ export const merchantService = {
      */
     async getBranchesByMerchantId(merchant_id: string, prefetch: boolean = false) {
         const result = await prisma.$transaction(async (tx) => {
-            let branches: any[] = [];
-    
+            let branches: Partial<Branch>[] = [];
+            
             if (prefetch) {
                 branches = await tx.branch.findMany({
                     where: { merchant_id },
@@ -326,62 +357,70 @@ export const merchantService = {
                         BranchImage: true,
                         BranchOpeningHour: true,
                         Address: true,
-                        Tag: {
-                            where: {
-                                entity_id: {
-                                    in: branches.map(branch => branch.branch_id)
-                                }
-                            }
-                        },
                         UserMerchantOnBranch: true,
                     },
                 });
 
                 const contactPersonIds = branches
-                .map(branch => branch.contact_person_id)
-                .filter((id): id is string => !!id);
-    
-            let contact_person_map: Record<string, any> = {};
-    
-            if (contactPersonIds.length > 0) {
-                const contact_persons = await tx.userMerchant.findMany({
+                    .map(branch => branch.contact_person_id)
+                    .filter((id): id is string => !!id);
+
+                const tags = await tx.tag.findMany({
                     where: {
-                        staff_id: { in: contactPersonIds }
-                    },
-                    select: {
-                        staff_id: true,
-                        user_id: true,
-                        role: true,
-                        position: true,
-                        User: {
-                            select: {
-                                lname: true,
-                                fname: true,
-                                email: true,
-                                phone: true
-                            }
-                        },
+                        entity_type: TagEntity.BRANCH,
+                        entity_id: { in: branches.map(branch => branch.branch_id).filter((id): id is string => !!id) },
                     },
                 });
-    
-                contact_person_map = contact_persons.reduce((acc, user) => {
-                    acc[user.staff_id] = user;
-                    return acc;
-                }, {} as Record<string, any>);
-            }
-    
-            // 補上 contact_person
-            const branchesWithContactPerson = branches.map(branch => ({
-                ...branch,
-                contact_person: contact_person_map[branch.contact_person_id ?? ""] ?? null,
-            }));
-    
-            return { branches: branchesWithContactPerson };
-            }
 
-            
+                // Group tags by entity_id (branch_id)
+                const tagsByBranch = tags.reduce((acc, tag) => {
+                    if (!acc[tag.entity_id]) {
+                        acc[tag.entity_id] = [];
+                    }
+                    acc[tag.entity_id].push(tag);
+                    return acc;
+                }, {} as Record<string, any[]>);
+
+                let contact_person_map: Record<string, any> = {};
+        
+                if (contactPersonIds.length > 0) {
+                    const contact_persons = await tx.userMerchant.findMany({
+                        where: {
+                            staff_id: { in: contactPersonIds }
+                        },
+                        select: {
+                            staff_id: true,
+                            user_id: true,
+                            role: true,
+                            position: true,
+                            User: {
+                                select: {
+                                    lname: true,
+                                    fname: true,
+                                    email: true,
+                                    phone: true
+                                }
+                            },
+                        },
+                    });
+        
+                    contact_person_map = contact_persons.reduce((acc, user) => {
+                        acc[user.staff_id] = user;
+                        return acc;
+                    }, {} as Record<string, any>);
+                }
+        
+                // 補上 contact_person and tags
+                const branchesWithContactPerson = branches.map(branch => ({
+                    ...branch,
+                    contact_person: contact_person_map[branch.contact_person_id ?? ""] ?? null,
+                    Tag: tagsByBranch[branch.branch_id as string] || [],
+                }));
+        
+                return { branches: branchesWithContactPerson };
+            }
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
-    
+
         if (!result) {
             throw new AppError("Failed to get branches", 500);
         }
@@ -391,12 +430,18 @@ export const merchantService = {
 
     /**
      * Update branch data
+     * @param branch_id 
+     * @param data 
+     * @returns 
      */
-    async updateBranch(branch_id: string, data: BranchSchema) {
+    async updateBranch(branch_id: string, data: Partial<BranchSchema>) {
         const result = await prisma.$transaction(async (tx) => {
             const branch = await tx.branch.update({
                 where: { branch_id },
-                data,
+                data: {
+                    ...data,
+                    updated_at: new Date(),
+                },
             });
 
             return { branch };
@@ -405,23 +450,153 @@ export const merchantService = {
         if (!result) {
             throw new AppError("Failed to update branch", 500);
         }
+
+        return result;
+    },
+
+    /**
+     * Update branch address
+     * @param branch_id 
+     * @param data 
+     * @returns 
+     */
+    async updateBranchAddress(branch_id: string, data: Partial<AddressSchema>) {
+        const result = await prisma.$transaction(async (tx) => {
+            // First, find the address associated with this branch
+            const existingAddress = await tx.address.findFirst({
+                where: { branch_id },
+            });
+
+            if (!existingAddress) {
+                throw new AppError("No address found for this branch", 404);
+            }
+
+            // Update the address
+            const address = await tx.address.update({
+                where: { address_id: existingAddress.address_id },
+                data: {
+                    ...data,
+                    updated_at: new Date(),
+                },
+            });
+
+            return { address };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to update branch address", 500);
+        }
+
+        return result;
     },
 
     /**
      * Update branch images (Logo, Feature Image, Galleries)
+     * @param branch_id 
+     * @param data 
      */
     async updateBranchImages(branch_id: string, data: BranchImageSchema) {},
 
     /**
-     * Update Branch features
+     * Create a new branch feature
+     * @param branch_id 
+     * @param feature_name 
+     * @returns 
      */
+    async createBranchFeature(branch_id: string, feature_name: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const feature = await tx.branchFeature.create({
+                data: {
+                    branch_id,
+                    feature_id: uuidv4(),
+                    label: feature_name,
+                    is_positive: true,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
+    
+            return { feature };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to create branch feature", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Delete a branch feature
+     * @param feature_id 
+     * @returns 
+     */
+    async deleteBranchFeature(feature_id: string) {  
+        const result = await prisma.$transaction(async (tx) => {
+            const feature = await tx.branchFeature.delete({
+                where: { feature_id },
+            });
+            return { feature };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });  
+
+        if (!result) {
+            throw new AppError("Failed to delete branch feature", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Create a new branch tag
+     * @param branch_id 
+     * @param tag_name 
+     * @returns 
+     */
+    async createBranchTag(branch_id: string, tag_name: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const tag = await tx.tag.create({
+                data: {
+                    entity_id: branch_id,
+                    entity_type: TagEntity.BRANCH,
+                    tag_id: uuidv4(),
+                    tag_name: tag_name,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
+            return { tag }; 
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to create branch tag", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Delete a branch tag
+     * @param branch_id 
+     * @param tag_id 
+     * @returns 
+     */
+    async deleteBranchTag(tag_id: string) {  
+        const result = await prisma.$transaction(async (tx) => {
+            const tag = await tx.tag.delete({
+                where: { tag_id },
+            });
+            return { tag };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }); 
+
+        if (!result) {
+            throw new AppError("Failed to delete branch tag", 500);
+        }
+
+        return result;
+    },
 
     /**
      * Update branch opening hours
-     */
-
-    /**
-     * Update branch tags
      */
 
     /**

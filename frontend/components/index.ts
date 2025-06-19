@@ -52,4 +52,5 @@ export { default as AdminActions } from "./dashboard/admin/admin-actions";
 export { default as LoginLogs } from "./dashboard/admin/login-logs";
 export { default as Notifications } from "./dashboard/admin/notifications";
 export { default as Legal } from "./dashboard/admin/legal";
-
+export { default as ModalForm } from "./common/modal-form";
+export { default as TimePicker } from "./common/time-picker";

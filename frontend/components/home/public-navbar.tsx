@@ -112,11 +112,11 @@ const PublicNavbar = () => {
             </div>
 
             {/* Mobile Toggle Button */}
-            <div className="md:hidden ">
+            <div className="lg:hidden ">
                 <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Toggle menu"
-                className="text-text-main focus:outline-none cursor-pointer"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    aria-label="Toggle menu"
+                    className="text-text-main focus:outline-none cursor-pointer"
                 >
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
@@ -135,44 +135,44 @@ const PublicNavbar = () => {
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="md:hidden flex flex-col px-6 pb-4 space-y-3 font-regular-eng text-sm bg-white shadow-md"
                 >
-                {menuItems.map((item) => (
+                    {menuItems.map((item) => (
+                        <button
+                        key={item.label}
+                        onClick={(e) => handleLinkClick(e, item.href)}
+                        className="font-semibold text-text-main hover:underline cursor-pointer text-left"
+                        >
+                        {item.label}
+                        </button>
+                    ))}
+
+                    <span className="flex items-center text-sm mt-3">
+                        <Dropdown
+                        className="w-[140px]"
+                        items={langsOptions}
+                        selected={langsOptions.find(option => option.value === lang)}
+                        onSelect={(item) => {setLang(item.value as Lang)}}
+                        />
+                    </span>
+
                     <button
-                    key={item.label}
-                    onClick={(e) => handleLinkClick(e, item.href)}
-                    className="font-semibold text-text-main hover:underline cursor-pointer text-left"
+                        onClick={() => {
+                        setIsMenuOpen(false);
+                        router.push("/signup");
+                        }}
+                        className="rounded px-4 py-2 text-sm font-bold bg-primary text-text-light hover:bg-primary-hover transition-all duration-300 mt-2 cursor-pointer"
                     >
-                    {item.label}
+                        Try For Free
                     </button>
-                ))}
 
-                <span className="flex items-center text-sm mt-3">
-                    <Dropdown
-                    className="w-[140px]"
-                    items={langsOptions}
-                    selected={langsOptions.find(option => option.value === lang)}
-                    onSelect={(item) => {setLang(item.value as Lang)}}
-                    />
-                </span>
-
-                <button
-                    onClick={() => {
-                    setIsMenuOpen(false);
-                    router.push("/signup");
-                    }}
-                    className="rounded px-4 py-2 text-sm font-bold bg-primary text-text-light hover:bg-primary-hover transition-all duration-300 mt-2 cursor-pointer"
-                >
-                    Try For Free
-                </button>
-
-                <button
-                    onClick={() => {
-                    setIsMenuOpen(false);
-                    router.push("/login");
-                    }}
-                    className="border border-text-main rounded px-4 py-2 text-sm font-semibold hover:bg-black hover:text-white transition-all duration-300 cursor-pointer"
-                >
-                    Login
-                </button>
+                    <button
+                        onClick={() => {
+                        setIsMenuOpen(false);
+                        router.push("/login");
+                        }}
+                        className="border border-text-main rounded px-4 py-2 text-sm font-semibold hover:bg-black hover:text-white transition-all duration-300 cursor-pointer"
+                    >
+                        Login
+                    </button>
                 </motion.div>
             )}
             </AnimatePresence>
