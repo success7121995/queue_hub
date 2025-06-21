@@ -229,8 +229,7 @@ const ImageUploader = ({
 				{previewImages.length > 0 && !multiple && (
 					<>
 						<div 
-							className={`absolute inset-0 z-10 ${onImageClick ? 'cursor-pointer hover:opacity-80 transition-opacity duration-200' : ''}`}
-							onClick={() => onImageClick?.(previewImages[0].preview, "Image preview")}
+							className="absolute inset-0 z-10"
 						>
 							<Image
 								src={previewImages[0].preview}
@@ -247,7 +246,7 @@ const ImageUploader = ({
 									e.stopPropagation();
 									removeImage(previewImages[0].id);
 								}}
-								className="absolute top-1 right-1 bg-white text-black rounded-full p-1 shadow hover:bg-red-500 hover:text-white transition z-50"
+								className="absolute top-1 right-1 bg-white text-black rounded-full p-1 shadow hover:bg-red-500 hover:text-white transition z-40"
 							>
 								<X className="w-5 h-5" />
 							</button>
@@ -258,12 +257,12 @@ const ImageUploader = ({
 				{/* Dropzone label (always interactive) */}
 				
 				{!(previewImages.length > 0 && !multiple) && (
-				<div className="relative z-20 h-full flex flex-col items-center justify-center text-center pointer-events-none">
-					<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
-					{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
-					</p>
-					<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
-				</div>
+					<div className="relative z-20 h-full flex flex-col items-center justify-center text-center pointer-events-none">
+						<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
+						{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
+						</p>
+						<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
+					</div>
 				)}
 			</div>
 		</div>

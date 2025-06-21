@@ -14,9 +14,10 @@ import type { PreviewImage } from "@/components/common/image-uploader";
 interface BranchDetailProps {
 	branch: Branch;
 	onClose: () => void;
+	onBack: () => void;
 }
 
-const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
+const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 	const [editModal, setEditModal] = useState<string | null>(null);
 	const [newTag, setNewTag] = useState("");
 	const [newFeature, setNewFeature] = useState("");
@@ -106,6 +107,14 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 		const [galleryImages, setGalleryImages] = useState<BranchImage[]>(
 			(branch.BranchImage || []).filter(img => img.image_type === 'IMAGE')
 		);
+
+		const buildImageUrl = (url: string) => {
+			if (!url) return '';
+			if (url.startsWith('blob:') || url.startsWith('http')) {
+				return url;
+			}
+			return `${process.env.NEXT_PUBLIC_BACKEND_URL}${url}`;
+		};
 
 		// Days of week
 		const daysOfWeek = [
@@ -583,13 +592,9 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 	 * @param alt - The alt text for the image
 	 */
 	const handleImagePreview = useCallback((imageUrl: string, alt?: string) => {
-		const finalUrl = imageUrl.startsWith('blob:')
-            ? imageUrl
-            : `${process.env.NEXT_PUBLIC_BACKEND_URL}${imageUrl}`;
-
 		setImagePreviewModal({
 			isOpen: true,
-			imageUrl: finalUrl,
+			imageUrl: buildImageUrl(imageUrl),
 			alt: alt || "Image Preview"
 		});
 	}, []);
@@ -805,7 +810,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 
 	return (
 		<div className="w-full max-w-7x1 mx-auto font-regular-eng">
-			<button type="button" className="mb-4 flex items-center gap-2 text-gray-600 hover:text-primary-light font-semibold cursor-pointer" onClick={onClose}>
+			<button type="button" className="mb-4 flex items-center gap-2 text-gray-600 hover:text-primary-light font-semibold cursor-pointer" onClick={onBack}>
 				<span className="text-xl">←</span>
 				<span>Back</span>
 			</button>
@@ -856,7 +861,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 								multiple={false}
 								onImageAdded={handleLogoAdded}
 								onImageRemoved={handleLogoRemoved}
-								existingImage={optimisticLogoUrl ? [{ id: logoId || 'logo', file: null as any, preview: optimisticLogoUrl.startsWith('blob:') ? optimisticLogoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL}${optimisticLogoUrl}`}] : []}
+								existingImage={optimisticLogoUrl ? [{ id: logoId || 'logo', file: null as any, preview: buildImageUrl(optimisticLogoUrl)}] : []}
 								onImageClick={handleImagePreview}
 							/>
 						</div>
@@ -966,7 +971,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 								multiple={false}
 								onImageAdded={handleFeatureImageAdded}
 								onImageRemoved={handleFeatureImageRemoved}
-								existingImage={optimisticFeatureImageUrl ? [{ id: featureImageId || 'feature_image', file: null as any, preview: optimisticFeatureImageUrl.startsWith('blob:') ? optimisticFeatureImageUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL}${optimisticFeatureImageUrl}` }] : []}
+								existingImage={optimisticFeatureImageUrl ? [{ id: featureImageId || 'feature_image', file: null as any, preview: buildImageUrl(optimisticFeatureImageUrl) }] : []}
 								onImageClick={handleImagePreview}
 							/>
 						</div>
@@ -1043,7 +1048,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 							existingImage={galleryImages.map((img: any) => ({
 								id: img.image_id,
 								file: null as any, // We don't have the file for existing images
-								preview: `${process.env.NEXT_PUBLIC_BACKEND_URL}${img.image_url}`
+								preview: buildImageUrl(img.image_url)
 							}))}
 							onImageClick={(imageUrl, alt) => handleImagePreview(imageUrl.replace(process.env.NEXT_PUBLIC_BACKEND_URL || '', ''), alt || "Gallery Image")}
 						/>

@@ -48,7 +48,8 @@ const BranchInfo = () => {
 			{selectedBranchIdx !== null && branchesData?.branches?.[selectedBranchIdx] ? (
 				<BranchDetail 
 					branch={branchesData.branches[selectedBranchIdx]} 
-					onClose={handleCloseDetail} 
+					onClose={handleCloseDetail}
+					onBack={handleCloseDetail}
 				/>
 			) : (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
