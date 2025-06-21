@@ -5,6 +5,8 @@ import Cookies from "js-cookie";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
 import { AddBranchFormFields, SignupFormFields } from "@/types/form";
+import { useUserMerchants } from "@/hooks/merchant-hooks";
+import { useAuth } from "@/hooks/auth-hooks";
 
 const COOKIE_KEY = "signupForm";
 
@@ -33,6 +35,11 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
         formState: { errors },
     } = (formMethods as unknown) as UseFormReturn<AddBranchFormFields["branchInfo"] | SignupFormFields["branchInfo"]>;
 
+    // Get merchant ID for fetching staff members
+    const { data: currentUser } = useAuth();
+    const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
+    const { data: userMerchants } = useUserMerchants(merchantId || '');
+
     // Load from cookie if available
     useEffect(() => {
         const cookie = Cookies.get(COOKIE_KEY);
@@ -41,11 +48,7 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
                 const parsed: CookieData = JSON.parse(cookie);
                 if (parsed.branchInfo) {
                     Object.entries(parsed.branchInfo).forEach(([key, value]) => {
-                        if (key === 'opening_hours') {
-                            setValue('opening_hours', value as any[]);
-                        } else {
-                            setValue(key as keyof (AddBranchFormFields["branchInfo"] | SignupFormFields["branchInfo"]), value as any);
-                        }
+                        setValue(key as keyof (AddBranchFormFields["branchInfo"] | SignupFormFields["branchInfo"]), value as any);
                     });
                 }
             } catch (error) {
@@ -73,12 +76,6 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
             email: data.email,
             phone: data.phone,
             description: data.description,
-            opening_hours: data.opening_hours?.map(hour => ({
-                day_of_week: hour.day_of_week,
-                open_time: hour.open_time,
-                close_time: hour.close_time,
-                is_closed: hour.is_closed
-            }))
         };
 
         // Preserve existing data but update branchInfo
@@ -91,23 +88,11 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
         if (onNext) onNext();
     };
 
-    const handleOpeningHoursChange = (index: number, field: 'open_time' | 'close_time' | 'is_closed', value: string | boolean) => {
-        const currentHours = getValues('opening_hours') || [];
-        const dayHours = currentHours.find(h => h.day_of_week === index + 1);
-
-        if (dayHours) {
-            setValue('opening_hours', currentHours.map(h => 
-                h.day_of_week === index + 1 ? { ...h, [field]: value } : h
-            ));
-        } else {
-            setValue('opening_hours', [...currentHours, {
-                day_of_week: index + 1,
-                open_time: field === 'open_time' ? value as string : '09:00',
-                close_time: field === 'close_time' ? value as string : '18:00',
-                is_closed: field === 'is_closed' ? value as boolean : false
-            }]);
-        }
-    };
+    // Get staff options for contact person selection
+    const staffOptions = userMerchants?.user_merchants?.map((staff: any) => ({
+        value: staff.staff_id,
+        label: `${staff.User?.fname || ''} ${staff.User?.lname || ''}`.trim() || staff.staff_id
+    })) || [];
 
     return (
         <form
@@ -130,6 +115,40 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
                     />
                     {errors.branch_name && <span className="text-red-500 text-xs">{errors.branch_name.message}</span>}
                 </div>
+
+                {/* Contact Person - Only show for add-branch form */}
+                {formType === "add-branch" && (
+                    <div>
+                        <label htmlFor="contact_person_id" className="block mb-1 font-semibold text-text-main text-sm">
+                            Contact Person <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            id="contact_person_id"
+                            className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                                errors.contact_person_id ? "border-red-500" : "border-gray-400"
+                            }`}
+                            {...register("contact_person_id", { 
+                                required: "Contact person is required",
+                                validate: (value) => value !== "" || "Please select a contact person"
+                            })}
+                        >
+                            <option value="">Select a contact person</option>
+                            {staffOptions.map((staff) => (
+                                <option key={staff.value} value={staff.value}>
+                                    {staff.label}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.contact_person_id && (
+                            <span className="text-red-500 text-xs">{errors.contact_person_id.message}</span>
+                        )}
+                        {staffOptions.length === 0 && (
+                            <span className="text-orange-500 text-xs">
+                                No staff members available. Please add staff members first.
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 {/* Email (Optional) */}
                 <div>

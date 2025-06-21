@@ -133,7 +133,7 @@ const PublicNavbar = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="md:hidden flex flex-col px-6 pb-4 space-y-3 font-regular-eng text-sm bg-white shadow-md"
+                    className="lg:hidden flex flex-col px-6 pb-4 space-y-3 font-regular-eng text-sm bg-white shadow-md"
                 >
                     {menuItems.map((item) => (
                         <button

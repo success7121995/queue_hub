@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react";
-import { Tag, ImageUploader } from "@/components";
+import { Tag, ImageUploader, ImagePreviewModal } from "@/components";
 import { type Branch, type BranchImage } from "@/types/merchant";
 import { Trash2, MapPin, User, Tag as TagIcon, Info, Clock, Star } from "lucide-react";
 import Image from "next/image";
 import { TimePicker, ModalForm } from "@/components";
 import type { ModalFormField } from "@/components/common/modal-form";
-import { useUpdateBranch, useUpdateBranchImages, useUpdateBranchAddress, useUserMerchants, useCreateBranchFeature, useCreateBranchTag, useDeleteBranchTag, useDeleteBranchFeature } from "@/hooks/merchant-hooks";
+import { useUpdateBranch, useUpdateBranchAddress, useUserMerchants, useCreateBranchFeature, useCreateBranchTag, useDeleteBranchTag, useDeleteBranchFeature, useUpdateBranchOpeningHours, useUploadBranchImages, useDeleteBranchImage } from "@/hooks/merchant-hooks";
+import { useDateTime, dayOfWeekMap } from "@/constant/datetime-provider";
+import type { PreviewImage } from "@/components/common/image-uploader";
 
 interface BranchDetailProps {
 	branch: Branch;
@@ -19,98 +21,111 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 	const [newTag, setNewTag] = useState("");
 	const [newFeature, setNewFeature] = useState("");
 	const [currentFormData, setCurrentFormData] = useState<Record<string, any>>({});
+	const [imagePreviewModal, setImagePreviewModal] = useState<{ isOpen: boolean; imageUrl: string; alt: string }>({
+		isOpen: false,
+		imageUrl: "",
+		alt: ""
+	});
 	const { data: userMerchants } = useUserMerchants(branch.merchant_id);
+	const { parseTime, formatToHHmm } = useDateTime();
+
+	const [optimisticLogoUrl, setOptimisticLogoUrl] = useState(branch.BranchImage.find(i => i.image_type === 'LOGO')?.image_url);
+	const [logoId, setLogoId] = useState(branch.BranchImage.find(i => i.image_type === 'LOGO')?.image_id);
+
+	const [optimisticFeatureImageUrl, setOptimisticFeatureImageUrl] = useState(branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_url);
+	const [featureImageId, setFeatureImageId] = useState(branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_id);
+	
+	const logoUrl = branch.BranchImage.find(i => i.image_type === 'LOGO')?.image_url;
+	const featureImageUrl = branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_url;
 
 	// Optimistic state for branch data
-	const [optimisticBranch, setOptimisticBranch] = useState({
-		branch_name: branch.branch_name,
-		description: branch.description || "",
-		Address: branch.Address || {
-			street: "",
-			city: "",
-			state: "",
-			country: "",
-			zip: "",
-			unit: "",
-			floor: "",
-		},
-		contact_person: branch.contact_person || {
-			staff_id: "",
-			user_id: "",
-			role: "",
-			position: "",
-			User: {
-				fname: "",
-				lname: "",
-				email: "",
-				phone: "",
-			}
-		},	
-		tags: branch.Tag ? branch.Tag.map((t: any) => t.tag_name) : [],
-		features: branch.BranchFeature ? branch.BranchFeature.map((f: any) => f.label) : [],
-	});
+	const [optimisticBranch, setOptimisticBranch] = useState(() => {
+		const defaultOpeningHours = [
+			{ dayOfWeek: 'Monday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Tuesday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Wednesday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Thursday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Friday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Saturday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Sunday', openTime: '09:00', closeTime: '18:00', closed: true },
+			{ dayOfWeek: 'Public Holiday', openTime: '09:00', closeTime: '18:00', closed: true },
+		];
 
-	// Mutations
-	const updateBranchMutation = useUpdateBranch();
-	const updateBranchImagesMutation = useUpdateBranchImages();
-	const createBranchFeaturesMutation = useCreateBranchFeature();
-	const updateBranchAddressMutation = useUpdateBranchAddress();
-	const createBranchTagMutation = useCreateBranchTag();
-	const deleteBranchTagMutation = useDeleteBranchTag();
-	const deleteBranchFeatureMutation = useDeleteBranchFeature();
+		const dayOfWeekEnumMap: { [key: string]: string } = {
+            MONDAY: 'Monday', TUESDAY: 'Tuesday', WEDNESDAY: 'Wednesday', THURSDAY: 'Thursday', FRIDAY: 'Friday', SATURDAY: 'Saturday', SUNDAY: 'Sunday', PUBLIC_HOLIDAY: 'Public Holiday'
+        };
 
-	// State
-	const [galleryImages, setGalleryImages] = useState<BranchImage[]>(branch.BranchImage || []);
+		const branchHoursMap = new Map(
+            (branch.BranchOpeningHour || []).map(h => [dayOfWeekEnumMap[h.day_of_week], h])
+        );
 
-	const defaultOpeningHours = [
-		{ dayOfWeek: 'Monday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Tuesday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Wednesday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Thursday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Friday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Saturday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Sunday', openTime: '09:00', closeTime: '18:00', closed: true },
-		{ dayOfWeek: 'Public Holiday', openTime: '09:00', closeTime: '18:00', closed: true },
-	];
+		const openingHours = defaultOpeningHours.map(defaultHour => {
+            const branchHour = branchHoursMap.get(defaultHour.dayOfWeek);
+            if (branchHour) {
+                return {
+                    id: branchHour.id,
+                    dayOfWeek: defaultHour.dayOfWeek,
+                    openTime: formatToHHmm(branchHour.open_time),
+                    closeTime: formatToHHmm(branchHour.close_time),
+						closed: branchHour.is_closed,
+					};
+				}
+				return { ...defaultHour, id: undefined };
+			});
 
-	const [openingHours, setOpeningHours] = useState(() => {
-		// Map branch.BranchOpeningHour to days of week if available, else use defaults
-		const branchHours = branch.BranchOpeningHour || [];
-		return defaultOpeningHours.map((defaultHour: any, idx: number) => {
-			const found = branchHours.find(
-				(h: any) => Number(h.day_of_week) === idx + 1 // assuming 1=Monday, 7=Sunday
-			);
-			return found
-				? {
-						id: found.id,
-						dayOfWeek: defaultHour.dayOfWeek,
-						openTime: found.open_time || defaultHour.openTime,
-						closeTime: found.close_time || defaultHour.closeTime,
-						closed: found.is_closed,
-					}
-				: { ...defaultHour, id: undefined };
+			return {
+				branch_name: branch.branch_name,
+				description: branch.description || "",
+				Address: branch.Address || {
+					street: "", city: "", state: "", country: "", zip: "", unit: "", floor: "",
+				},
+				email: branch.email || "",
+				phone: branch.phone || "",
+				contact_person: branch.contact_person || {
+					staff_id: "", user_id: "", role: "", position: "", User: { fname: "", lname: "", email: "", phone: "" }
+				},	
+				tags: branch.Tag ? branch.Tag.map((t: any) => t.tag_name) : [],
+				features: branch.BranchFeature ? branch.BranchFeature.map((f: any) => f.label) : [],
+				feature_image: branch.BranchImage.find((image: any) => image.image_type === 'FEATURE_IMAGE')?.image_url || "",
+				openingHours: openingHours,
+			};
 		});
-	});
 
-	// Days of week
-	const daysOfWeek = [
-		"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Public Holiday"
-	];
+		// Mutations
+		const updateBranchMutation = useUpdateBranch();
+		const uploadBranchImagesMutation = useUploadBranchImages();
+		const createBranchFeaturesMutation = useCreateBranchFeature();
+		const updateBranchAddressMutation = useUpdateBranchAddress();
+		const createBranchTagMutation = useCreateBranchTag();
+		const deleteBranchTagMutation = useDeleteBranchTag();
+		const deleteBranchFeatureMutation = useDeleteBranchFeature();
+		const updateBranchOpeningHoursMutation = useUpdateBranchOpeningHours();
+		const deleteBranchImageMutation = useDeleteBranchImage();
 
-	/**
-	 * Handle the add tag
-	 */
-	const handleAddTag = () => {
-		const trimmed = newTag.trim();
-		if (!trimmed || optimisticBranch.tags.includes(trimmed)) return;
-		setOptimisticBranch(prev => ({ ...prev, tags: [...prev.tags, trimmed] }));
-		setNewTag("");
-		createBranchTagMutation.mutate({ branch_id: branch.branch_id, data: { tag_name: trimmed } }, {
-			onError: () => setOptimisticBranch(prev => ({ ...prev, tags: prev.tags.filter((t: string) => t !== trimmed) })),
-		});
-	};
+		// State
+		const [galleryImages, setGalleryImages] = useState<BranchImage[]>(
+			(branch.BranchImage || []).filter(img => img.image_type === 'IMAGE')
+		);
 
-	/**
+		// Days of week
+		const daysOfWeek = [
+			"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Public Holiday"
+		];
+
+		/**
+		 * Handle the add tag
+		 */
+		const handleAddTag = () => {
+			const trimmed = newTag.trim();
+			if (!trimmed || optimisticBranch.tags.includes(trimmed)) return;
+			setOptimisticBranch(prev => ({ ...prev, tags: [...prev.tags, trimmed] }));
+			setNewTag("");
+			createBranchTagMutation.mutate({ branch_id: branch.branch_id, data: { tag_name: trimmed } }, {
+				onError: () => setOptimisticBranch(prev => ({ ...prev, tags: prev.tags.filter((t: string) => t !== trimmed) })),
+			});
+		};
+
+		/**
 	 * Handle the remove tag
 	 */
 	const handleRemoveTag = (tag: string) => {
@@ -156,18 +171,40 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 	 * @param value - The value to change to
 	 */
 	const handleOpeningHourChange = (idx: number, field: string, value: any) => {
-		setOpeningHours((prev: any[]) => prev.map((item: any, i: number) =>
-			i === idx ? { ...item, [field]: value } : item
-		));
+		const previousBranch = { ...optimisticBranch };
+
+		const newOpeningHours = optimisticBranch.openingHours.map((hour, i) => {
+			if (i === idx) {
+				return { ...hour, [field]: value };
+			}
+			return hour;
+		});
+
+		setOptimisticBranch(prev => ({
+			...prev,
+			openingHours: newOpeningHours,
+		}));
+
+		const updatedHour = newOpeningHours[idx];
+
+		const backendData = {
+			day_of_week: dayOfWeekMap[idx],
+			open_time: parseTime(updatedHour.openTime),
+			close_time: parseTime(updatedHour.closeTime),
+			is_closed: updatedHour.closed,
+		};
+
+		updateBranchOpeningHoursMutation.mutate(
+			{ branch_id: branch.branch_id, data: backendData },
+			{
+				onError: (error) => {
+					console.error('Failed to update opening hours:', error);
+					setOptimisticBranch(previousBranch);
+				}
+			}
+		);
 	};
 
-	/**
-	 * Handle the Gallery upload
-	 * @param images - The images to upload
-	 */
-	const handleGalleryUpload = (images: any[]) => {
-		console.log('Gallery images:', images);
-	};
 
 	/**
 	 * Handle form field changes
@@ -214,7 +251,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						type: 'text',
 						required: true,
 						placeholder: 'Enter branch name',
-						value: branch.branch_name || ''
+						value: optimisticBranch.branch_name || ''
 					}
 				];
 
@@ -226,7 +263,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						type: 'text',
 						required: true,
 						placeholder: 'Enter street address',
-						value: branch.Address?.street || ''
+						value: optimisticBranch.Address?.street || ''
 					},
 					{
 						id: 'city',
@@ -234,14 +271,14 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						type: 'text',
 						required: true,
 						placeholder: 'Enter city',
-						value: branch.Address?.city || ''
+						value: optimisticBranch.Address?.city || ''
 					},
 					{
 						id: 'state',
 						label: 'State/Province',
 						type: 'text',
 						placeholder: 'Enter state or province',
-						value: branch.Address?.state || ''
+						value: optimisticBranch.Address?.state || ''
 					},
 					{
 						id: 'country',
@@ -249,7 +286,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						type: 'text',
 						required: true,
 						placeholder: 'Enter country',
-						value: branch.Address?.country || ''
+						value: optimisticBranch.Address?.country || ''
 					},
 					{
 						id: 'zip',
@@ -257,54 +294,51 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						type: 'text',
 						required: true,
 						placeholder: 'Enter ZIP code',
-						value: branch.Address?.zip || ''
+						value: optimisticBranch.Address?.zip || ''
 					},
 					{
 						id: 'unit',
 						label: 'Unit',
 						type: 'text',
 						placeholder: 'Enter unit number (optional)',
-						value: branch.Address?.unit || ''
+						value: optimisticBranch.Address?.unit || ''
 					},
 					{
 						id: 'floor',
 						label: 'Floor',
 						type: 'text',
 						placeholder: 'Enter floor number (optional)',
-						value: branch.Address?.floor || ''
+						value: optimisticBranch.Address?.floor || ''
+					}
+				];
+
+			case 'email':
+				return [
+					{
+						id: 'email',
+						label: 'Email',
+						type: 'email',
+						placeholder: 'Enter email',
+						value: optimisticBranch.email || ''
+					}
+				];
+
+			case 'phone':
+				return [
+					{
+						id: 'phone',
+						label: 'Phone',
+						type: 'text',
+						placeholder: 'Enter phone number',
+						value: optimisticBranch.phone || ''
 					}
 				];
 
 			case 'logo':
-				return [
-					{
-						id: 'logo',
-						label: 'Branch Logo',
-						type: 'image',
-						required: true,
-						imageConfig: {
-							frameWidth: 200,
-							frameHeight: 200,
-							multiple: false,
-							fontSize: 14
-						}
-					}
-				];
+				return [];
 
 			case 'featureImage':
-				return [
-					{
-						id: 'featureImage',
-						label: 'Feature Image',
-						type: 'image',
-						imageConfig: {
-							frameWidth: 400,
-							frameHeight: 225,
-							multiple: false,
-							fontSize: 14
-						}
-					}
-				];
+				return [];
 
 			case 'description':
 				return [
@@ -313,7 +347,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'Branch Description',
 						type: 'textarea',
 						placeholder: 'Enter a description for your branch...',
-						value: branch.description || ''
+						value: optimisticBranch.description || ''
 					}
 				];
 
@@ -331,7 +365,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						type: 'select',
 						required: true,
 						placeholder: 'Select a staff member',
-						value: branch.contact_person?.staff_id || '',
+						value: optimisticBranch.contact_person?.staff_id || '',
 						options: staffOptions
 					},
 					{
@@ -339,7 +373,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'Staff ID',
 						type: 'text',
 						readOnly: true,
-						value: currentFormData.display_staff_id || branch.contact_person?.staff_id || '',
+						value: currentFormData.display_staff_id || optimisticBranch.contact_person?.staff_id || '',
 						placeholder: 'Staff ID will be auto-filled'
 					},
 					{
@@ -347,7 +381,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'First Name',
 						type: 'text',
 						readOnly: true,
-						value: currentFormData.display_fname || branch.contact_person?.User?.fname || '',
+						value: currentFormData.display_fname || optimisticBranch.contact_person?.User?.fname || '',
 						placeholder: 'First name will be auto-filled'
 					},
 					{
@@ -355,7 +389,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'Last Name',
 						type: 'text',
 						readOnly: true,
-						value: currentFormData.display_lname || branch.contact_person?.User?.lname || '',
+						value: currentFormData.display_lname || optimisticBranch.contact_person?.User?.lname || '',
 						placeholder: 'Last name will be auto-filled'
 					},
 					{
@@ -363,7 +397,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'Email',
 						type: 'email',
 						readOnly: true,
-						value: currentFormData.display_email || branch.contact_person?.User?.email || '',
+						value: currentFormData.display_email || optimisticBranch.contact_person?.User?.email || '',
 						placeholder: 'Email will be auto-filled'
 					},
 					{
@@ -371,7 +405,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'Phone',
 						type: 'tel',
 						readOnly: true,
-						value: currentFormData.display_phone || branch.contact_person?.User?.phone || '',
+						value: currentFormData.display_phone || optimisticBranch.contact_person?.User?.phone || '',
 						placeholder: 'Phone will be auto-filled'
 					},
 					{
@@ -379,7 +413,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						label: 'Position',
 						type: 'text',
 						readOnly: true,
-						value: currentFormData.display_position || branch.contact_person?.position || '',
+						value: currentFormData.display_position || optimisticBranch.contact_person?.position || '',
 						placeholder: 'Position will be auto-filled'
 					}
 				];
@@ -388,20 +422,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 				return [];
 		}
 	}, [
-		branch.branch_name,
-		branch.description,
-		branch.Address?.street,
-		branch.Address?.city,
-		branch.Address?.state,
-		branch.Address?.country,
-		branch.contact_person?.staff_id,
-		branch.contact_person?.user_id,
-		branch.contact_person?.User?.fname,
-		branch.contact_person?.User?.lname,
-		branch.contact_person?.User?.email,
-		branch.contact_person?.User?.phone,
-		branch.contact_person?.position,
-		branch.contact_person?.role,
+		optimisticBranch,
 		userMerchants?.user_merchants,
 		currentFormData
 	]);
@@ -410,6 +431,8 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 		switch (modalType) {
 			case 'branch_name': return 'Edit Branch Name';
 			case 'address': return 'Edit Branch Address';
+			case 'email': return 'Edit Branch Email';
+			case 'phone': return 'Edit Branch Phone';
 			case 'logo': return 'Edit Branch Logo';
 			case 'featureImage': return 'Edit Feature Image';
 			case 'description': return 'Edit Branch Description';
@@ -419,7 +442,6 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 	}, []);
 
 	const handleModalSubmit = useCallback((data: any) => {
-		console.log('Modal form data:', data);
 
 		// Store previous values for rollback
 		const previousValues = { ...optimisticBranch };
@@ -470,6 +492,28 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 				});
 				break;
 
+			case 'email':
+				setOptimisticBranch(prev => ({ ...prev, email: data.email }));
+
+				updateBranchMutation.mutate({ branch_id: branch.branch_id, data: { email: data.email }}, {
+					onError: (error) => {
+						console.error('Failed to update email:', error);
+						setOptimisticBranch(prev => ({ ...prev, email: previousValues.email }));
+					}
+				});
+				break;
+
+			case 'phone':
+				setOptimisticBranch(prev => ({ ...prev, phone: data.phone }));
+
+				updateBranchMutation.mutate({ branch_id: branch.branch_id, data: { phone: data.phone }}, {
+					onError: (error) => {
+						console.error('Failed to update phone:', error);
+						setOptimisticBranch(prev => ({ ...prev, phone: previousValues.phone }));
+					}
+				});
+				break;
+
 			case 'contact':
 				// Find the selected staff member
 				const selectedStaff = userMerchants?.user_merchants?.find((staff: any) => staff.staff_id === data.staff_id);
@@ -480,10 +524,16 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 				}
 
 				// Optimistically update UI
-				setOptimisticBranch(prev => ({ ...prev, contact_person: data.staff_id }));
+				setOptimisticBranch(prev => ({ 
+					...prev, 
+					contact_person: {
+						...selectedStaff,
+						User: selectedStaff.User || { fname: "", lname: "", email: "", phone: "" }
+					}
+				}));
 				
 				// Use the separate contact person update mutation
-				updateBranchMutation.mutate({ branch_id: branch.branch_id, data: data.staff_id }, {
+				updateBranchMutation.mutate({ branch_id: branch.branch_id, data: { contact_person_id: data.staff_id } }, {
 					onError: (error) => {
 						console.error('Failed to update contact person:', error);
 						setOptimisticBranch(prev => ({ ...prev, contact_person: previousValues.contact_person }));
@@ -505,32 +555,253 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 					}
 				});
 				break;
-				
+
+			case 'openingHours':
+				setOptimisticBranch(prev => ({ ...prev, openingHours: data.openingHours }));
+
+				updateBranchOpeningHoursMutation.mutate({ branch_id: branch.branch_id, data: data.openingHours }, {
+					onError: (error) => {
+						console.error('Failed to update opening hours:', error);
+						setOptimisticBranch(prev => ({ ...prev, openingHours: previousValues.openingHours }));
+					}
+				});
+				break;
+
 		}
 
 		// Close the modal
 		setEditModal(null);
-	}, [branch.branch_id, updateBranchMutation, optimisticBranch]);
+	}, [branch.branch_id, updateBranchMutation, optimisticBranch, userMerchants?.user_merchants, deleteBranchImageMutation, uploadBranchImagesMutation]);
 
 	const handleModalClose = useCallback(() => {
 		setEditModal(null);
+	}, []);
+
+	/**
+	 * Handle opening image preview modal
+	 * @param imageUrl - The URL of the image to preview
+	 * @param alt - The alt text for the image
+	 */
+	const handleImagePreview = useCallback((imageUrl: string, alt?: string) => {
+		const finalUrl = imageUrl.startsWith('blob:')
+            ? imageUrl
+            : `${process.env.NEXT_PUBLIC_BACKEND_URL}${imageUrl}`;
+
+		setImagePreviewModal({
+			isOpen: true,
+			imageUrl: finalUrl,
+			alt: alt || "Image Preview"
+		});
+	}, []);
+
+	/**
+	 * Handle closing image preview modal
+	 */
+	const handleCloseImagePreview = useCallback(() => {
+		setImagePreviewModal({
+			isOpen: false,
+			imageUrl: "",
+			alt: ""
+		});
 	}, []);
 
 	// Initialize form data when contact modal opens
 	useEffect(() => {
 		if (editModal === 'contact') {
 			const initialFormData = {
-				staff_id: branch.contact_person?.staff_id || '',
-				display_staff_id: branch.contact_person?.staff_id || '',
-				display_fname: branch.contact_person?.User?.fname || '',
-				display_lname: branch.contact_person?.User?.lname || '',
-				display_email: branch.contact_person?.User?.email || '',
-				display_phone: branch.contact_person?.User?.phone || '',
-				display_position: branch.contact_person?.position || ''
+				staff_id: optimisticBranch.contact_person?.staff_id || '',
+				display_staff_id: optimisticBranch.contact_person?.staff_id || '',
+				display_fname: optimisticBranch.contact_person?.User?.fname || '',
+				display_lname: optimisticBranch.contact_person?.User?.lname || '',
+				display_email: optimisticBranch.contact_person?.User?.email || '',
+				display_phone: optimisticBranch.contact_person?.User?.phone || '',
+				display_position: optimisticBranch.contact_person?.position || ''
 			};
 			setCurrentFormData(initialFormData);
 		}
-	}, [editModal, branch.contact_person]);
+	}, [editModal, optimisticBranch.contact_person]);
+
+	const handleLogoUpload = (images: PreviewImage[]) => {
+		if (images.length === 0 && logoId) { // Deletion
+			const idToDelete = logoId;
+			setOptimisticLogoUrl(undefined);
+			setLogoId(undefined);
+			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: idToDelete });
+		} else if (images.length > 0 && images[0].file) { // Replacement or New Upload
+			const newLogoPreview = images[0].preview;
+			setOptimisticLogoUrl(newLogoPreview);
+	
+			const uploadNew = () => {
+				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: images, image_type: 'logo' }, {
+					onSuccess: (res) => {
+						const newImage = res.images[0];
+						if (newImage) {
+							setOptimisticLogoUrl(newImage.image_url);
+							setLogoId(newImage.image_id);
+						}
+					},
+					onError: () => {
+						setOptimisticLogoUrl(logoUrl); 
+					}
+				});
+			};
+	
+			if (logoId) { // Replace
+				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: logoId }, {
+					onSuccess: uploadNew
+				});
+			} else { // New upload
+				uploadNew();
+			}
+		}
+	};
+
+	const handleFeatureImageUpload = (images: PreviewImage[]) => {
+		if (images.length === 0 && featureImageId) { // Deletion
+			const idToDelete = featureImageId;
+			setOptimisticFeatureImageUrl(undefined);
+			setFeatureImageId(undefined);
+			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: idToDelete });
+		} else if (images.length > 0 && images[0].file) { // Replacement or New Upload
+			const newImagePreview = images[0].preview;
+			setOptimisticFeatureImageUrl(newImagePreview);
+	
+			const uploadNew = () => {
+				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: images, image_type: 'feature-image' }, {
+					onSuccess: (res) => {
+						const newImage = res.images[0];
+						if (newImage) {
+							setOptimisticFeatureImageUrl(newImage.image_url);
+							setFeatureImageId(newImage.image_id);
+						}
+					},
+					onError: () => {
+						setOptimisticFeatureImageUrl(featureImageUrl);
+					}
+				});
+			};
+	
+			if (featureImageId) { // Replace
+				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: featureImageId }, {
+					onSuccess: uploadNew
+				});
+			} else { // New upload
+				uploadNew();
+			}
+		}
+	};
+
+	const handleLogoAdded = (image: PreviewImage): Promise<void> => {
+		return new Promise((resolve, reject) => {
+			setOptimisticLogoUrl(image.preview);
+	
+			const uploadNew = () => {
+				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: [image], image_type: 'logo' }, {
+					onSuccess: (res) => {
+						const newImage = res.images[0];
+						if (newImage) {
+							setOptimisticLogoUrl(newImage.image_url);
+							setLogoId(newImage.image_id);
+						}
+						resolve();
+					},
+					onError: (err) => {
+						setOptimisticLogoUrl(logoUrl);
+						reject(err);
+					}
+				});
+			};
+	
+			if (logoId) { // Replace
+				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: logoId }, {
+					onSuccess: uploadNew,
+					onError: (err) => {
+						setOptimisticLogoUrl(logoUrl);
+						reject(err);
+					}
+				});
+			} else { // New upload
+				uploadNew();
+			}
+		});
+	};
+
+	const handleLogoRemoved = (id: string) => {
+		if (logoId) {
+			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: logoId });
+			setOptimisticLogoUrl(undefined);
+			setLogoId(undefined);
+		}
+	};
+
+	const handleFeatureImageAdded = (image: PreviewImage): Promise<void> => {
+		return new Promise((resolve, reject) => {
+			setOptimisticFeatureImageUrl(image.preview);
+	
+			const uploadNew = () => {
+				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: [image], image_type: 'feature-image' }, {
+					onSuccess: (res) => {
+						const newImage = res.images[0];
+						if (newImage) {
+							setOptimisticFeatureImageUrl(newImage.image_url);
+							setFeatureImageId(newImage.image_id);
+						}
+						resolve();
+					},
+					onError: (err) => {
+						setOptimisticFeatureImageUrl(featureImageUrl);
+						reject(err);
+					}
+				});
+			};
+	
+			if (featureImageId) { // Replace
+				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: featureImageId }, {
+					onSuccess: uploadNew,
+					onError: (err) => {
+						setOptimisticFeatureImageUrl(featureImageUrl); // revert
+						reject(err);
+					}
+				});
+			} else { // New upload
+				uploadNew();
+			}
+		});
+	};
+
+	const handleFeatureImageRemoved = (id: string) => {
+		if (featureImageId) {
+			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: featureImageId });
+			setOptimisticFeatureImageUrl(undefined);
+			setFeatureImageId(undefined);
+		}
+	};
+
+	const handleGalleryImageAdded = (image: PreviewImage): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: [image], image_type: 'galleries' }, {
+                onSuccess: (result) => {
+                    const newImageFromServer = result.images[0];
+                    if (newImageFromServer) {
+                        setGalleryImages(prev => [...prev.filter(p => p.image_id !== image.id), newImageFromServer]);
+                    }
+                    resolve();
+                },
+                onError: (error) => {
+                    console.error('Failed to upload gallery image:', error);
+                    reject(error);
+                }
+            });
+        });
+    };
+
+    const handleGalleryImageRemoved = (id: string) => {
+        const imageToDelete = galleryImages.find(img => img.image_id === id);
+        if (imageToDelete) {
+            deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: imageToDelete.image_id });
+            setGalleryImages(prev => prev.filter(p => p.image_id !== id));
+        }
+    };
 
 	return (
 		<div className="w-full max-w-7x1 mx-auto font-regular-eng">
@@ -561,20 +832,33 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 								<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('address')}>Edit</button>
 							</div>
 						</div>
+						
+						{/* Email */}
+						<div className="mb-2">
+							<div className="font-semibold text-primary-light mb-1">Email</div>
+							<span>{optimisticBranch.email || 'No email'}</span>
+							<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('email')}>Edit</button>
+						</div>
+						
+						{/* Phone */}
+						<div className="mb-2">
+							<div className="font-semibold text-primary-light mb-1">Tel</div>
+							<span>{optimisticBranch.phone || 'No phone'}</span>
+							<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('phone')}>Edit</button>
+						</div>
 
 						{/* Logo */}
 						<div className="mb-2">
 							<div className="font-semibold text-primary-light mb-1">Logo</div>
-							<div className="flex gap-2 items-center">
-								{branch.BranchImage.find((image: any) => image.image_type === 'LOGO')?.image_url ? (
-									<Image src={branch.BranchImage.find((image: any) => image.image_type === 'LOGO')?.image_url || ''} alt="Logo" width={140} height={140} />
-								) : (
-									<div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-										<span className="text-gray-500">No logo</span>
-									</div>
-								)}
-								<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('logo')}>Edit</button>
-							</div>
+							<ImageUploader
+								frameWidth={140}
+								frameHeight={140}
+								multiple={false}
+								onImageAdded={handleLogoAdded}
+								onImageRemoved={handleLogoRemoved}
+								existingImage={optimisticLogoUrl ? [{ id: logoId || 'logo', file: null as any, preview: optimisticLogoUrl.startsWith('blob:') ? optimisticLogoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL}${optimisticLogoUrl}`}] : []}
+								onImageClick={handleImagePreview}
+							/>
 						</div>
 
 						{/* Tags */}
@@ -641,9 +925,7 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 						<div className="mb-2">
 							<label className="font-semibold text-primary-light mb-1">Opening Hour</label>
 							<div className="flex flex-col gap-2 mt-2">
-
-
-								{openingHours.map((hour: any, idx: number) => (
+								{optimisticBranch.openingHours.map((hour: any, idx: number) => (
 									<div key={hour.id || idx} className="flex items-center gap-2">
 										<span className="w-24">{daysOfWeek[idx]}</span>
 										<TimePicker
@@ -672,25 +954,21 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 										</label>
 									</div>
 								))}
-
-
 							</div>
 						</div>
 
 						{/* Feature Image */}
 						<div className="mb-2">
 							<label className="font-semibold text-primary-light mb-1">Feature Image</label>
-							<div className="flex items-center gap-2 mt-2">
-
-								{branch.BranchImage.find((image: any) => image.image_type === 'FEATURE')?.image_url ? (
-									<Image src={branch.BranchImage.find((image: any) => image.image_type === 'FEATURE')?.image_url || ''} alt="Feature Image" width={240} height={Math.round((240 / 16) * 9)} />
-								) : (
-									<div className="w-56 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-										<span className="text-gray-500">No feature image</span>
-									</div>
-								)}
-								<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('featureImage')}>Edit</button>
-							</div>
+							<ImageUploader
+								frameWidth={240}
+								frameHeight={Math.round((240 / 16) * 9)}
+								multiple={false}
+								onImageAdded={handleFeatureImageAdded}
+								onImageRemoved={handleFeatureImageRemoved}
+								existingImage={optimisticFeatureImageUrl ? [{ id: featureImageId || 'feature_image', file: null as any, preview: optimisticFeatureImageUrl.startsWith('blob:') ? optimisticFeatureImageUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL}${optimisticFeatureImageUrl}` }] : []}
+								onImageClick={handleImagePreview}
+							/>
 						</div>
 
 						{/* Description */}
@@ -752,12 +1030,23 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 
 					{/* Gallery */}
 					<div className="bg-white rounded-2xl shadow-md p-6">
-						<div className="flex items-center gap-2 mb-4">
-							<label className="text-lg font-bold text-primary-light">Gallery</label>
-						</div>
+						<h2 className="text-2xl font-bold text-primary-light mb-3">Gallery</h2>
  
 						{/* Gallery */}
-						<ImageUploader frameWidth={240} frameHeight={Math.round((240 / 16) * 9)} className="" multiple={true} onUploadComplete={handleGalleryUpload} />
+						<ImageUploader 
+							frameWidth={240} 
+							frameHeight={Math.round((240 / 16) * 9)} 
+							className="" 
+							multiple={true} 
+							onImageAdded={handleGalleryImageAdded}
+							onImageRemoved={handleGalleryImageRemoved}
+							existingImage={galleryImages.map((img: any) => ({
+								id: img.image_id,
+								file: null as any, // We don't have the file for existing images
+								preview: `${process.env.NEXT_PUBLIC_BACKEND_URL}${img.image_url}`
+							}))}
+							onImageClick={(imageUrl, alt) => handleImagePreview(imageUrl.replace(process.env.NEXT_PUBLIC_BACKEND_URL || '', ''), alt || "Gallery Image")}
+						/>
 					</div>
 				</div>
 			</div>
@@ -773,6 +1062,14 @@ const BranchDetail = ({ branch, onClose }: BranchDetailProps) => {
 				initialData={editModal === 'contact' ? currentFormData : {}}
 				submitText="Save Changes"
 				cancelText="Cancel"
+			/>
+
+			{/* Image Preview Modal */}
+			<ImagePreviewModal
+				isOpen={imagePreviewModal.isOpen}
+				onClose={handleCloseImagePreview}
+				imageUrl={imagePreviewModal.imageUrl}
+				alt={imagePreviewModal.alt}
 			/>
 		</div>
 	);

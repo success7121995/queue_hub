@@ -21,22 +21,37 @@ declare global {
 const branchSchema = z.object({
     // Branch Information 
     branch_name: z.string().min(1, "Branch name is required"),
-    staff_id: z.string().min(1, "Staff ID is required"),
-    phone: z.string().min(1, "Branch phone is required").optional(),
-    email: z.string().email("Invalid email address").optional(),
-    description: z.string().optional(),
+    contact_person_id: z.string().min(1, "Contact person is required"),
+    phone: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().min(1, "Branch phone is required").optional()
+    ),
+    email: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().email("Invalid email address").optional()
+    ),
+    description: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
 });
 
 export type BranchSchema = z.infer<typeof branchSchema>;
 
 const addressSchema = z.object({
-    unit: z.string().optional(),
-    floor: z.string().optional(),
     country: z.string().min(1, "Country is required"),
     street: z.string().min(1, "Street is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
     zip: z.string().min(1, "ZIP code is required"),
+    unit: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
+    floor: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
 });
 
 export type AddressSchema = z.infer<typeof addressSchema>;
@@ -78,9 +93,18 @@ const signupSchema = z.object({
     }),
     branchInfo: z.object({
         branch_name: z.string().min(1, "Branch name is required"),
-        phone: z.string().optional(),
-        email: z.string().email("Invalid email address").optional(),
-        description: z.string().optional(),
+        phone: z.preprocess(
+            (val) => val === "" ? undefined : val,
+            z.string().optional()
+        ),
+        email: z.preprocess(
+            (val) => val === "" ? undefined : val,
+            z.string().email("Invalid email address").optional()
+        ),
+        description: z.preprocess(
+            (val) => val === "" ? undefined : val,
+            z.string().optional()
+        ),
         opening_hours: z.array(z.object({
             day_of_week: z.number().min(1).max(7),
             open_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
@@ -94,18 +118,51 @@ const signupSchema = z.object({
         city: z.string().min(1, "City is required"),
         state: z.string().min(1, "State is required"),
         zip: z.string().min(1, "ZIP code is required"),
-        unit: z.string().optional(),
-        floor: z.string().optional(),
+        unit: z.preprocess(
+            (val) => val === "" ? undefined : val,
+            z.string().optional()
+        ),
+        floor: z.preprocess(
+            (val) => val === "" ? undefined : val,
+            z.string().optional()
+        ),
     }),
 });
 
 const branchImageSchema = z.object({
-    logo: z.string().optional(),
-    feature_image: z.string().optional(),
+    logo: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
+    feature_image: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
     galleries: z.array(z.string()).optional(),
 });
 
 export type BranchImageSchema = z.infer<typeof branchImageSchema>;
+
+// Schema for creating a branch with address
+const createBranchSchema = z.object({
+    branch_name: z.string().min(1, "Branch name is required"),
+    contact_person_id: z.string().min(1, "Contact person is required"),
+    phone: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
+    email: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().email("Invalid email address").optional()
+    ),
+    description: z.preprocess(
+        (val) => val === "" ? undefined : val,
+        z.string().optional()
+    ),
+    address: addressSchema,
+});
+
+export type CreateBranchSchema = z.infer<typeof createBranchSchema>;
 
 // Merchant controller
 // Handles: profile management, queue operations, analytics
@@ -284,15 +341,35 @@ export const merchantController = {
      */
     createBranch: withActivityLog(
         async (req: Request, res: Response) => {
-            const validatedData = branchSchema.parse(req.body);
+            const validatedData = createBranchSchema.parse(req.body);
+            const user = req.session.user;
 
-            const result = await merchantService.createBranch(validatedData);
+            console.log("validatedData", validatedData);
+
+            if (!user) {
+                throw new AppError("User not found", 404);
+            }
+
+            // Get merchant_id from the user's session
+            const merchant_id = user.merchant_id;
+            if (!merchant_id) {
+                throw new AppError("Merchant ID not found", 404);
+            }
+
+            const result = await merchantService.createBranch({
+                ...validatedData,
+                merchant_id
+            });
+            
+            res.status(201).json({ success: true, result });
+            return result;
         },
         {
             action: ActivityType.CREATE_BRANCH,
             extractUserId: (req) => req.user?.user_id ?? null,
             extractData: (req, res, result) => ({
-
+                branch_name: req.body.branch_name,
+                contact_person_id: req.body.contact_person_id,
             }),
         }
     ),
@@ -326,7 +403,7 @@ export const merchantController = {
             const { branch_id } = req.params;
             const updateData = req.body;
 
-            console.log('updateData', updateData);
+
 
             const result = await merchantService.updateBranch(branch_id, updateData);
             res.status(200).json({ success: true, result });
@@ -506,6 +583,52 @@ export const merchantController = {
     ),
 
     /**
+     * Update branch image
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateBranchImage: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id, image_id } = req.params;
+            const updateData = req.body;
+
+            const result = await merchantService.updateBranchImage(branch_id, image_id, updateData);
+            res.status(200).json({ success: true, result });
+            return result; 
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                image_id: req.params.image_id,
+            }),
+        }
+    ),
+
+    /**
+     * Delete branch images
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteBranchImages: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id, image_id } = req.params;
+            const result = await merchantService.deleteBranchImages(branch_id, image_id);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                image_id: req.params.image_id,
+            }),
+        }
+    ),
+
+    /**
      * Update branch opening hours
      * @param req - The request object
      * @param res - The response object
@@ -528,4 +651,6 @@ export const merchantController = {
             }),
         }
     ),
+
+
 }; 

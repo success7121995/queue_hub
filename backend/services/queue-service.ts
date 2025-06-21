@@ -1,6 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { Prisma, Queue, Tag } from "@prisma/client";
-import { AppError } from "../utils/app-error";
+import { Prisma, Tag } from "@prisma/client";
 
 // Handles: queue operations, customer management, wait time calculations
 export const queueService = {

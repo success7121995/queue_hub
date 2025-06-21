@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
 import { Branch, MerchantRole, Prisma, Queue, Tag, TagEntity, User, ImageType } from "@prisma/client";
 import { BranchSchema, BranchImageSchema, AddressSchema, BranchFeatureSchema, BranchTagSchema, BranchOpeningHourSchema } from "../controllers/merchant-controller";
+import fs from "fs";
+import path from "path";
 
 interface QueueAnalyticsParams {
     start_date?: string;
@@ -317,15 +319,42 @@ export const merchantService = {
 
     /**
      * Create a new branch
-     * @param branch_name - The branch name
-     * @param branch_address - The branch address
-     * @param branch_phone - The branch phone
-     * @param branch_email - The branch email
-     * @param branch_website - The branch website
+     * @param data - The branch data
+     * @returns The created branch
      */
-    async createBranch(data: BranchSchema) {
+    async createBranch(data: BranchSchema & { merchant_id: string } & { address?: AddressSchema }) {
         const result = await prisma.$transaction(async (tx) => {
-        });
+            const branch = await tx.branch.create({
+                data: {
+                    branch_id: uuidv4(),
+                    merchant_id: data.merchant_id,
+                    branch_name: data.branch_name,
+                    contact_person_id: data.contact_person_id,
+                    phone: data.phone,
+                    email: data.email,
+                    description: data.description,
+                },
+            });
+
+            // Create address if provided
+            if (data.address) {
+                await tx.address.create({
+                    data: {
+                        address_id: uuidv4(),
+                        branch_id: branch.branch_id,
+                        street: data.address.street,
+                        city: data.address.city,
+                        state: data.address.state,
+                        country: data.address.country,
+                        zip: data.address.zip,
+                        unit: data.address.unit,
+                        floor: data.address.floor,
+                    },
+                });
+            }
+
+            return { branch };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         return result;
     },
@@ -496,32 +525,95 @@ export const merchantService = {
      * @param data 
      */
     async uploadBranchImages(branch_id: string, data: any) {
-        const result = await prisma.$transaction(async (tx) => {
-            const images = [];
+        const uploadedFilePaths: string[] = data.map((img: any) => path.join(process.cwd(), 'public', img.image_url));
 
-            for (const img of data) {
-                // Determine correct image_type
-                let image_type: ImageType = ImageType.IMAGE;
-                if (img.image_type === 'LOGO') image_type = ImageType.LOGO;
-                else if (img.image_type === 'FEATURE_IMAGE') image_type = ImageType.FEATURE_IMAGE;
-                
-                // Use image_url as provided (should be /uploads/filename)
-                const record = await tx.branchImage.create({
-                    data: {
-                        branch_id,
-                        image_id: uuidv4(),
-                        image_url: img.image_url,
-                        image_type: image_type,
-                        uploaded_at: new Date(),
-                    },
-                });
-                images.push(record);
+        try {
+            const result = await prisma.$transaction(async (tx) => {
+                const uploadedImages = [];
+    
+                for (const img of data) {
+                    // Determine correct image_type
+                    let image_type: ImageType = ImageType.IMAGE;
+                    if (img.image_type === 'LOGO') image_type = ImageType.LOGO;
+                    else if (img.image_type === 'FEATURE_IMAGE') image_type = ImageType.FEATURE_IMAGE;
+                    
+                    // Use image_url as provided (should be /uploads/filename)
+                    const record = await tx.branchImage.create({
+                        data: {
+                            branch_id,
+                            image_id: uuidv4(),
+                            image_url: img.image_url,
+                            image_type: image_type,
+                            uploaded_at: new Date(),
+                        },
+                    });
+                    uploadedImages.push(record);
+                }
+                return { images: uploadedImages };
+            }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    
+            return result;
+        } catch (error) {
+            // If the transaction fails, clean up the uploaded files
+            for (const filePath of uploadedFilePaths) {
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
             }
-            return { images };
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+            // Re-throw the error to be handled by the controller
+            throw new AppError("Failed to save images to database.", 500);
+        }
+    },
+
+    /**
+     * Update branch image
+     * @param branch_id 
+     * @param image_id 
+     * @returns 
+     */
+    async updateBranchImage(branch_id: string, image_id: string, data: { image_url: string }) {  
+        const result = await prisma.$transaction(async (tx) => {
+            const image = await tx.branchImage.update({
+                where: { image_id },
+                data: {
+                    image_url: data.image_url,
+                },
+            });
+            return { image };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         if (!result) {
-            throw new AppError("Failed to upload branch images", 500);
+            throw new AppError("Failed to update branch image", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Delete branch images
+     * @param branch_id 
+     * @param image_id 
+     * @returns 
+     */
+    async deleteBranchImages(branch_id: string, image_id: string) { 
+        const result = await prisma.$transaction(async (tx) => {
+            const image = await tx.branchImage.findUnique({ where: { image_id } });
+
+            if (image && image.image_url) {
+                const imagePath = path.join(process.cwd(), 'public', image.image_url);
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+
+            const deletedImage = await tx.branchImage.delete({
+                where: { image_id },
+            });
+            return { image: deletedImage };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to delete branch images", 500);
         }
     
         return result;

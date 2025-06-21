@@ -1,4 +1,4 @@
-import { Branch, BranchFeature, BranchImage, Merchant } from "./merchant";
+import { Branch, BranchFeature, BranchImage, BranchOpeningHour, Merchant } from "./merchant";
 import { Address, MerchantRole } from "./form";
 import { QueueWithTags, Tag } from "./queue";
 import { UserMerchant } from "./user";
@@ -63,6 +63,11 @@ export interface BranchFeatureResponse {
 export interface BranchTagResponse {
     success: boolean;
     tag: Tag;
+}
+
+export interface BranchOpeningHourResponse {
+    success: boolean;
+    opening_hours: BranchOpeningHour;
 }
 
 export interface BranchImagesResponse {

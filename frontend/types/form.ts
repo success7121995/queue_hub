@@ -35,7 +35,6 @@ export interface ContactPerson {
   phone?: string;
   email?: string;
   description?: string;
-  opening_hours?: OpeningHour[];
 }
 
 export interface AccountSetup {

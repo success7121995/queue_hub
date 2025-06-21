@@ -7,6 +7,7 @@ import { createServer } from "http";
 import { loggingMiddleware } from "./middleware/logging-middleware";
 import { Server } from "socket.io";
 import registerSocketHandlers from "./lib/socket";
+import path from "path";
 // Extend the Session type
 declare module 'express-session' {
     interface SessionData {
@@ -46,6 +47,9 @@ const io = new Server(server, {
 });
 
 app.use(cors(corsOptions));
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Session configuration
 app.use(session({

@@ -7,6 +7,9 @@ import { AddAdminFormFields, AddBranchFormFields, SignupFormFields, MerchantRole
 import { Lang } from "@/constant/lang-provider";
 import Success from "./success";
 import LoadingIndicator from "@/components/common/loading-indicator";
+import { useCreateBranch } from "@/hooks/merchant-hooks";
+import { useUserMerchants } from "@/hooks/merchant-hooks";
+import { useAuth } from "@/hooks/auth-hooks";
 
 interface PreviewProps {
     form?: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -42,6 +45,12 @@ interface CookieData {
 const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [countdown, setCountdown] = useState(8);
+    const [addressError, setAddressError] = useState<string | null>(null);
+
+    // Get merchant ID and staff members for add-branch form
+    const { data: currentUser } = useAuth();
+    const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
+    const { data: userMerchants } = useUserMerchants(merchantId || '');
 
     let apiPath = "";
     switch (form) {
@@ -61,9 +70,20 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     
     const [formData, setFormData] = useState<CookieData | null>(null);
 
-    // Define mutation outside of handleSubmit
+    // Use the createBranch hook for add-branch forms
+    const createBranchMutation = useCreateBranch({
+        onSuccess: () => {
+            setShowSuccess(true);
+            Cookies.remove(COOKIE_KEY);
+        },
+        onError: (error) => {
+            console.error("Error creating branch:", error);
+        }
+    });
+
+    // Define mutation for other forms
     const mutation = useMutation({
-        mutationFn: async (data: SignupFormFields | AddBranchFormFields | AddAdminFormFields) => {
+        mutationFn: async (data: SignupFormFields | AddAdminFormFields) => {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api${apiPath}`, {
                 method: "POST",
                 headers: {
@@ -105,46 +125,65 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     const handleSubmit = () => {
         if (!formData) return;
 
-        // Structure the data according to the form type
-        let structuredData: SignupFormFields | AddBranchFormFields | AddAdminFormFields;
+        if (form === "add-branch") {
+            const addressData = formData.branchAddress;
+            if (!addressData || !addressData.street || !addressData.city || !addressData.state || !addressData.country || !addressData.zip) {
+                setAddressError("Branch address is required. Please complete the address step.");
+                return;
+            }
+            setAddressError(null);
+            const branchData = {
+                branch_name: formData.branchInfo!.branch_name,
+                contact_person_id: formData.branchInfo!.contact_person_id,
+                phone: formData.branchInfo!.phone,
+                email: formData.branchInfo!.email,
+                description: formData.branchInfo!.description,
+                address: {
+                    street: addressData.street,
+                    city: addressData.city,
+                    state: addressData.state,
+                    country: addressData.country,
+                    zip: addressData.zip,
+                    unit: addressData.unit,
+                    floor: addressData.floor,
+                },
+            };
+            createBranchMutation.mutate(branchData);
+        } else {
+            // Structure the data according to the form type for other forms
+            let structuredData: SignupFormFields | AddAdminFormFields;
 
-        switch (form) {
-            case "signup":
-                structuredData = {
-                    signup: {
-                        ...formData.signup!,
-                        plan: formData.signup!.plan
-                    },
-                    branchInfo: formData.branchInfo!,
-                    address: formData.address!,
-                    branchAddress: formData.branchAddress!,
-                    payment: formData.payment!
-                };
-                break;
-            case "add-branch":
-                structuredData = {
-                    branchInfo: formData.branchInfo!,
-                    address: formData.address!,
-                    payment: formData.payment!
-                };
-                break;
-            case "add-admin":
-            case "add-employee":
-                structuredData = {
-                    userInfo: formData.userInfo!,
-                    accountSetup: {
-                        username: formData.accountSetup!.username,
-                        password: formData.accountSetup!.password,
-                        confirm_password: formData.accountSetup!.confirm_password,
-                        lang: formData.accountSetup!.lang
-                    }
-                };
-                break;
-            default:
-                throw new Error("Invalid form type");
+            switch (form) {
+                case "signup":
+                    structuredData = {
+                        signup: {
+                            ...formData.signup!,
+                            plan: formData.signup!.plan
+                        },
+                        branchInfo: formData.branchInfo!,
+                        address: formData.address!,
+                        branchAddress: formData.branchAddress!,
+                        payment: formData.payment!
+                    };
+                    break;
+                case "add-admin":
+                case "add-employee":
+                    structuredData = {
+                        userInfo: formData.userInfo!,
+                        accountSetup: {
+                            username: formData.accountSetup!.username,
+                            password: formData.accountSetup!.password,
+                            confirm_password: formData.accountSetup!.confirm_password,
+                            lang: formData.accountSetup!.lang
+                        }
+                    };
+                    break;
+                default:
+                    throw new Error("Invalid form type");
+            }
+
+            mutation.mutate(structuredData);
         }
-
-        mutation.mutate(structuredData);
     };
 
     // Helper to format address
@@ -161,14 +200,25 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
         ].filter(Boolean).join(", ");
     }
 
+    // Helper to get contact person name
+    function getContactPersonName(contactPersonId: string): string {
+        const staff = userMerchants?.user_merchants?.find((s: any) => s.staff_id === contactPersonId);
+        if (staff) {
+            return `${staff.User?.fname || ''} ${staff.User?.lname || ''}`.trim() || staff.staff_id;
+        }
+        return contactPersonId;
+    }
+
     if (showSuccess) {
         return <Success form={form || "signup"} countdown={countdown} />;
     }
 
+    const isPending = form === "add-branch" ? createBranchMutation.isPending : mutation.isPending;
+
     return (
         <div className="w-full min-h-[60vh] flex justify-center items-center to-white py-16 font-regular-eng">
             {/* Loading overlay */}
-            {mutation.isPending && (
+            {isPending && (
                 <LoadingIndicator 
                     fullScreen 
                     text="Submitting..." 
@@ -204,6 +254,9 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                             {formData.branchInfo && (
                                 <>
                                     <li><span className="font-semibold">Branch Name: </span> {formData.branchInfo.branch_name}</li>
+                                    {form === "add-branch" && formData.branchInfo.contact_person_id && (
+                                        <li><span className="font-semibold">Contact Person: </span> {getContactPersonName(formData.branchInfo.contact_person_id)}</li>
+                                    )}
                                     {formData.branchInfo.email && (
                                         <li><span className="font-semibold">Branch Email: </span> {formData.branchInfo.email}</li>
                                     )}
@@ -274,6 +327,10 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     )}
                 </div>
 
+                {addressError && (
+                    <div className="text-red-500 text-center mb-4">{addressError}</div>
+                )}
+
                 {/* Submit Button */}
                 <div className="flex justify-between w-full mt-6">
                     <button
@@ -286,10 +343,10 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     <button
                         type="button"
                         onClick={handleSubmit}
-                        disabled={mutation.isPending}
+                        disabled={isPending}
                         className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-md hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {mutation.isPending ? (
+                        {isPending ? (
                             <LoadingIndicator size="sm" className="!mt-0" />
                         ) : (
                             'Submit'

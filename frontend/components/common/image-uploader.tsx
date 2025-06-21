@@ -17,10 +17,12 @@ interface ImageUploaderProps {
 	frameHeight?: string | number;
 	className?: string;
 	multiple?: boolean;
-	onUploadComplete?: (files: PreviewImage[]) => void;
+	onImageAdded?: (file: PreviewImage) => Promise<void>;
+	onImageRemoved?: (id: string) => void;
 	existingImage?: PreviewImage[];
-	removeImage?: (id: string) => void;
+	canRemove?: boolean;
 	fontSize?: number;
+	onImageClick?: (imageUrl: string, alt?: string) => void;
 }
 
 const ImageUploader = ({
@@ -29,25 +31,42 @@ const ImageUploader = ({
 	className = "",
 	multiple = false,
 	existingImage = [],
-	onUploadComplete,
-	fontSize = 12
+	onImageAdded,
+	onImageRemoved,
+	fontSize = 12,
+	onImageClick,
+	canRemove = true
 }: ImageUploaderProps) => {
 	const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
+	const existingImageIds = JSON.stringify(existingImage?.map(i => i.id));
 
 	useEffect(() => {
-		if (existingImage.length > 0) {
-			setPreviewImages(existingImage);
-		}
-	}, [existingImage]);
+		setPreviewImages(existingImage || []);
+	}, [existingImageIds]);
 
 	// Cleanup object URLs on unmount
 	useEffect(() => {
 		return () => {
 			previewImages.forEach(image => {
-				URL.revokeObjectURL(image.preview);
+				if (image.preview.startsWith('blob:')) {
+					URL.revokeObjectURL(image.preview);
+				}
 			});
 		};
 	}, [previewImages]);
+
+	const removeImage = useCallback((id: string, triggerCallback = true) => {
+		const imageToRemove = previewImages.find(img => img.id === id);
+		if (imageToRemove && imageToRemove.preview.startsWith('blob:')) {
+			URL.revokeObjectURL(imageToRemove.preview);
+		}
+		
+		setPreviewImages(prev => prev.filter(img => img.id !== id));
+		
+		if (triggerCallback && onImageRemoved) {
+			onImageRemoved(id);
+		}
+	}, [previewImages, onImageRemoved]);
 
 	/**
 	 * Compress the image to the maximum width and height of 1920px
@@ -89,20 +108,31 @@ const ImageUploader = ({
 				preview: URL.createObjectURL(file),
 			}));
 
-			if (multiple) {
-				setPreviewImages(prev => [...prev, ...newPreviewImages]);
-				onUploadComplete?.([...previewImages, ...newPreviewImages]);
+			if (!multiple) {
+				setPreviewImages(currentPreviews => {
+					currentPreviews.forEach(img => {
+						if (img.preview.startsWith('blob:')) URL.revokeObjectURL(img.preview);
+					});
+					return newPreviewImages.slice(0, 1);
+				});
 			} else {
-				// Cleanup previous image
-				previewImages.forEach(img => URL.revokeObjectURL(img.preview));
-				const newImage = newPreviewImages[0];
-				setPreviewImages([newImage]);
-				onUploadComplete?.([newImage]);
+				setPreviewImages(currentPreviews => [...currentPreviews, ...newPreviewImages]);
+			}
+
+			if (onImageAdded) {
+                for (const image of newPreviewImages) {
+                    try {
+                        await onImageAdded(image);
+                    } catch (e) {
+						console.error("Upload failed, removing preview for", image.id, e);
+                        removeImage(image.id, false); // remove preview on failure
+                    }
+                }
 			}
 		} catch (error) {
 			console.error('Error processing images:', error);
 		}
-	}, [onUploadComplete, multiple, previewImages]);
+	}, [multiple, onImageAdded, removeImage]);
 
 	/**
 	 * Use the useDropzone hook to handle the drop event
@@ -117,86 +147,31 @@ const ImageUploader = ({
 		multiple,
 	});
 
-	/**
-	 * Remove the image from the preview images
-	 * @param id - The id of the image to remove
-	 */
-	const removeImage = (id: string) => {
-		if (multiple) {
-			setPreviewImages(prev => prev.filter(img => img.id !== id));
-		} else {
-			setPreviewImages([]);
-		}
-
-		/**
-		 * Remove the image from the preview images
-		 * @param id - The id of the image to remove
-		 */
-		setPreviewImages(prev => {
-			const imageToRemove = prev.find(img => img.id === id);
-			if (imageToRemove) {
-				URL.revokeObjectURL(imageToRemove.preview);
-			}
-			return prev.filter(img => img.id !== id);
-		});
-	};
-
-	// Track last uploaded image IDs
-	const lastUploadedIdsRef = useRef<string[]>([]);
-	const [hasChanged, setHasChanged] = useState(false);
-
-	// Compare previewImages with last uploaded
-	useEffect(() => {
-		const currentIds = previewImages.map(img => img.id).sort().join(',');
-		const lastIds = lastUploadedIdsRef.current.sort().join(',');
-		setHasChanged(currentIds !== lastIds && previewImages.length > 0);
-	}, [previewImages]);
-
-	const handleUpload = () => {
-		lastUploadedIdsRef.current = previewImages.map(img => img.id);
-		setHasChanged(false);
-		// You can call onUploadComplete here if you want to trigger upload
-		if (onUploadComplete) onUploadComplete(previewImages);
-	};
-
 	// For multiple mode, render uploader and images side by side
 	if (multiple) {
 		return (
 			<div className={`w-full ${className}`}>
-				<div className="flex flex-col lg:flex-row flex-wrap gap-4 items-start">
+				<div className="flex flex-row flex-wrap gap-4 items-start">
 					{/* Uploader */}
-					<div>
-						<div
-							{...getRootProps()}
-							className={`relative border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors flex-shrink-0`
-								+ (isDragActive ? ' border-primary-light bg-primary-light/10' : ' border-gray-300 hover:border-primary-light')}
-							style={{
-								width: typeof frameWidth === "number" ? `${frameWidth}px` : frameWidth,
-								height: typeof frameHeight === "number" ? `${frameHeight}px` : frameHeight,
-								minWidth: 200,
-								minHeight: 200,
-							}}
-						>
-							<input {...getInputProps()} className="z-20 relative" />
-							<div className="relative z-20 h-full flex flex-col items-center justify-center text-center pointer-events-none">
-								<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
-									{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
-								</p>
-								<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
-							</div>
+					<div
+						{...getRootProps()}
+						className={`relative border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors flex-shrink-0`
+							+ (isDragActive ? ' border-primary-light bg-primary-light/10' : ' border-gray-300 hover:border-primary-light')}
+						style={{
+							width: typeof frameWidth === "number" ? `${frameWidth}px` : frameWidth,
+							height: typeof frameHeight === "number" ? `${frameHeight}px` : frameHeight,
+							minWidth: 200,
+							minHeight: 200,
+						}}
+					>
+						<input {...getInputProps()} className="z-20 relative" />
+						<div className="relative z-20 h-full flex flex-col items-center justify-center text-center pointer-events-none">
+							<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
+								{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
+							</p>
+							<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
 						</div>
 					</div>
-
-					<button
-						disabled={!hasChanged}
-						onClick={handleUpload}
-						className={`border px-4 py-2 rounded-md text-sm transition-all duration-200 ml-0 mt-4 lg:mt-0 lg:ml-0
-						${hasChanged
-							? 'border-primary-light text-primary-light hover:bg-primary-light hover:text-white'
-							: 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'}`}
-					>
-						Upload
-					</button>
 		
 					{/* Images Preview */}
 					<div className="flex flex-row flex-wrap gap-4">
@@ -209,19 +184,26 @@ const ImageUploader = ({
 									height: typeof frameHeight === "number" ? `${frameHeight * 0.8}px` : frameHeight,
 								}}
 							>
-								<Image
-									src={img.preview}
-									alt="Preview"
-									fill
-									className="object-cover rounded-lg shadow-md"
-								/>
-								<button
-									type="button"
-									onClick={() => removeImage(img.id)}
-									className="absolute top-2 right-2 bg-white text-black rounded-full p-1 shadow hover:bg-red-500 hover:text-white transition z-10"
+								<div 
+									className={`w-full h-full ${onImageClick ? 'cursor-pointer hover:opacity-80 transition-opacity duration-200' : ''}`}
+									onClick={() => onImageClick?.(img.preview, "Image preview")}
 								>
-									<X className="w-4 h-4" />
-								</button>
+									<Image
+										src={img.preview}
+										alt="Preview"
+										fill
+										className="object-cover rounded-lg shadow-md"
+									/>
+								</div>
+								{canRemove && (
+									<button
+										type="button"
+										onClick={() => removeImage(img.id)}
+										className="absolute top-2 right-2 bg-white text-black rounded-full p-1 shadow hover:bg-red-500 hover:text-white transition z-10"
+									>
+										<X className="w-4 h-4" />
+									</button>
+								)}
 							</div>
 						))}
 					</div>
@@ -246,7 +228,10 @@ const ImageUploader = ({
 				{/* Single image preview (overlay, but allow interaction below) */}
 				{previewImages.length > 0 && !multiple && (
 					<>
-						<div className="absolute inset-0 z-10 pointer-events-none">
+						<div 
+							className={`absolute inset-0 z-10 ${onImageClick ? 'cursor-pointer hover:opacity-80 transition-opacity duration-200' : ''}`}
+							onClick={() => onImageClick?.(previewImages[0].preview, "Image preview")}
+						>
 							<Image
 								src={previewImages[0].preview}
 								alt="Preview"
@@ -255,7 +240,7 @@ const ImageUploader = ({
 							/>
 						</div>
 
-						{removeImage && (
+						{canRemove && (
 							<button
 								type="button"
 								onClick={e => {

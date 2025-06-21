@@ -31,6 +31,7 @@ export { default as BranchCard } from "./dashboard/merchants/branch/branch-card"
 export { default as BranchDetail } from "./dashboard/merchants/branch/branch-detail";
 export { default as AddBranch } from "./dashboard/merchants/add-branch";
 export { default as ImageUploader } from "./common/image-uploader";
+export { default as ImagePreviewModal } from "./common/image-preview-modal";
 export { default as BarChart } from "./common/bar-chart";
 export { default as ExportBtn } from "./common/export-btn";
 export { default as NumberCard } from "./common/number-card";

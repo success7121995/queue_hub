@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 import { ImageUploader } from "@/components";
 import { TimePicker } from "@/components";
+import type { PreviewImage } from "./image-uploader";
 
 export interface ModalFormField {
 	id: string;
@@ -19,6 +20,7 @@ export interface ModalFormField {
 		frameHeight?: number;
 		multiple?: boolean;
 		fontSize?: number;
+		existingImage?: PreviewImage[];
 	};
 	timeConfig?: {
 		format?: string;
@@ -117,9 +119,9 @@ const ModalForm: React.FC<ModalFormProps> = ({
 				[fieldId]: value
 			};
 			
-			// Call onChange callback if provided
+			// Call onChange callback if provided (debounced)
 			if (onChange) {
-				onChange(fieldId, value, newFormData);
+				setTimeout(() => onChange(fieldId, value, newFormData), 0);
 			}
 			
 			return newFormData;
@@ -218,7 +220,7 @@ const ModalForm: React.FC<ModalFormProps> = ({
 							className="w-full"
 							multiple={field.imageConfig?.multiple || false}
 							onUploadComplete={(files) => handleInputChange(field.id, files)}
-							existingImage={fieldValue || []}
+							existingImage={field.imageConfig?.existingImage || []}
 						/>
 						{fieldError && (
 							<p className="text-red-500 text-sm mt-1">{fieldError}</p>

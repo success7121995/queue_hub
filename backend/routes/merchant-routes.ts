@@ -32,7 +32,7 @@ router.get('/user-merchants/:merchant_id', requireAuth([UserRole.MERCHANT]), req
 
 // Branch management (merchant only)
 router.get('/branches/:merchant_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getBranchesByMerchantId);  // Get merchant's branches
-router.post('/branches/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Create new branch
+router.post('/branches/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), merchantController.createBranch);  // Create new branch
 router.patch('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranch);  // Update branch details
 router.patch('/branches/:branch_id/address', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranchAddress);  // Update branch address
 router.post('/branches/:branch_id/features', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createBranchFeature);  // Create new branch feature
@@ -46,6 +46,8 @@ router.delete('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireM
 router.post('/branches/:branch_id/images/logo', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadLogo, merchantController.uploadBranchImages);
 router.post('/branches/:branch_id/images/feature-image', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadFeatureImage, merchantController.uploadBranchImages);
 router.post('/branches/:branch_id/images/galleries', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadGalleries, merchantController.uploadBranchImages);
+router.put('/branches/:branch_id/images/:image_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadLogo, merchantController.uploadBranchImages);
+router.delete('/branches/:branch_id/images/:image_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchImages);
 
 // Queue management (merchant only)
 router.get('/queues/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);  // Get merchant's queues

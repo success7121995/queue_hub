@@ -11,8 +11,9 @@ import type {
     UserMerchantResponse,
     BranchFeatureResponse,
     BranchTagResponse,
+    BranchOpeningHourResponse,
 } from "@/types/response";
-import type { Address, Branch, BranchFeature, BranchImage } from "@/types/merchant";
+import type { Address, Branch, BranchOpeningHour } from "@/types/merchant";
 
 // Query Keys
 export const queueKeys = {
@@ -233,9 +234,6 @@ export const fetchUserMerchants = async (merchant_id: string): Promise<UserMerch
  * @returns 
  */
 export const fetchUpdateBranch = async ({ branch_id, data }: { branch_id: string; data: Partial<Branch> }): Promise<BranchResponse> => {
-    console.log('Frontend sending data:', data);
-    console.log('Branch ID:', branch_id);
-    
     const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}`, {
         method: 'PATCH',
         headers: {
@@ -348,32 +346,6 @@ export const fetchCreateBranchTag = async ({ branch_id, data }: { branch_id: str
 };
 
 /**
- * Fetch update branch images
- * @param branch_id         
- * @param data 
- * @returns 
- */
-export const fetchUpdateBranchImages = async ({ branch_id, data }: { branch_id: string; data: BranchImage[] }): Promise<BranchImagesResponse> => {
-
-    console.log('data', data);
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}/images`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-        throw new Error('Failed to update branch images');
-    }
-    
-    return res.json();
-};
-
-/**
  * Fetch delete branch tag
  * @param branch_id
  * @param tag_id
@@ -387,6 +359,144 @@ export const fetchDeleteBranchTag = async ({ branch_id, tag_id }: { branch_id: s
     });
     if (!res.ok) throw new Error('Failed to delete branch tag');
     return res.json();
+};
+
+/**
+ * Fetch update branch opening hours
+ * @param branch_id 
+ * @param data 
+ * @returns 
+ */
+export const fetchUpdateBranchOpeningHours = async ({ branch_id, data }: { branch_id: string; data: Partial<BranchOpeningHour> }): Promise<BranchOpeningHourResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}/opening-hours`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    }); 
+
+    if (!res.ok) {
+        throw new Error('Failed to update branch opening hours');
+    }
+    
+    return res.json();
+};
+
+/**
+ * Fetch create branch images
+ * @param branch_id 
+ * @param data 
+ * @returns 
+ */
+export const fetchUploadBranchImages = async ({ branch_id, data, image_type }: { branch_id: string; data: any, image_type: 'logo' | 'feature-image' | 'galleries' }): Promise<BranchImagesResponse> => {
+    const formData = new FormData();
+    const imageFile = data[0]?.file;
+
+    if (!imageFile) {
+        throw new Error("No file provided for upload.");
+    }
+    
+    if (image_type === 'logo') {
+        formData.append('LOGO', imageFile);
+    } else if (image_type === 'feature-image') {
+        formData.append('FEATURE_IMAGE', imageFile);
+    } else if (image_type === 'galleries') {
+        formData.append('IMAGE', imageFile);
+    }
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}/images/${image_type}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Upload failed with status:", res.status, errorText);
+        throw new Error('Failed to create branch images');
+    }
+
+    const responseData = await res.json();
+    return responseData.result;
+};
+
+/**
+ * Fetch update branch image
+ * @param branch_id 
+ * @param image_id 
+ * @returns 
+ */
+export const fetchUpdateBranchImage = async ({ branch_id, image_id }: { branch_id: string; image_id: string }): Promise<BranchImagesResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}/images/logo/${image_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to update branch image');
+    }
+
+    const responseData = await res.json();
+    return responseData.result;
+};
+
+/**
+ * Fetch delete branch images
+ */
+export const fetchDeleteBranchImages = async ({ branch_id, image_id }: { branch_id: string; image_id: string }): Promise<BranchImagesResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${branch_id}/images/${image_id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to delete branch galleries');
+    }
+
+    const responseData = await res.json();
+    return responseData.result;
+};
+
+/**
+ * Fetch create branch
+ * @param data 
+ * @returns 
+ */
+export const fetchCreateBranch = async (data: { 
+    branch_name: string; 
+    contact_person_id: string; 
+    phone?: string; 
+    email?: string; 
+    description?: string;
+    address: {
+        street: string;
+        city: string;
+        state: string;
+        country: string;
+        zip: string;
+        unit?: string;
+        floor?: string;
+    };
+}): Promise<BranchResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/create`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to create branch');
+    }
+
+    const responseData = await res.json();
+    return responseData.result;
 };
 
 /********************************* Hooks *********************************/
@@ -560,11 +670,29 @@ export const useCreateBranchTag = (options?: Omit<UseMutationOptions<BranchTagRe
  * @param options 
  * @returns 
  */
-export const useCreateBranchImages = (options?: Omit<UseMutationOptions<BranchImagesResponse, Error, { branch_id: string; data: BranchImage[] }>, 'mutationFn'>) => {
+export const useUploadBranchImages = (options?: Omit<UseMutationOptions<BranchImagesResponse, Error, { branch_id: string; data: any, image_type: 'logo' | 'feature-image' | 'galleries' }>, 'mutationFn'>) => {
     return useMutation({
-        mutationFn: fetchUpdateBranchImages,
+        mutationFn: fetchUploadBranchImages,
         ...options,
     });
+};
+
+/**
+ * Use update branch image
+ * @param options 
+ * @returns 
+ */
+export const useUpdateBranchImage = (options?: Omit<UseMutationOptions<BranchImagesResponse, Error, { branch_id: string; image_id: string }>, 'mutationFn'>) => {
+    return useMutation({ mutationFn: fetchUpdateBranchImage, ...options });
+};
+
+/**
+ * Use delete branch images
+ * @param options 
+ * @returns 
+ */
+export const useDeleteBranchImage = (options?: Omit<UseMutationOptions<BranchImagesResponse, Error, { branch_id: string; image_id: string }>, 'mutationFn'>) => {
+    return useMutation({ mutationFn: fetchDeleteBranchImages, ...options });
 };
 
 /**
@@ -579,6 +707,35 @@ export const useDeleteBranchTag = (options?: Omit<UseMutationOptions<BranchTagRe
  */
 export const useDeleteBranchFeature = (options?: Omit<UseMutationOptions<BranchFeatureResponse, Error, { branch_id: string; feature_id: string }>, 'mutationFn'>) => {
     return useMutation({ mutationFn: fetchDeleteBranchFeature, ...options });
+};
+
+/**
+ * useUpdateBranchOpeningHours hook
+ */
+export const useUpdateBranchOpeningHours = (options?: Omit<UseMutationOptions<BranchOpeningHourResponse, Error, { branch_id: string; data: Partial<BranchOpeningHour> }>, 'mutationFn'>) => {
+    return useMutation({ mutationFn: fetchUpdateBranchOpeningHours, ...options });
+};
+
+/**
+ * useCreateBranch hook
+ */
+export const useCreateBranch = (options?: Omit<UseMutationOptions<BranchResponse, Error, { 
+    branch_name: string; 
+    contact_person_id: string; 
+    phone?: string; 
+    email?: string; 
+    description?: string;
+    address: {
+        street: string;
+        city: string;
+        state: string;
+        country: string;
+        zip: string;
+        unit?: string;
+        floor?: string;
+    };
+}>, 'mutationFn'>) => {
+    return useMutation({ mutationFn: fetchCreateBranch, ...options });
 };
 
 /********************************* Prefetch Functions *********************************/

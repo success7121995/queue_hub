@@ -3,7 +3,14 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: [], // Add any image domains you need here
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5500',
+        pathname: '/uploads/**',
+      },
+    ],
   },
   // Enable static optimization where possible
   poweredByHeader: false,

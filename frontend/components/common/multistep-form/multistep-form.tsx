@@ -9,7 +9,6 @@ import Signup from "./signup";
 import UserInfo from "./user-info";
 import AccountSetup from "./account-setup";
 import Stepper from "../stepper";
-import Success from "./success";
 import { useRouter } from "next/navigation";
 import { FormProvider } from "@/constant/form-provider";
 
@@ -95,21 +94,23 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                                 onNext={handleNext} 
                                 onPrev={handlePrev}
                                 isBranchAddress={true}
+                                formType="add-branch"
                             />
                         );
                     }
                     case 5: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                    case 6: return <Preview form="signup" onPrev={handlePrev} />;
+                case 6: return <Preview form="signup" onPrev={handlePrev} />;
                     default: return null;
                 }
             case "add-branch":
                 switch (currentStep) {
-                    case 1: return <BranchInfo onNext={handleNext} />;
+                    case 1: return <BranchInfo onNext={handleNext} formType="add-branch" />;
                     case 2: return (
                         <Address 
                             onNext={handleNext} 
                             onPrev={handlePrev}
                             isBranchAddress={true}
+                            formType="add-branch"
                         />
                     );
                     case 3: return <Payment onNext={handleNext} onPrev={handlePrev} />;

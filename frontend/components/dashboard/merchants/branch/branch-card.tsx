@@ -10,8 +10,8 @@ interface BranchCardProps {
 }
 
 const BranchCard = ({ branch, idx, onReadMore }: BranchCardProps) => {
-	const featureImage = branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_url;
-
+	const imageUrl = branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_url;
+	const featureImage = imageUrl ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${imageUrl}` : null;
 
 	return (
 
