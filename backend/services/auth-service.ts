@@ -1,7 +1,7 @@
 import { MerchantSchema } from "../controllers/auth-controller";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
-import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma } from '@prisma/client';
+import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
  
@@ -91,11 +91,37 @@ export const authService = {
                     email: branchInfo.email,
                     description: branchInfo.description,
                     is_active: true,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 }
             });
 
-            // 6. Create branch address if different from merchant address
+            // 6. Create branch opening hours
+            const daysOfWeek = [
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY,
+                DayOfWeek.SATURDAY,
+                DayOfWeek.SUNDAY,
+            ];
+
+            const openingHoursData = daysOfWeek.map((day) => ({
+                id: uuidv4(),
+                branch_id: branch.branch_id,
+                day_of_week: day,
+                open_time: new Date('1970-01-01T09:00:00.000Z'),
+                close_time: new Date('1970-01-01T18:00:00.000Z'),
+                is_closed: true,
+                created_at: new Date(),
+                updated_at: new Date(),
+            }));
+
+            for (const data of openingHoursData) {
+                await tx.branchOpeningHour.create({ data });
+            }
+
+            // 7. Create branch address if different from merchant address
             if (branchAddress) {
                 await tx.address.create({
                     data: {

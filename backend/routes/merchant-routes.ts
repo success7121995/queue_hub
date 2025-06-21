@@ -3,6 +3,7 @@ import { authController } from "../controllers/auth-controller";
 import { merchantController } from "../controllers/merchant-controller";
 import { requireAuth, requireMerchantRole } from "../middleware/require-auth-middleware";
 import { UserRole, MerchantRole } from "@prisma/client";
+import { uploadLogo, uploadFeatureImage, uploadGalleries } from '../lib/multer';
 
 const router = Router();
 
@@ -38,10 +39,13 @@ router.post('/branches/:branch_id/features', requireAuth([UserRole.MERCHANT]), r
 router.delete('/branches/features/:feature_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchFeature);  // Delete branch feature
 router.post('/branches/:branch_id/tags', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createBranchTag);  // Create new branch tag
 router.delete('/branches/tags/:tag_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchTag);  // Delete branch tag
+router.put('/branches/:branch_id/opening-hours', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranchOpeningHours);  // Update branch opening hours
 router.delete('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Delete branch
 
 // Branch images management (merchant only)
-router.put('/branches/:branch_id/images', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateBranchImages);  // Update branch images
+router.post('/branches/:branch_id/images/logo', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadLogo, merchantController.uploadBranchImages);
+router.post('/branches/:branch_id/images/feature-image', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadFeatureImage, merchantController.uploadBranchImages);
+router.post('/branches/:branch_id/images/galleries', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadGalleries, merchantController.uploadBranchImages);
 
 // Queue management (merchant only)
 router.get('/queues/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);  // Get merchant's queues

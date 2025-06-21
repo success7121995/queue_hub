@@ -1,8 +1,8 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { Branch, MerchantRole, Prisma, Queue, Tag, TagEntity, User } from "@prisma/client";
-import { BranchSchema, BranchImageSchema, AddressSchema, BranchFeatureSchema, BranchTagSchema } from "../controllers/merchant-controller";
+import { Branch, MerchantRole, Prisma, Queue, Tag, TagEntity, User, ImageType } from "@prisma/client";
+import { BranchSchema, BranchImageSchema, AddressSchema, BranchFeatureSchema, BranchTagSchema, BranchOpeningHourSchema } from "../controllers/merchant-controller";
 
 interface QueueAnalyticsParams {
     start_date?: string;
@@ -491,11 +491,41 @@ export const merchantService = {
     },
 
     /**
-     * Update branch images (Logo, Feature Image, Galleries)
+     * Upload branch images (Logo, Feature Image, Galleries)
      * @param branch_id 
      * @param data 
      */
-    async updateBranchImages(branch_id: string, data: BranchImageSchema) {},
+    async uploadBranchImages(branch_id: string, data: any) {
+        const result = await prisma.$transaction(async (tx) => {
+            const images = [];
+
+            for (const img of data) {
+                // Determine correct image_type
+                let image_type: ImageType = ImageType.IMAGE;
+                if (img.image_type === 'LOGO') image_type = ImageType.LOGO;
+                else if (img.image_type === 'FEATURE_IMAGE') image_type = ImageType.FEATURE_IMAGE;
+                
+                // Use image_url as provided (should be /uploads/filename)
+                const record = await tx.branchImage.create({
+                    data: {
+                        branch_id,
+                        image_id: uuidv4(),
+                        image_url: img.image_url,
+                        image_type: image_type,
+                        uploaded_at: new Date(),
+                    },
+                });
+                images.push(record);
+            }
+            return { images };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to upload branch images", 500);
+        }
+    
+        return result;
+    },
 
     /**
      * Create a new branch feature
@@ -598,6 +628,54 @@ export const merchantService = {
     /**
      * Update branch opening hours
      */
+    async updateBranchOpeningHours(branch_id: string, data: Partial<BranchOpeningHourSchema>) {
+        const { day_of_week, open_time, close_time, is_closed } = data;
+
+        if (!day_of_week) {
+            throw new AppError("Day of the week is required", 400);
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            const existingHour = await tx.branchOpeningHour.findFirst({
+                where: {
+                    branch_id: branch_id,
+                    day_of_week: day_of_week as any,
+                },
+            });
+
+            if (existingHour) {
+                const updatedHour = await tx.branchOpeningHour.update({
+                    where: { id: existingHour.id },
+                    data: {
+                        open_time: open_time ? new Date(open_time) : existingHour.open_time,
+                        close_time: close_time ? new Date(close_time) : existingHour.close_time,
+                        is_closed: is_closed,
+                        updated_at: new Date(),
+                    },
+                });
+                return { opening_hours: updatedHour };
+            } else {
+                const newHour = await tx.branchOpeningHour.create({
+                    data: {
+                        id: uuidv4(),
+                        branch_id: branch_id,
+                        day_of_week: day_of_week as any,
+                        open_time: open_time ? new Date(open_time) : new Date('1970-01-01T09:00:00.000Z'),
+                        close_time: close_time ? new Date(close_time) : new Date('1970-01-01T18:00:00.000Z'),
+                        is_closed: is_closed || false,
+                        updated_at: new Date(),
+                    },
+                });
+                return { opening_hours: newHour };
+            }
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to update branch opening hours", 500);
+        }
+
+        return result;
+    },
 
     /**
      * Update branch contact person

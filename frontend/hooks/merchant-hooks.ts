@@ -560,7 +560,7 @@ export const useCreateBranchTag = (options?: Omit<UseMutationOptions<BranchTagRe
  * @param options 
  * @returns 
  */
-export const useUpdateBranchImages = (options?: Omit<UseMutationOptions<BranchImagesResponse, Error, { branch_id: string; data: BranchImage[] }>, 'mutationFn'>) => {
+export const useCreateBranchImages = (options?: Omit<UseMutationOptions<BranchImagesResponse, Error, { branch_id: string; data: BranchImage[] }>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchUpdateBranchImages,
         ...options,

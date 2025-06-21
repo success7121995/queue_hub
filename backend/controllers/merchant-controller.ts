@@ -54,6 +54,15 @@ const branchTagSchema = z.object({
 
 export type BranchTagSchema = z.infer<typeof branchTagSchema>;
 
+const branchOpeningHourSchema = z.object({
+    day_of_week: z.number().min(1).max(7),
+    open_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    close_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    is_closed: z.boolean().default(false),
+});
+
+export type BranchOpeningHourSchema = z.infer<typeof branchOpeningHourSchema>;
+
 // Validation schemas
 const signupSchema = z.object({
     userInfo: z.object({
@@ -445,16 +454,68 @@ export const merchantController = {
     ),  
 
     /**
-     * Update branch images
+     * Update branch images (single or multiple)
      * @param req - The request object
      * @param res - The response object
      */
-    updateBranchImages: withActivityLog(
+    uploadBranchImages: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { branch_id } = req.params;
+            // Use multer's req.file or req.files
+            let files: any[] = [];
+            if ((req as any).file) {
+                files = [(req as any).file];
+            } else if ((req as any).files && Array.isArray((req as any).files)) {
+                files = (req as any).files;
+            }
+            if (!files.length) {
+                return res.status(400).json({ success: false, error: 'No file uploaded' });
+            }
+            
+            // Determine image type based on route path
+            let imageType: 'LOGO' | 'FEATURE_IMAGE' | 'IMAGE';
+            if (req.route.path.includes('logo')) {
+                imageType = 'LOGO';
+            } else if (req.route.path.includes('feature-image')) {
+                imageType = 'FEATURE_IMAGE';
+            } else if (req.route.path.includes('galleries')) {
+                imageType = 'IMAGE';
+            } else {
+                return res.status(400).json({ success: false, error: 'Invalid image type' });
+            }
+            
+            // Prepare data for DB: each file gets a record
+            const imageData = files.map(file => ({
+                image_id: undefined, // Let DB generate or use uuid if needed
+                image_url: `/uploads/${file.filename}`,
+                image_type: imageType,
+                uploaded_at: new Date(),
+            }));
+            // Save to DB
+            const result = await merchantService.uploadBranchImages(branch_id, imageData);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_BRANCH,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                branch_id: req.params.branch_id,
+                updated_fields: Object.keys(req.body),
+            }), 
+        }
+    ),
+
+    /**
+     * Update branch opening hours
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateBranchOpeningHours: withActivityLog(
         async (req: Request, res: Response) => {
             const { branch_id } = req.params;
             const updateData = req.body;
 
-            const result = await merchantService.updateBranchImages(branch_id, updateData);
+            const result = await merchantService.updateBranchOpeningHours(branch_id, updateData);
             res.status(200).json({ success: true, result });
             return result;
         },
@@ -467,6 +528,4 @@ export const merchantController = {
             }),
         }
     ),
-
-    /** */
 }; 

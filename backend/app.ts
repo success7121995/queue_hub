@@ -71,12 +71,12 @@ if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     if (!req.session.user) {
       req.session.user = {
-        user_id: "acdbcaf2-c034-4396-bf3a-9298d0b5da25",
+        user_id: "2d191057-04f8-499f-9519-a65a1d1dd8ce",
         role: "MERCHANT",
         email: "joechan@gmail.com",
-        merchant_id: "6f6adaf1-ac81-4740-abff-4f3717c953e9",
-        branch_id: "bd8205f4-fc93-43ad-b1e1-0b406a31d595",
-        availableBranches: ["bd8205f4-fc93-43ad-b1e1-0b406a31d595"],
+        merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
+        branch_id: "c5ff0a70-188e-47c5-af67-47618323df06",
+        availableBranches: ["c5ff0a70-188e-47c5-af67-47618323df06"],
         merchantRole: "OWNER"
       };
     }
