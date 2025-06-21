@@ -2,6 +2,7 @@ import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } 
 import Cookies from 'js-cookie';
 import type { User, UserMerchant, UserAdmin } from "@/types/user";
 import { Branch, Merchant } from "@/types/merchant";
+import { AddEmployeeFormFields } from "@/types/form";
 
 // Types
 export interface LoginFormInputs {
@@ -66,6 +67,41 @@ export const fetchAuth = async (): Promise<AuthResponse> => {
 };
 
 /**
+ * Fetch add new employee
+ * @param data 
+ * @returns 
+ */
+export const fetchCreateUser = async (data: AddEmployeeFormFields): Promise<AuthResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/employee/create`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            fname: data.userInfo.fname,
+            lname: data.userInfo.lname,
+            username: data.accountSetup.username,
+            password: data.accountSetup.password,
+            confirm_password: data.accountSetup.confirm_password,
+            staff_id: data.userInfo.staff_id,
+            email: data.userInfo.email,
+            phone: data.userInfo.phone,
+            role: data.userInfo.role,
+            position: data.userInfo.position,
+            image_url: data.userInfo.image_url,
+        }),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create user');
+    }
+
+    return res.json();
+};
+
+/**
  * Fetch login
  * @param data 
  * @returns 
@@ -112,6 +148,12 @@ export const fetchLogout = async (): Promise<LogoutResponse> => {
     return responseData;
 };
 
+
+
+
+
+/***************** Hooks *****************/
+
 /**
  * Use auth
  * @param options 
@@ -124,6 +166,18 @@ export const useAuth = (options?: Omit<UseQueryOptions<AuthResponse, Error>, 'qu
         retry: false,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 10, // 10 minutes
+        ...options,
+    });
+};
+
+/**
+ * Use create user
+ * @param options 
+ * @returns 
+ */
+export const useCreateUser = (options?: Omit<UseMutationOptions<AuthResponse, Error, AddEmployeeFormFields>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchCreateUser,
         ...options,
     });
 };

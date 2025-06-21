@@ -60,6 +60,22 @@ const merchantSchema = z.object({
 
 export type MerchantSchema = z.infer<typeof merchantSchema>;
 
+const employeeSchema = z.object({
+    fname: z.string().min(1, "First name is required"),
+    lname: z.string().min(1, "Last name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirm_password: z.string().min(8, "Password must be at least 8 characters"),
+    staff_id: z.string().min(1, "Staff ID is required"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(1, "Phone number is required"),
+    role: z.enum(["FRONTLINE", "MANAGER", "OWNER"]),
+    position: z.string().min(1, "Position is required"),
+    image_url: z.string().optional(),
+});
+
+export type EmployeeSchema = z.infer<typeof employeeSchema>;
+
 export const authController = {
 
     /**
@@ -216,4 +232,39 @@ export const authController = {
             }),
         }
     ),
+
+    /**
+     * Add new employee
+     * @param req - The request object
+     * @param res - The response object
+     */
+    addNewEmployee: withActivityLog(
+        async (req: Request, res: Response) => {
+            const validatedData = employeeSchema.parse(req.body);
+            const user = req.session.user;
+
+            const merchant_id = user?.merchant_id;
+
+            if (!merchant_id) {
+                throw new AppError("Merchant ID not found", 404);
+            }
+
+            const result = await authService.addNewEmployee(merchant_id, validatedData);
+
+            res.status(201).json({
+                success: true,
+                result
+            });
+
+            return result;
+        },
+        {
+            action: ActivityType.CREATE_STAFF_USER,
+            extractUserId: (req, res, result) => result?.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                email: req.body.email,
+                role: req.body.role,
+            }),
+        }
+    )
 }; 

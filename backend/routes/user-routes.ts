@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { authController } from '../controllers/auth-controller';
 import { userController } from '../controllers/user-controller';
-import { requireAuth } from '../middleware/require-auth-middleware';
-import { UserRole } from '@prisma/client';
+import { requireAuth, requireMerchantRole } from '../middleware/require-auth-middleware';
+import { MerchantRole, UserRole } from '@prisma/client';
 
 const router = Router();
 
@@ -11,6 +11,9 @@ router.post('/login', (req, res) => authController.login(req, res));
 router.post('/logout', (req, res) => authController.logout(req, res));
 router.get('/me', (req, res) => authController.me(req, res));
 router.put('/me', (req, res) => userController.updateProfile(req, res));
+
+// Employee routes
+router.post('/employee/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), (req, res) => authController.addNewEmployee(req, res));
 
 // User profile routes
 router.put('/change-password', requireAuth(), () => {});  // Change user password

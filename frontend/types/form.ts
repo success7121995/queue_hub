@@ -2,6 +2,7 @@ import { Lang } from "@/constant/lang-provider";
 
 export type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
 export type MerchantRole = "OWNER" | "MANAGER" | "FRONTLINE";
+export type AdminRole = "SUPER_ADMIN" | "OPS_ADMIN" | "DEVELOPER" | "SUPPORT_AGENT";
 
 export interface Address {
   country: string;
@@ -47,10 +48,19 @@ export interface AccountSetup {
 export interface UserInfo {
   fname: string;
   lname: string;
+  staff_id: string;
   email: string;
   phone: string;
   position: string;
-  role: MerchantRole;
+  image_url?: string;
+}
+
+export interface EmployeeInfo extends UserInfo {
+  role: "EMPLOYEE" | "MANAGER" | "OWNER";
+}
+
+export interface AdminInfo extends UserInfo {
+  role: "OWNER" | "MANAGER";
 }
 
 // ========================
@@ -83,11 +93,11 @@ export interface AddBranchFormFields {
 }
 
 export interface AddAdminFormFields {
-  userInfo: UserInfo;
+  userInfo: AdminInfo;
   accountSetup: AccountSetup;
 }
 
 export interface AddEmployeeFormFields {
-  userInfo: UserInfo;
+  userInfo: EmployeeInfo;
   accountSetup: AccountSetup;
 }

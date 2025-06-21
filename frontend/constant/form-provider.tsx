@@ -2,13 +2,12 @@
 
 import React, { createContext, useContext, useState } from "react";
 import { useForm as useFormHook, UseFormReturn } from "react-hook-form";
-import { SignupFormFields, AddBranchFormFields, AddAdminFormFields } from "@/types/form";
 import { useLang } from "@/constant/lang-provider";
 
 interface FormContextType {
     form: "signup" | "add-branch" | "add-admin" | "add-employee";
     setForm: (form: "signup" | "add-branch" | "add-admin" | "add-employee") => void;
-    formMethods: UseFormReturn<SignupFormFields["signup"] | AddBranchFormFields["branchInfo"] | AddAdminFormFields["userInfo"]>;
+    formMethods: UseFormReturn<any>;
 }
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -23,9 +22,20 @@ export const useForm = () => {
 
 export const FormProvider = ({ children, formType }: { children: React.ReactNode, formType: "signup" | "add-branch" | "add-admin" | "add-employee" }) => {
     const { lang } = useLang();
-    const [form, setForm] = useState<"signup" | "add-branch" | "add-admin" | "add-employee">("signup");
-    const formMethods = useFormHook<SignupFormFields["signup"] | AddBranchFormFields["branchInfo"] | AddAdminFormFields["userInfo"]>({
-        defaultValues: formType === "signup" ? { lang } : { },
+    const [form, setForm] = useState<"signup" | "add-branch" | "add-admin" | "add-employee">(formType);
+    
+    // Create form methods with default values based on form type
+    const getDefaultValues = () => {
+        switch (formType) {
+            case "signup":
+                return { lang };
+            default:
+                return {};
+        }
+    };
+
+    const formMethods = useFormHook<any>({
+        defaultValues: getDefaultValues()
     });
 
     return (

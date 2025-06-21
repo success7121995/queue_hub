@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useMutation } from "@tanstack/react-query";
-import { AddAdminFormFields, AddBranchFormFields, SignupFormFields, MerchantRole } from "@/types/form";
+import { AddAdminFormFields, AddBranchFormFields, SignupFormFields, MerchantRole, AddEmployeeFormFields } from "@/types/form";
 import { Lang } from "@/constant/lang-provider";
 import Success from "./success";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { useCreateBranch } from "@/hooks/merchant-hooks";
 import { useUserMerchants } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
+import { useCreateUser } from "@/hooks/auth-hooks";
 
 interface PreviewProps {
     form?: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -27,10 +28,11 @@ interface CookieData {
     userInfo?: {
         fname: string;
         lname: string;
+        staff_id: string;
         email: string;
         phone: string;
         position: string;
-        role: MerchantRole;
+        role: AddAdminFormFields["userInfo"]["role"] | AddEmployeeFormFields["userInfo"]["role"];
     };
     accountSetup?: {
         username: string;
@@ -52,24 +54,6 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
     const { data: userMerchants } = useUserMerchants(merchantId || '');
 
-    let apiPath = "";
-    switch (form) {
-        case "signup":
-            apiPath = "/merchant/signup";
-            break;
-        case "add-branch":
-            apiPath = "/merchant/branch";
-            break;
-        case "add-admin":
-            apiPath = "/merchant/admin";
-            break;
-        case "add-employee":
-            apiPath = "/merchant/employee";
-            break;
-    }
-    
-    const [formData, setFormData] = useState<CookieData | null>(null);
-
     // Use the createBranch hook for add-branch forms
     const createBranchMutation = useCreateBranch({
         onSuccess: () => {
@@ -81,9 +65,32 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
         }
     });
 
+    // Use the createUser hook for employee creation
+    const createUserMutation = useCreateUser({
+        onSuccess: () => {
+            setShowSuccess(true);
+            Cookies.remove(COOKIE_KEY);
+        },
+        onError: (error) => {
+            console.error("Error creating user:", error);
+        }
+    });
+
     // Define mutation for other forms
     const mutation = useMutation({
         mutationFn: async (data: SignupFormFields | AddAdminFormFields) => {
+            let apiPath = "";
+            switch (form) {
+                case "signup":
+                    apiPath = "/merchant/signup";
+                    break;
+                case "add-admin":
+                    apiPath = "/merchant/admin";
+                    break;
+                default:
+                    throw new Error("Invalid form type");
+            }
+            
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api${apiPath}`, {
                 method: "POST",
                 headers: {
@@ -119,19 +126,20 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
         }
     }, []);
 
-    /**
-     * Handle form submission
-     */
+    const [formData, setFormData] = useState<CookieData | null>(null);
+
     const handleSubmit = () => {
         if (!formData) return;
 
         if (form === "add-branch") {
+            // Handle add-branch form
             const addressData = formData.branchAddress;
             if (!addressData || !addressData.street || !addressData.city || !addressData.state || !addressData.country || !addressData.zip) {
                 setAddressError("Branch address is required. Please complete the address step.");
                 return;
             }
             setAddressError(null);
+            
             const branchData = {
                 branch_name: formData.branchInfo!.branch_name,
                 contact_person_id: formData.branchInfo!.contact_person_id,
@@ -149,6 +157,18 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                 },
             };
             createBranchMutation.mutate(branchData);
+        } else if (form === "add-employee") {
+            // Handle add-employee form using the hook
+            const employeeData: AddEmployeeFormFields = {
+                userInfo: formData.userInfo!,
+                accountSetup: {
+                    username: formData.accountSetup!.username,
+                    password: formData.accountSetup!.password,
+                    confirm_password: formData.accountSetup!.confirm_password,
+                    lang: formData.accountSetup!.lang
+                }
+            };
+            createUserMutation.mutate(employeeData);
         } else {
             // Structure the data according to the form type for other forms
             let structuredData: SignupFormFields | AddAdminFormFields;
@@ -167,9 +187,8 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
                     };
                     break;
                 case "add-admin":
-                case "add-employee":
                     structuredData = {
-                        userInfo: formData.userInfo!,
+                        userInfo: formData.userInfo! as AddAdminFormFields["userInfo"],
                         accountSetup: {
                             username: formData.accountSetup!.username,
                             password: formData.accountSetup!.password,

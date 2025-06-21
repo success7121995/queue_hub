@@ -12,7 +12,7 @@ const COOKIE_KEY = "signupForm";
 const roleOptions = [
     { value: "OWNER", label: "Owner" },
     { value: "MANAGER", label: "Manager" },
-    { value: "EMPLOYEE", label: "Employee" },
+    { value: "FRONTLINE", label: "Frontline" },
 ];
 
 const adminRoleOptions = [
@@ -103,6 +103,20 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                     </div>
                 </div>
 
+                {/* Staff ID */}
+                <div>
+                    <label htmlFor="staffId" className="block mb-1 font-semibold text-text-main text-sm">Staff ID</label>
+                    <input
+                        id="staffId"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors.staff_id ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("staff_id", { required: "Staff ID is required" })}
+                        placeholder="Enter staff ID"
+                    />
+                    {errors.staff_id && <span className="text-red-500 text-xs">{errors.staff_id.message}</span>}
+                </div>
+
                 {/* Email */}
                 <div>
                     <label htmlFor="email" className="block mb-1 font-semibold text-text-main text-sm">Email</label>
@@ -185,7 +199,7 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                         frameWidth="200px"
                         frameHeight="200px"
                         className="w-full"
-                        removeImage={() => {}}
+                        onImageRemoved={() => {}}
                     />
                 </div>
 

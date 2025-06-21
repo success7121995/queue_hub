@@ -66,6 +66,16 @@ model AnalyticsLog {
   record_at    DateTime      @default(now())
 }
 
+
+model Avatar {
+  image_id String @id
+  user_id  String @unique
+  image_url String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  User       User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
 model Branch {
   branch_id            String                 @id
   merchant_id          String
@@ -378,6 +388,7 @@ model User {
   UserMerchant                      UserMerchant?
   UserQueueReminderReference        UserQueueReminderReference?
   UserAdmin                         UserAdmin?
+  Avatar                            Avatar?
 }
 
 model UserAdmin {

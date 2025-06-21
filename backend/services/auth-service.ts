@@ -1,7 +1,7 @@
-import { MerchantSchema } from "../controllers/auth-controller";
+import { EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
-import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek } from '@prisma/client';
+import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
  
@@ -243,6 +243,56 @@ export const authService = {
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;
-    }
+    },
 
+    /**
+     * Add new employee
+     * @param data 
+     */
+    async addNewEmployee(merchant_id: string, data: EmployeeSchema) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Hash password
+            const password_hash = await bcrypt.hash(data.password, 10);
+
+            const user = await tx.user.create({
+                data: {
+                    user_id: uuidv4(),
+                    username: data.username,
+                    fname: data.fname,
+                    lname: data.lname,
+                    email: data.email,
+                    phone: data.phone,
+                    role: UserRole.MERCHANT,
+                    password_hash,
+                    status: UserStatus.ACTIVE,
+                    lang: Lang.EN,
+                    email_verified: false,
+                    verification_token: uuidv4(),
+                    updated_at: new Date()
+                }
+            });
+
+            const userMerchant = await tx.userMerchant.create({
+                data: {
+                    staff_id: uuidv4(),
+                    user_id: user.user_id,
+                    merchant_id,
+                    position: data.position,
+                    role: data.role as MerchantRole
+                }
+            });
+
+            const avatar = await tx.avatar.create({
+                data: {
+                    image_id: uuidv4(),
+                    user_id: user.user_id,
+                    image_url: data.image_url ?? ""
+                }
+            });
+
+            return { user, userMerchant, avatar };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        return result;
+    }
 }; 
