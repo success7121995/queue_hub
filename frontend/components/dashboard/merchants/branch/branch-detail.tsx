@@ -3,8 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Tag, ImageUploader, ImagePreviewModal } from "@/components";
 import { type Branch, type BranchImage } from "@/types/merchant";
-import { Trash2, MapPin, User, Tag as TagIcon, Info, Clock, Star } from "lucide-react";
-import Image from "next/image";
+import { Trash2, MapPin, User, Tag as TagIcon, Info, Clock, Star, Building2, Mail, Phone, Image, FileText, Users, Images } from "lucide-react";
 import { TimePicker, ModalForm } from "@/components";
 import type { ModalFormField } from "@/components/common/modal-form";
 import { useUpdateBranch, useUpdateBranchAddress, useUserMerchants, useCreateBranchFeature, useCreateBranchTag, useDeleteBranchTag, useDeleteBranchFeature, useUpdateBranchOpeningHours, useUploadBranchImages, useDeleteBranchImage } from "@/hooks/merchant-hooks";
@@ -626,76 +625,6 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 		}
 	}, [editModal, optimisticBranch.contact_person]);
 
-	const handleLogoUpload = (images: PreviewImage[]) => {
-		if (images.length === 0 && logoId) { // Deletion
-			const idToDelete = logoId;
-			setOptimisticLogoUrl(undefined);
-			setLogoId(undefined);
-			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: idToDelete });
-		} else if (images.length > 0 && images[0].file) { // Replacement or New Upload
-			const newLogoPreview = images[0].preview;
-			setOptimisticLogoUrl(newLogoPreview);
-	
-			const uploadNew = () => {
-				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: images, image_type: 'logo' }, {
-					onSuccess: (res) => {
-						const newImage = res.images[0];
-						if (newImage) {
-							setOptimisticLogoUrl(newImage.image_url);
-							setLogoId(newImage.image_id);
-						}
-					},
-					onError: () => {
-						setOptimisticLogoUrl(logoUrl); 
-					}
-				});
-			};
-	
-			if (logoId) { // Replace
-				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: logoId }, {
-					onSuccess: uploadNew
-				});
-			} else { // New upload
-				uploadNew();
-			}
-		}
-	};
-
-	const handleFeatureImageUpload = (images: PreviewImage[]) => {
-		if (images.length === 0 && featureImageId) { // Deletion
-			const idToDelete = featureImageId;
-			setOptimisticFeatureImageUrl(undefined);
-			setFeatureImageId(undefined);
-			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: idToDelete });
-		} else if (images.length > 0 && images[0].file) { // Replacement or New Upload
-			const newImagePreview = images[0].preview;
-			setOptimisticFeatureImageUrl(newImagePreview);
-	
-			const uploadNew = () => {
-				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: images, image_type: 'feature-image' }, {
-					onSuccess: (res) => {
-						const newImage = res.images[0];
-						if (newImage) {
-							setOptimisticFeatureImageUrl(newImage.image_url);
-							setFeatureImageId(newImage.image_id);
-						}
-					},
-					onError: () => {
-						setOptimisticFeatureImageUrl(featureImageUrl);
-					}
-				});
-			};
-	
-			if (featureImageId) { // Replace
-				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: featureImageId }, {
-					onSuccess: uploadNew
-				});
-			} else { // New upload
-				uploadNew();
-			}
-		}
-	};
-
 	const handleLogoAdded = (image: PreviewImage): Promise<void> => {
 		return new Promise((resolve, reject) => {
 			setOptimisticLogoUrl(image.preview);
@@ -821,7 +750,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 					{/* Branch Info Card */}
 					<div className="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-4">
 						
-						<h2 className="text-2xl font-bold text-primary-light">Branch Info</h2>
+						<h2 className="text-2xl font-bold text-primary-light flex items-center gap-2">
+							<Building2 className="w-6 h-6" />
+							Branch Info
+						</h2>
 
 						{/* Branch Name */}
 						<div className="flex items-center gap-2 mb-2">
@@ -831,7 +763,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 						{/* Address */}
 						<div className="mb-2">
-							<div className="font-semibold text-primary-light mb-1">Address</div>
+							<div className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<MapPin className="w-4 h-4" />
+								Address
+							</div>
 							<div className="flex items-center gap-2">
 								<span>{optimisticBranch.Address?.street || ''}{optimisticBranch.Address?.city ? `, ${optimisticBranch.Address.city}` : ''}{optimisticBranch.Address?.state ? `, ${optimisticBranch.Address.state}` : ''}{optimisticBranch.Address?.country ? `, ${optimisticBranch.Address.country}` : ''}</span>
 								<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('address')}>Edit</button>
@@ -840,21 +775,30 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 						
 						{/* Email */}
 						<div className="mb-2">
-							<div className="font-semibold text-primary-light mb-1">Email</div>
+							<div className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<Mail className="w-4 h-4" />
+								Email
+							</div>
 							<span>{optimisticBranch.email || 'No email'}</span>
 							<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('email')}>Edit</button>
 						</div>
 						
 						{/* Phone */}
 						<div className="mb-2">
-							<div className="font-semibold text-primary-light mb-1">Tel</div>
+							<div className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<Phone className="w-4 h-4" />
+								Tel
+							</div>
 							<span>{optimisticBranch.phone || 'No phone'}</span>
 							<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('phone')}>Edit</button>
 						</div>
 
 						{/* Logo */}
 						<div className="mb-2">
-							<div className="font-semibold text-primary-light mb-1">Logo</div>
+							<div className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<Image className="w-4 h-4" />
+								Logo
+							</div>
 							<ImageUploader
 								frameWidth={140}
 								frameHeight={140}
@@ -868,7 +812,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 						{/* Tags */}
 						<div className="mb-2">
-							<label className="font-semibold text-primary-light mb-1">Tags</label>
+							<label className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<TagIcon className="w-4 h-4" />
+								Tags
+							</label>
 							<div className="flex items-center gap-2 mb-3 mt-2">
 								<input
 									className="text-sm w-48 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
@@ -898,7 +845,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 						{/* Features */}
 						<div className="mb-2">
-							<label className="font-semibold text-primary-light mb-1">Features</label>
+							<label className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<Star className="w-4 h-4" />
+								Features
+							</label>
 							<div className="flex gap-2 mb-3 mt-2">
 								<input
 									className="border rounded px-2 py-1 text-sm"
@@ -928,7 +878,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 						{/* Opening Hour */}
 						<div className="mb-2">
-							<label className="font-semibold text-primary-light mb-1">Opening Hour</label>
+							<label className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<Clock className="w-4 h-4" />
+								Opening Hour
+							</label>
 							<div className="flex flex-col gap-2 mt-2">
 								{optimisticBranch.openingHours.map((hour: any, idx: number) => (
 									<div key={hour.id || idx} className="flex items-center gap-2">
@@ -964,7 +917,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 						{/* Feature Image */}
 						<div className="mb-2">
-							<label className="font-semibold text-primary-light mb-1">Feature Image</label>
+							<label className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<Image className="w-4 h-4" />
+								Feature Image
+							</label>
 							<ImageUploader
 								frameWidth={240}
 								frameHeight={Math.round((240 / 16) * 9)}
@@ -978,7 +934,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 						{/* Description */}
 						<div className="mb-2">
-							<label className="font-semibold text-primary-light mb-1">Description</label>
+							<label className="font-semibold text-primary-light mb-1 flex items-center gap-2">
+								<FileText className="w-4 h-4" />
+								Description
+							</label>
 							<div>
 								<p className={`text-sm mt-2 ${optimisticBranch.description ? 'line-clamp-3 text-text-main' : 'text-gray-400'}`}>{optimisticBranch.description || 'No description'}</p>
 								<button className="mt-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('description')}>Edit</button>
@@ -993,20 +952,29 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 					<div className="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-4">
 
 						<div className="flex items-center gap-2">
-							<h2 className="text-2xl font-bold text-primary-light">Contact</h2>
+							<h2 className="text-2xl font-bold text-primary-light flex items-center gap-2">
+								<Users className="w-6 h-6" />
+								Contact
+							</h2>
 							<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('contact')}>Edit</button>
 						</div>
 
 						<div className="mb-2">
 							<div className="flex gap-4 mb-2">
 								<div className="flex-1">
-									<label className="block font-semibold mb-1 text-primary-light text-base">Contact Person</label>
+									<label className="block font-semibold mb-1 text-primary-light text-base flex items-center gap-2">
+										<User className="w-4 h-4" />
+										Contact Person
+									</label>
 									<div className="input input-bordered w-full text-base border-b-1 outline-none text-text-main border-gray-200 py-2 rounded-lg">
 										{optimisticBranch.contact_person?.User?.fname} {optimisticBranch.contact_person?.User?.lname}
 									</div>
 								</div>
 								<div className="flex-1">
-									<label className="block font-semibold mb-1 text-primary-light text-base">Email</label>
+									<label className="block font-semibold mb-1 text-primary-light text-base flex items-center gap-2">
+										<Mail className="w-4 h-4" />
+										Email
+									</label>
 									<div className="flex items-center gap-2">
 										<div className="input input-bordered w-full text-base border-b-1 outline-none text-text-main border-gray-200 py-2 rounded-lg">
 											{optimisticBranch.contact_person?.User?.email || 'N/A'}
@@ -1016,13 +984,19 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 							</div>
 							<div className="flex gap-4 mb-2">
 								<div className="flex-1">
-									<label className="block font-semibold mb-1 text-primary-light text-base">Position</label>
+									<label className="block font-semibold mb-1 text-primary-light text-base flex items-center gap-2">
+										<Info className="w-4 h-4" />
+										Position
+									</label>
 									<div className="input input-bordered w-full text-base border-b-1 outline-none text-text-main border-gray-200 py-2 rounded-lg">
 										{optimisticBranch.contact_person?.position || 'N/A'}
 									</div>
 								</div>
 								<div className="flex-1">
-									<label className="block font-semibold mb-1 text-primary-light text-base">Tel</label>
+									<label className="block font-semibold mb-1 text-primary-light text-base flex items-center gap-2">
+										<Phone className="w-4 h-4" />
+										Tel
+									</label>
 									<div className="flex items-center gap-2">
 										<div className="input input-bordered w-full text-base border-b-1 outline-none text-text-main border-gray-200 py-2 rounded-lg">
 											{optimisticBranch.contact_person?.User?.phone || 'N/A'}
@@ -1035,7 +1009,10 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 
 					{/* Gallery */}
 					<div className="bg-white rounded-2xl shadow-md p-6">
-						<h2 className="text-2xl font-bold text-primary-light mb-3">Gallery</h2>
+						<h2 className="text-2xl font-bold text-primary-light mb-3 flex items-center gap-2">
+							<Images className="w-6 h-6" />
+							Gallery
+						</h2>
  
 						{/* Gallery */}
 						<ImageUploader 

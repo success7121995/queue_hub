@@ -1,6 +1,6 @@
 // middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirstAdminSlug, getFirstMerchantSlug } from '@/lib/utils';
+import { getFirstAdminSlug, getFirstMerchantSlug, hasMerchantAccess } from '@/lib/utils';
 
 const PUBLIC_PATHS = [
     '/',
@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
     '/signup',
     '/contact-us',
     '/faq',
+    '/unauthorized',
 ];  
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'];
@@ -26,10 +27,18 @@ const getUserRole = async (req: NextRequest) => {
         });
         if (!res.ok) return null;
         const data = await res.json();
-        return data.user?.role || null;
+        return {
+            userRole: data.user?.role || null,
+            merchantRole: data.user?.UserMerchant?.role || null
+        };
     } catch {
         return null;
     }
+};
+
+const isMerchantRouteAllowed = (merchantRole: string, pathname: string): boolean => {
+    const currentSlug = pathname.split('/').pop();
+    return hasMerchantAccess(merchantRole as any, currentSlug || '');
 };
 
 export const middleware = async (req: NextRequest) => {
@@ -42,14 +51,16 @@ export const middleware = async (req: NextRequest) => {
 
     if (sessionId) {
         // Fetch user role from backend
-        const role = await getUserRole(req);
+        const roleData = await getUserRole(req);
+        const userRole = roleData?.userRole;
+        const merchantRole = roleData?.merchantRole;
 
         // If accessing /login or /signup, always redirect to dashboard if session is set and role is known
         if (pathname === '/login' || pathname === '/signup') {
-            if (ADMIN_ROLES.includes(role)) {
+            if (ADMIN_ROLES.includes(userRole)) {
                 const firstAdminSlug = getFirstAdminSlug?.() || '';
                 return NextResponse.redirect(new URL(`/admin/${firstAdminSlug}`, req.url));
-            } else if (role === 'MERCHANT') {
+            } else if (userRole === 'MERCHANT') {
                 const firstMerchantSlug = getFirstMerchantSlug?.() || '';
                 return NextResponse.redirect(new URL(`/merchant/${firstMerchantSlug}`, req.url));
             } else {
@@ -60,17 +71,26 @@ export const middleware = async (req: NextRequest) => {
 
         // Role-based route protection for authenticated users
         if (pathname.startsWith('/admin')) {
-            if (!role) return NextResponse.next(); // If role is unknown, do nothing
-            if (!ADMIN_ROLES.includes(role)) {
+            if (!userRole) return NextResponse.next(); // If role is unknown, do nothing
+            if (!ADMIN_ROLES.includes(userRole)) {
                 return NextResponse.redirect(new URL('/login', req.url));
             }
         }
+        
         if (pathname.startsWith('/merchant')) {
-            if (!role) return NextResponse.next(); // If role is unknown, do nothing
-            if (role !== 'MERCHANT') {
+            if (!userRole) return NextResponse.next(); // If role is unknown, do nothing
+            if (userRole !== 'MERCHANT') {
                 return NextResponse.redirect(new URL('/login', req.url));
             }
+            
+            // Check merchant role-based access for specific merchant routes
+            if (pathname.includes('/merchant/') && pathname.split('/').length > 2) {
+                if (!isMerchantRouteAllowed(merchantRole, pathname)) {
+                    return NextResponse.redirect(new URL('/404', req.url));
+                }
+            }
         }
+        
         // If session is set, allow access to all other pages
         return NextResponse.next();
     } else {

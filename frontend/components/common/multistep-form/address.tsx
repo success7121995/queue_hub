@@ -34,6 +34,7 @@ const countryList = [
     "United Kingdom",
     "Australia",
     "Hong Kong",
+    "Macau",
     "Taiwan",
     "Singapore",
     "Malaysia",

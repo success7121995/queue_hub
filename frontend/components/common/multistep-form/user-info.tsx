@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
 import { AddAdminFormFields } from "@/types/form";
-import { ImageUploader } from "@/components";
 import Cookies from "js-cookie";
+import { useAuth } from "@/hooks/auth-hooks";
+import { CountryDialingDropdown, useDialingCode } from "@/constant/dialing-code-provider";
 
 const COOKIE_KEY = "signupForm";
 
@@ -36,6 +37,64 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
         formState: { errors },
     } = (formMethods as unknown) as UseFormReturn<AddAdminFormFields["userInfo"]>;
 
+    // Get current user's role for role-based access control
+    const { data: currentUser } = useAuth();
+    const currentUserRole = currentUser?.user?.UserMerchant?.role;
+
+    // Filter role options based on current user's role
+    const getFilteredRoleOptions = () => {
+        if (formType === "add-admin") {
+            return adminRoleOptions;
+        }
+
+        // For add-employee form, apply role-based restrictions
+        if (formType === "add-employee") {
+            if (currentUserRole === "OWNER") {
+                // Owners can assign all roles
+                return roleOptions;
+            } else if (currentUserRole === "MANAGER") {
+                // Managers can only assign FRONTLINE and MANAGER roles
+                return roleOptions.filter(option => 
+                    option.value === "FRONTLINE" || option.value === "MANAGER"
+                );
+            } else {
+                // FRONTLINE users cannot assign any roles (should not have access to this form anyway)
+                return [];
+            }
+        }
+
+        return roleOptions;
+    };
+
+    const filteredRoleOptions = getFilteredRoleOptions();
+
+    const { dialingCode, setDialingCode } = useDialingCode();
+    const [localPhone, setLocalPhone] = useState("");
+
+    // Load phone from cookie if available
+    useEffect(() => {
+        const cookie = Cookies.get(COOKIE_KEY);
+        if (cookie) {
+            try {
+                const parsed = JSON.parse(cookie);
+                if (parsed.userInfo && parsed.userInfo.phone) {
+                    const parts = parsed.userInfo.phone.split("-");
+                    if (parts.length === 2) {
+                        setDialingCode(parts[0]);
+                        setLocalPhone(parts[1]);
+                    }
+                }
+            } catch {}
+        }
+    }, [setDialingCode]);
+
+    // Combine dialing code and local phone for form value
+    useEffect(() => {
+        if (localPhone) {
+            setValue("phone", `${dialingCode}-${localPhone}`);
+        }
+    }, [dialingCode, localPhone, setValue]);
+
     // Load from cookie if available
     React.useEffect(() => {
         const cookie = Cookies.get(COOKIE_KEY);
@@ -52,6 +111,7 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
     }, [setValue]);
 
     const onSubmit = (data: AddAdminFormFields["userInfo"]) => {
+        console.log(data);
         // Save to cookie
         const cookie = Cookies.get(COOKIE_KEY);
         let cookieData = {};
@@ -141,14 +201,18 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                 {/* Phone */}
                 <div>
                     <label htmlFor="phone" className="block mb-1 font-semibold text-text-main text-sm">Phone Number</label>
-                    <input
-                        id="phone"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.phone ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("phone", { required: "Phone number is required" })}
-                        placeholder="Enter phone number"
-                    />
+                    <div className="flex gap-2 items-center">
+                        <CountryDialingDropdown />
+                        <input
+                            id="phone"
+                            className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                                errors.phone ? "border-red-500" : "border-gray-400"
+                            }`}
+                            value={localPhone}
+                            onChange={e => setLocalPhone(e.target.value)}
+                            placeholder="Enter phone number"
+                        />
+                    </div>
                     {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
 
@@ -182,25 +246,18 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>
-                        )) : roleOptions.map((option) => (
+                        )) : filteredRoleOptions.map((option) => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>
                         ))}
                     </select>
                     {errors.role && <span className="text-red-500 text-xs">{errors.role.message}</span>}
-                </div>
-
-                {/* Avatar */}
-                <div>
-                    <label htmlFor="avatar" className="block mb-1 font-semibold text-text-main text-sm">Avatar</label>
-                    
-                    <ImageUploader
-                        frameWidth="200px"
-                        frameHeight="200px"
-                        className="w-full"
-                        onImageRemoved={() => {}}
-                    />
+                    {formType === "add-employee" && filteredRoleOptions.length === 0 && (
+                        <span className="text-orange-500 text-xs">
+                            You don't have permission to assign roles.
+                        </span>
+                    )}
                 </div>
 
                 {/* Navigation Buttons */}

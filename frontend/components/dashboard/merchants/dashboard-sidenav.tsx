@@ -3,49 +3,62 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { usePathname } from "next/navigation";		
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/auth-hooks";
+import { getAllowedRoutes } from "@/lib/utils";
 
 const DashboardSidenav = () => {
 	const pathname = usePathname();
 	const currentSlug = pathname.split('/').pop();
+	const { data: userData } = useAuth();
+	const merchantRole = userData?.user?.UserMerchant?.role;
+
+	const allowedRoutes = getAllowedRoutes(merchantRole as any);
 
 	const menuData = [
 		{
 			label: "Queues",
 			items: [
-				{ label: "View Live Queues", href: `/merchant/view-live-queues` },
-				{ label: "Manage Queue Entries", href: `/merchant/manage-queue-entries` },
+				{ label: "View Live Queues", href: `/merchant/view-live-queues`, slug: "view-live-queues" },
+				{ label: "Manage Queue Entries", href: `/merchant/manage-queue-entries`, slug: "manage-queue-entries" },
 			],
 		},
 		{
 			label: "Branch",
 			items: [
-				{ label: "Add Branch", href: `/merchant/add-branch` },
-				{ label: "Branch Info", href: `/merchant/branch-info` },
+				// Only show "Add Branch" for OWNER role
+				...(merchantRole === 'OWNER' ? [{ label: "Add Branch", href: `/merchant/add-branch`, slug: "add-branch" }] : []),
+				{ label: "Branch Info", href: `/merchant/branch-info`, slug: "branch-info" },
 			],
 		},
 		{
 			label: "Customers",
 			items: [
-				{ label: "View Queue History", href: `/merchant/view-queue-history` },
-				{ label: "Feedback", href: `/merchant/feedback` },
+				{ label: "View Queue History", href: `/merchant/view-queue-history`, slug: "view-queue-history" },
+				{ label: "Feedback", href: `/merchant/feedback`, slug: "feedback" },
 			],
 		},
 		{
 			label: "Employees",
 			items: [
-				{ label: "Register New User", href: `/merchant/register-new-user` },
-				{ label: "Manage Users", href: `/merchant/manage-users` },
+				{ label: "Register New Employee", href: `/merchant/register-new-employee`, slug: "register-new-employee" },
+				{ label: "Manage Employees", href: `/merchant/manage-employees`, slug: "manage-employees" },
 			],
 		},
 		{
 			label: "Analytics",
 			items: [
-				{ label: "Analytics", href: `/merchant/analytics` },
-				{ label: "System Health", href: `/merchant/system-health` },
+				{ label: "Analytics", href: `/merchant/analytics`, slug: "analytics" },
+				{ label: "System Health", href: `/merchant/system-health`, slug: "system-health" },
 			],
 		},
 	];
+
+	// Filter menu data based on allowed routes
+	const filteredMenuData = menuData.map(section => ({
+		...section,
+		items: section.items.filter(item => allowedRoutes.includes(item.slug))
+	})).filter(section => section.items.length > 0);
 	
 	const [open, setOpen] = useState(false);
 	const [accordion, setAccordion] = useState<string | null>(null);
@@ -88,7 +101,7 @@ const DashboardSidenav = () => {
 				
 				{/* Mobile: accordion format */}
 				<div className="block 2xl:hidden mt-15 pt-20">
-					{menuData.map((section) => (
+					{filteredMenuData.map((section) => (
 						<div key={section.label} className="mb-3">
 							<button
 								className="w-full flex items-center justify-between font-semibold text-base py-2.5 px-3 rounded-lg hover:bg-primary-50 transition cursor-pointer text-primary-light"
@@ -124,7 +137,7 @@ const DashboardSidenav = () => {
 
 				{/* Desktop: expanded sections, no accordion */}
 				<div className="hidden 2xl:block mt-20 pt-16">
-					{menuData.map((section) => (
+					{filteredMenuData.map((section) => (
 						<div key={section.label} className="mb-4">
 							<div className="font-bold text-base mb-2 text-primary-light">{section.label}</div>
 							<div className="space-y-1">

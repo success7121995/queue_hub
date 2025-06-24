@@ -2,26 +2,17 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
-import { ImageUploader } from "@/components";
 import { TimePicker } from "@/components";
-import type { PreviewImage } from "./image-uploader";
 
 export interface ModalFormField {
 	id: string;
 	label: string;
-	type: 'text' | 'textarea' | 'image' | 'time' | 'email' | 'tel' | 'address' | 'select';
+	type: 'text' | 'textarea' | 'time' | 'email' | 'tel' | 'address' | 'select';
 	value?: any;
 	required?: boolean;
 	placeholder?: string;
 	readOnly?: boolean;
 	validation?: (value: any) => string | null;
-	imageConfig?: {
-		frameWidth?: number;
-		frameHeight?: number;
-		multiple?: boolean;
-		fontSize?: number;
-		existingImage?: PreviewImage[];
-	};
 	timeConfig?: {
 		format?: string;
 		disabled?: boolean;
@@ -199,28 +190,6 @@ const ModalForm: React.FC<ModalFormProps> = ({
 								fieldError ? 'border-red-500' : 'border-gray-300 focus:border-primary-light'
 							}`}
 							rows={4}
-						/>
-						{fieldError && (
-							<p className="text-red-500 text-sm mt-1">{fieldError}</p>
-						)}
-					</div>
-				);
-
-			case 'image':
-				return (
-					<div key={field.id} className="mb-4">
-						<label className="block text-sm font-medium text-gray-700 mb-2">
-							{field.label}
-							{field.required && <span className="text-red-500 ml-1">*</span>}
-						</label>
-						<ImageUploader
-							frameWidth={field.imageConfig?.frameWidth || 240}
-							frameHeight={field.imageConfig?.frameHeight || 160}
-							fontSize={field.imageConfig?.fontSize || 12}
-							className="w-full"
-							multiple={field.imageConfig?.multiple || false}
-							onUploadComplete={(files) => handleInputChange(field.id, files)}
-							existingImage={field.imageConfig?.existingImage || []}
 						/>
 						{fieldError && (
 							<p className="text-red-500 text-sm mt-1">{fieldError}</p>

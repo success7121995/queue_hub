@@ -2,6 +2,9 @@ import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 let statusChangeCallbacks: ((data: { queueId: string; status: "OPEN" | "CLOSED" }) => void)[] = [];
+let queueCreatedCallbacks: ((data: { message: string }) => void)[] = [];
+let queueUpdatedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
+let queueDeletedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
 
 /**
  * Connect to the socket
@@ -43,6 +46,30 @@ export const connectSocket = () => {
     });
 
     /**
+     * Handle queue creation
+     * @param data - The data containing the creation message
+     */
+    socket.on("queueCreated", (data) => {
+        queueCreatedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle queue updates
+     * @param data - The data containing the queue ID and update message
+     */
+    socket.on("queueUpdated", (data) => {
+        queueUpdatedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle queue deletion
+     * @param data - The data containing the queue ID and deletion message
+     */
+    socket.on("queueDeleted", (data) => {
+        queueDeletedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
      * Handle socket errors
      * @param error - The error object
      */
@@ -79,6 +106,42 @@ export const onQueueStatusChange = (callback: (data: { queueId: string; status: 
     statusChangeCallbacks.push(callback);
     return () => {
         statusChangeCallbacks = statusChangeCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for queue creation
+ * @param callback - The callback function to be called when a queue is created
+ * @returns A function to unregister the callback
+ */
+export const onQueueCreated = (callback: (data: { message: string }) => void) => {
+    queueCreatedCallbacks.push(callback);
+    return () => {
+        queueCreatedCallbacks = queueCreatedCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for queue updates
+ * @param callback - The callback function to be called when a queue is updated
+ * @returns A function to unregister the callback
+ */
+export const onQueueUpdated = (callback: (data: { queueId: string; message: string }) => void) => {
+    queueUpdatedCallbacks.push(callback);
+    return () => {
+        queueUpdatedCallbacks = queueUpdatedCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for queue deletion
+ * @param callback - The callback function to be called when a queue is deleted
+ * @returns A function to unregister the callback
+ */
+export const onQueueDeleted = (callback: (data: { queueId: string; message: string }) => void) => {
+    queueDeletedCallbacks.push(callback);
+    return () => {
+        queueDeletedCallbacks = queueDeletedCallbacks.filter(cb => cb !== callback);
     };
 };
 

@@ -44,15 +44,11 @@ export const userMerchantKeys = {
 
 /**
  * Fetch queues
- * @param branchId 
+ * @param branchId - The branch ID to fetch queues for
  * @returns 
  */
 export const fetchQueues = async (branchId: string): Promise<QueuesResponse> => {
-    if (!branchId) {
-        throw new Error('No branch ID available');
-    }
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/queues/${branchId}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/queues?branch_id=${branchId}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -186,10 +182,18 @@ export const fetchMerchant = async (merchantId: string): Promise<MerchantRespons
 /**
  * Fetch branches
  * @param merchantId 
+ * @param prefetch 
+ * @param userId - Optional user ID for role-based filtering
  * @returns 
  */
-export const fetchBranches = async (merchantId: string, prefetch: boolean = false): Promise<BranchesResponse> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${merchantId}?prefetch=${prefetch}`, {
+export const fetchBranches = async (merchantId: string, prefetch: boolean = false, userId?: string): Promise<BranchesResponse> => {
+    const url = new URL(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/branches/${merchantId}`);
+    url.searchParams.set('prefetch', prefetch.toString());
+    if (userId) {
+        url.searchParams.set('user_id', userId);
+    }
+
+    const res = await fetch(url.toString(), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -499,6 +503,29 @@ export const fetchCreateBranch = async (data: {
     return responseData.result;
 };
 
+/**
+ * Switch user's selected branch
+ * @param branch_id - The branch ID to switch to
+ * @returns 
+ */
+export const fetchSwitchBranch = async (branch_id: string): Promise<{ success: boolean; result: any; user: any }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/switch-branch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ branch_id }),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to switch branch');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+};
+
 /********************************* Hooks *********************************/
 
 /**
@@ -507,10 +534,10 @@ export const fetchCreateBranch = async (data: {
  * @param options 
  * @returns 
  */
-export const useQueues = (branchId: string, options?: Omit<UseQueryOptions<QueuesResponse, Error>, 'queryKey' | 'queryFn'>) => {
+export const useQueues = (branchId: string | undefined, options?: Omit<UseQueryOptions<QueuesResponse, Error>, 'queryKey' | 'queryFn'>) => {
     return useQuery({
-        queryKey: queueKeys.list(branchId),
-        queryFn: () => fetchQueues(branchId),
+        queryKey: queueKeys.list(branchId as string),
+        queryFn: () => fetchQueues(branchId as string),
         enabled: !!branchId,
         staleTime: 1000 * 60, // 1 minute
         gcTime: 1000 * 60 * 5, // 5 minutes
@@ -591,11 +618,8 @@ export const useMerchant = (merchantId: string, options?: Omit<UseQueryOptions<M
  */
 export const useUserMerchants = (merchantId: string, options?: Omit<UseQueryOptions<UserMerchantResponse, Error>, 'queryKey' | 'queryFn'>) => {
     return useQuery({
-        queryKey: userMerchantKeys.all,
+        queryKey: userMerchantKeys.detail(merchantId),
         queryFn: () => fetchUserMerchants(merchantId),
-        enabled: !!merchantId,
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        gcTime: 1000 * 60 * 10, // 10 minutes
         ...options,
     });
 };
@@ -603,13 +627,14 @@ export const useUserMerchants = (merchantId: string, options?: Omit<UseQueryOpti
 /**
  * Use branches
  * @param merchantId 
+ * @param userId - Optional user ID for role-based filtering
  * @param options 
  * @returns 
  */
-export const useBranches = (merchantId: string, options?: Omit<UseQueryOptions<BranchesResponse, Error>, 'queryKey' | 'queryFn'>) => {
+export const useBranches = (merchantId: string, userId?: string, options?: Omit<UseQueryOptions<BranchesResponse, Error>, 'queryKey' | 'queryFn'>) => {
     return useQuery({
-        queryKey: branchKeys.detail(merchantId),
-        queryFn: () => fetchBranches(merchantId),
+        queryKey: [...branchKeys.detail(merchantId), userId],
+        queryFn: () => fetchBranches(merchantId, false, userId),
         enabled: !!merchantId,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 10, // 10 minutes
@@ -738,6 +763,18 @@ export const useCreateBranch = (options?: Omit<UseMutationOptions<BranchResponse
     return useMutation({ mutationFn: fetchCreateBranch, ...options });
 };
 
+/**
+ * Use switch branch
+ * @param options 
+ * @returns 
+ */
+export const useSwitchBranch = (options?: Omit<UseMutationOptions<{ success: boolean; result: any; user: any }, Error, string>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchSwitchBranch,
+        ...options,
+    });
+};
+
 /********************************* Prefetch Functions *********************************/
 
 /**
@@ -778,15 +815,16 @@ export const prefetchMerchant = async (queryClient: any, merchantId: string) => 
  * Prefetch branches
  * @param queryClient 
  * @param merchantId 
+ * @param userId - Optional user ID for role-based filtering
  * @returns 
  */
-export const prefetchBranches = async (queryClient: any, merchantId: string) => {
+export const prefetchBranches = async (queryClient: any, merchantId: string, userId?: string) => {
     await queryClient.prefetchQuery({
-        queryKey: branchKeys.detail(merchantId),
-        queryFn: () => fetchBranches(merchantId, true),
+        queryKey: [...branchKeys.detail(merchantId), userId],
+        queryFn: () => fetchBranches(merchantId, true, userId),
         staleTime: 1000 * 60 * 5,
         gcTime: 1000 * 60 * 10,
     });
 
-    return queryClient.getQueryData(branchKeys.detail(merchantId));
+    return queryClient.getQueryData([...branchKeys.detail(merchantId), userId]);
 };

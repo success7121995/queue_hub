@@ -21,7 +21,8 @@ interface TableProps<T> {
 	dateColumnKey?: keyof T | ((row: T) => Date | null | undefined);
 	renderActions?: (row: T) => ReactNode;
 	loading?: boolean;
-	message?: string
+	message?: string;
+	getRowClassName?: (row: T) => string; // New prop for custom row styling
 }
 
 const Table = <T extends Record<string, any>>({ 
@@ -33,6 +34,7 @@ const Table = <T extends Record<string, any>>({
 	renderActions,
 	loading = false,
 	message = "No data available",
+	getRowClassName,
 }: TableProps<T>) => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -388,7 +390,7 @@ const Table = <T extends Record<string, any>>({
 								{/* Table Body */}
 								<tbody className="bg-white divide-y divide-gray-100">
 									{currentData.map((row, rowIndex) => (
-										<tr key={rowIndex} className="hover:bg-primary-light/10 transition-colors group">
+										<tr key={rowIndex} className={`hover:bg-primary-light/10 transition-colors group ${getRowClassName ? getRowClassName(row) : ''}`}>
 											{sortedColumns.map((column, colIndex) => (
 												<td 
 												key={colIndex} 
@@ -404,7 +406,7 @@ const Table = <T extends Record<string, any>>({
 											</td>
 										))}
 											{renderActions && (
-											<td className="sticky right-0 bg-white px-6 py-4 whitespace-nowrap text-sm rounded-br-xl">
+											<td className={`sticky right-0 px-6 py-4 whitespace-nowrap text-sm rounded-br-xl ${getRowClassName ? getRowClassName(row) : 'bg-white'}`}>
 												{renderActions(row)}
 											</td>
 										)}

@@ -88,12 +88,6 @@ export const authController = {
             const { email, password } = req.body;
             const result = await authService.login(email, password);
 
-            // Set session data
-            let branchId = result.merchant?.Branch[0]?.branch_id;
-            if (req.session.user && req.session.user.branch_id) {
-                branchId = req.session.user.branch_id;
-            }
-
             // Get merchant role if user is a merchant
             let merchantRole: string | undefined;
             if (result.user.role === UserRole.MERCHANT && result.userMerchant) {
@@ -106,8 +100,6 @@ export const authController = {
                 email: result.user.email,
                 role: result.user.role,
                 merchant_id: result.merchant?.merchant_id,
-                branch_id: branchId,
-                availableBranches: result.merchant?.Branch.map(branch => branch.branch_id) ?? [],
                 merchantRole
             };
             
@@ -167,37 +159,6 @@ export const authController = {
     ),
 
     /**
-     * Get current user info
-     * @param req - The request object
-     * @param res - The response object
-     */
-    me: withActivityLog(
-        async (req: Request, res: Response) => {
-            const user = req.session.user;
-
-            if (!user) {
-                throw new AppError("Not authenticated", 401);
-            }
-
-            const userData = await authService.getUserById(user.user_id);
-
-            res.status(200).json({
-                success: true,
-                user: {
-                    ...userData.user
-                }
-            });
-
-            return userData;
-        },
-        {
-            action: ActivityType.VIEW_PROFILE,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: () => ({}),
-        }
-    ),
-
-    /**
      * Register a merchant
      * @param req - The request object
      * @param res - The response object
@@ -244,6 +205,7 @@ export const authController = {
             const user = req.session.user;
 
             const merchant_id = user?.merchant_id;
+            console.log(validatedData);
 
             if (!merchant_id) {
                 throw new AppError("Merchant ID not found", 404);

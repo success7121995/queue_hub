@@ -1,39 +1,12 @@
 import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import Cookies from 'js-cookie';
-import type { User, UserMerchant, UserAdmin } from "@/types/user";
-import { Branch, Merchant } from "@/types/merchant";
 import { AddEmployeeFormFields } from "@/types/form";
+import { AuthResponse, LogoutResponse } from "@/types/response";
 
 // Types
 export interface LoginFormInputs {
     email: string;
     password: string;
-}
-
-export interface AuthResponse {
-    success: boolean;
-    user: {
-        username?: string;
-        fname?: string;
-        lname?: string;
-        position?: string;
-        UserMerchant?: UserMerchant;
-        UserAdmin?: UserAdmin;
-        merchant?: Merchant;
-        branches?: Branch[];
-        role?: string;
-        merchant_id?: string;
-        branch_id?: string;
-        availableBranches?: string[];
-        message_received?: any[];
-        lang?: string;
-    };
-    sessionId?: string;
-}
-
-export interface LogoutResponse {
-    success: boolean;
-    message?: string;
 }
 
 /**
@@ -147,6 +120,10 @@ export const fetchLogout = async (): Promise<LogoutResponse> => {
 
     return responseData;
 };
+
+
+
+
 
 
 

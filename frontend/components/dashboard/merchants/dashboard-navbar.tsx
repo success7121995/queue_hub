@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
+import { Menu, X, ChevronDown, Globe, Mail, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
-import { useMerchant, useBranches } from "@/hooks/merchant-hooks";
+import { useMerchant, useBranches, useSwitchBranch } from "@/hooks/merchant-hooks";
 import { useUpdateUserProfile } from "@/hooks/user-hooks";
 import { useLang, type Lang } from "@/constant/lang-provider";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { Branch } from "@/types/merchant";
+import { useQueryClient } from "@tanstack/react-query";
 
 const DashboardNavbar = () => {
 	const [profileOpen, setProfileOpen] = useState(false);
@@ -23,10 +24,16 @@ const DashboardNavbar = () => {
 	const mailRef = useRef<HTMLDivElement>(null);
 	const branchRef = useRef<HTMLDivElement>(null);
 	const updateUserProfile = useUpdateUserProfile();
+	const queryClient = useQueryClient();
 
 	const { data: userData, isLoading: isUserDataLoading } = useAuth();
 	const { data: merchantData, isLoading: isMerchantDataLoading } = useMerchant(userData?.user?.UserMerchant?.merchant_id as string);
-	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(userData?.user?.UserMerchant?.merchant_id as string);
+	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(
+		userData?.user?.UserMerchant?.merchant_id as string,
+		userData?.user?.UserMerchant?.user_id,
+		{ enabled: !!userData?.user?.UserMerchant?.merchant_id }
+	);
+	const { mutate: switchBranch, isPending: isSwitchingBranch } = useSwitchBranch();
 	
 	const { langsOptions, lang, setLang } = useLang();
 
@@ -36,8 +43,8 @@ const DashboardNavbar = () => {
 	const merchantName = merchantData?.merchant?.business_name || 'Business';
 	const messageReceived = userData?.user?.message_received || [];
 
-	// Branch selection - use prefetched branch_id or first available branch
-	const [selectedBranch, setSelectedBranch] = useState(branchesData?.branches[0]?.branch_id || "");
+	// Branch selection - use selected_branch_id from UserMerchant
+	const [selectedBranch, setSelectedBranch] = useState(userData?.user?.UserMerchant?.selected_branch_id || branchesData?.branches[0]?.branch_id || "");
 
 	// Find the selected branch object
 	const selectedBranchObj: Branch | undefined = branchesData?.branches?.find(
@@ -49,11 +56,30 @@ const DashboardNavbar = () => {
 	const { mutate: logout } = useLogout();
 
 	useEffect(() => {
-		if (!selectedBranch && branchesData?.branches?.length) {
-		  setSelectedBranch(userData?.user?.branch_id || branchesData.branches[0].branch_id);
+		if (userData?.user?.UserMerchant?.selected_branch_id) {
+			const currentSelectedBranch = userData.user.UserMerchant.selected_branch_id;
+			
+			// Check if the current selected branch is accessible to the user
+			if (userData.user.UserMerchant.role === 'OWNER') {
+				// Owners can access all branches
+				setSelectedBranch(currentSelectedBranch);
+			} else {
+				// Non-owners can only access their assigned branches
+				const assignedBranchIds = userData.user.UserMerchant.UserMerchantOnBranch?.map(
+					(umb: any) => umb.branch_id
+				) || [];
+				
+				if (assignedBranchIds.includes(currentSelectedBranch)) {
+					setSelectedBranch(currentSelectedBranch);
+				} else if (assignedBranchIds.length > 0) {
+					// If current branch is not accessible, switch to first available branch
+					setSelectedBranch(assignedBranchIds[0]);
+				}
+			}
+		} else if (!selectedBranch && branchesData?.branches?.length) {
+			setSelectedBranch(branchesData.branches[0].branch_id);
 		}
-
-	  }, [branchesData, selectedBranch, userData]);
+	}, [branchesData, selectedBranch, userData]);
 
 	// Close mobile menu on outside click
 	useEffect(() => {
@@ -103,7 +129,7 @@ const DashboardNavbar = () => {
 	 * Handle language change
 	 */
 	const handleLanguageChange = (lang: Lang) => {
-		updateUserProfile.mutate({ lang }, {
+		updateUserProfile.mutate({ username, lang }, {
 			onSuccess: () => {
 				setLang(lang);
 			},
@@ -114,13 +140,52 @@ const DashboardNavbar = () => {
 	};
 
 	/**
+	 * Handle branch switching
+	 */
+	const handleBranchSwitch = (branchId: string) => {
+		switchBranch(branchId, {
+			onSuccess: (data) => {
+				setBranchOpen(false);
+				// Update the auth data with the new user data
+				queryClient.setQueryData(['auth'], {
+					success: true,
+					user: data.user
+				});
+				// Invalidate queries to refresh data
+				queryClient.invalidateQueries();
+			},
+			onError: (error) => {
+				console.error('Branch switch failed:', error);
+			}
+		});
+	};
+
+	/**
 	 * Update branch selection dropdown items
 	 */
-	const branchItems: DropdownItem[] = (branchesData?.branches ?? []).map((branch: Branch) => ({
-		label: branch.branch_name,
-		value: branch.branch_id,
-		icon: <Globe size={18} />
-	}));
+	const branchItems: DropdownItem[] = (() => {
+		const allBranches = branchesData?.branches ?? [];
+		
+		// If user is owner, show all branches
+		if (userData?.user?.UserMerchant?.role === 'OWNER') {
+			return allBranches.map((branch: Branch) => ({
+				label: branch.branch_name,
+				value: branch.branch_id,
+			}));
+		}
+		
+		// For non-owners, only show branches they are assigned to
+		const assignedBranchIds = userData?.user?.UserMerchant?.UserMerchantOnBranch?.map(
+			(umb: any) => umb.branch_id
+		) || [];
+		
+		return allBranches
+			.filter((branch: Branch) => assignedBranchIds.includes(branch.branch_id))
+			.map((branch: Branch) => ({
+				label: branch.branch_name,
+				value: branch.branch_id,
+			}));
+	})();
 
 	return (
 		<nav className="font-regular-eng fixed top-0 left-0 w-full z-[1000] flex items-center px-4 sm:px-8 py-3 sm:py-4 border-b border-gray-200 bg-primary shadow-sm">
@@ -133,7 +198,15 @@ const DashboardNavbar = () => {
 				/>
 			)}
 
-			{isMerchantDataLoading || isUserDataLoading && (
+			{isSwitchingBranch && (
+				<LoadingIndicator 
+					fullScreen 
+					text="Switching branch..." 
+					className="bg-white/80"
+				/>
+			)}
+
+			{isMerchantDataLoading || isUserDataLoading || isBranchesDataLoading && (
 				<LoadingIndicator 
 					fullScreen 
 					text="Loading merchant data..." 
@@ -176,7 +249,7 @@ const DashboardNavbar = () => {
 								<div
 									key={branch.value}
 									className="py-1 cursor-pointer"
-									onClick={() => { setSelectedBranch(branch.value); setBranchOpen(false); }}
+									onClick={() => handleBranchSwitch(branch.value)}
 								>
 									{branch.label}
 								</div>
@@ -245,26 +318,58 @@ const DashboardNavbar = () => {
 								}
 							</span>
 						</div>
-						<ChevronDown size={16} />
+						<ChevronDown size={16} className="text-text-light" />
 					</button>
+
 					{profileOpen && (
-						<div className="absolute right-0 top-12 bg-white border rounded shadow px-4 py-2 z-10 min-w-[160px]">
-							<button className="w-full text-left py-1">Profile</button>
-							<button className="w-full text-left py-1">Account</button>
-							<button className="w-full text-left py-1">Billing</button>
-							<button className="w-full text-left py-1">Settings</button>
-							<hr className="my-2" />
-							<button 
-								onClick={handleLogout}
-								disabled={isLoggingOut}
-								className="w-full border border-gray-400 rounded px-2 py-1 text-sm hover:bg-gray-100 cursor-pointer flex items-center justify-center"
-							>
-								{isLoggingOut ? (
-									<LoadingIndicator size="sm" className="!mt-0" />
-								) : (
-									'Logout'
-								)}
-							</button>
+						<div className="absolute right-6 top-12 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 z-10 min-w-[220px]">
+							<div className="flex flex-col gap-1">
+								<Link 
+									href="/merchant/profile" 
+									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
+								>
+									<UserCircle size={16} className="text-gray-500" />
+									Profile
+								</Link>
+								<Link 
+									href="/merchant/account" 
+									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
+								>
+									<Settings size={16} className="text-gray-500" />
+									Account
+								</Link>
+								<Link 
+									href="/merchant/billing" 
+									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
+								>
+									<CreditCard size={16} className="text-gray-500" />
+									Billing
+								</Link>
+								<Link 
+									href="/merchant/settings" 
+									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
+								>
+									<Settings size={16} className="text-gray-500" />
+									Settings
+								</Link>
+								
+								<div className="border-t border-gray-200 my-2"></div>
+								
+								<button 
+									onClick={handleLogout}
+									disabled={isLoggingOut}
+									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-red-50 rounded-md duration-200 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{isLoggingOut ? (
+										<LoadingIndicator size="sm" className="!mt-0" />
+									) : (
+										<>
+											<LogOut size={16} className="text-red-500" />
+											Logout
+										</>
+									)}
+								</button>
+							</div>
 						</div>
 					)}
 				</div>
@@ -292,16 +397,14 @@ const DashboardNavbar = () => {
 							}
 						</span>
 					</div>
-					<div className="flex items-center mb-4">
-						<span className="text-lg font-medium cursor-pointer" onClick={() => setBranchOpen((v) => !v)}>
-							Branch <ChevronDown size={16} className="inline ml-1" />
-						</span>
-						<span className="ml-2 text-lg">
-							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-								selectedBranchName
-							}
-						</span>
-					</div>
+					<span className="flex items-center text-sm mb-4">
+						<Dropdown
+							className="w-[200px] text-lg"
+							items={branchItems}
+							selected={branchItems.find(option => option.value === selectedBranch)}
+							onSelect={(item) => handleBranchSwitch(item.value as string)}
+						/>
+					</span>
 					<span className="flex items-center text-sm mb-4">
 						<Dropdown
 							className="w-[140px]"
@@ -340,10 +443,10 @@ const DashboardNavbar = () => {
 						{/* Profile accordion */}
 						{profileAccordion && (
 							<div className="flex flex-col pl-8 space-y-2 mt-1">
-								<Link href="/profile" className="text-left">Profile</Link>
-								<Link href="/account" className="text-left">Account</Link>
-								<Link href="/billing" className="text-left">Billing</Link>
-								<Link href="/settings" className="text-left">Settings</Link>
+								<Link href="/merchant/profile" className="text-left">Profile</Link>
+								<Link href="/merchant/account" className="text-left">Account</Link>
+								<Link href="/merchant/billing" className="text-left">Billing</Link>
+								<Link href="/merchant/settings" className="text-left">Settings</Link>
 								<button 
 									onClick={handleLogout}
 									disabled={isLoggingOut}

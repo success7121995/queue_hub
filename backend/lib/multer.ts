@@ -36,4 +36,5 @@ const limits = { fileSize: 10 * 1024 * 1024 };
 
 export const uploadLogo = multer({ storage, fileFilter, limits }).single('LOGO');
 export const uploadFeatureImage = multer({ storage, fileFilter, limits }).single('FEATURE_IMAGE');
-export const uploadGalleries = multer({ storage, fileFilter, limits }).array('IMAGE', 10); 
+export const uploadGalleries = multer({ storage, fileFilter, limits }).array('IMAGE', 10);
+export const uploadAvatar = multer({ storage, fileFilter, limits }).single('AVATAR'); 

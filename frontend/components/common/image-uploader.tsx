@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
 import Compressor from 'compressorjs';
@@ -192,6 +192,7 @@ const ImageUploader = ({
 										src={img.preview}
 										alt="Preview"
 										fill
+										sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
 										className="object-cover rounded-lg shadow-md"
 									/>
 								</div>
@@ -235,6 +236,7 @@ const ImageUploader = ({
 								src={previewImages[0].preview}
 								alt="Preview"
 								fill
+								sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
 								className="object-contain rounded-lg"
 							/>
 						</div>

@@ -3,7 +3,7 @@
 import { MultistepForm } from "@/components";
 
 
-const RegisterNewUser = () => {
+const RegisterNewEmployee = () => {
 	return (
 		<div className="font-regular-eng p-8">
 			<MultistepForm form="add-employee" />
@@ -11,4 +11,4 @@ const RegisterNewUser = () => {
 	);
 };
 
-export default RegisterNewUser;
+export default RegisterNewEmployee;

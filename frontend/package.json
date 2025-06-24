@@ -15,6 +15,7 @@
     "clsx": "^2.1.1",
     "compressorjs": "^1.2.1",
     "date-fns": "^4.1.0",
+    "flag-icons": "^7.5.0",
     "framer-motion": "^12.12.1",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.511.0",

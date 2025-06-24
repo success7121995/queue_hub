@@ -24,15 +24,35 @@ export interface UserMerchant {
   staff_id: string;
   user_id: string;
   merchant_id: string;
-  role: string;
   position: string;
+  role: string;
+  join_at: string | Date;
+  selected_branch_id?: string;
+  created_at: string | Date;
+  updated_at: string | Date;
   User?: {
     user_id: string;
+    username: string;
     fname: string;
     lname: string;
     email: string;
     phone: string;
+    role: string;
+    status: string;
+    last_login: string | Date | null;
+    Avatar?: {
+      image_url: string;
+    } | null;
   };
+  UserMerchantOnBranch: Array<{
+    staff_id: string;
+    branch_id: string;
+    assigned_at: string | Date;
+    Branch: {
+      branch_id: string;
+      branch_name: string;
+    };
+  }>;
 }
 
 export interface UserAdmin {
@@ -49,16 +69,11 @@ export interface Message {
 }
 
 export interface UserProfile {
-  user_id: string;
+  username: string;
   lang?: Lang;
   fname?: string;
   lname?: string;
-  avatarUrl?: string;
-  position?: string;
   phone?: string;
-  address?: string;
-  created_at: string | Date;
-  updated_at: string | Date;
 }
 
 export interface UserSetting {

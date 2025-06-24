@@ -362,25 +362,58 @@ export const merchantService = {
     /**
      * Get branches by merchant id
      * @param merchant_id 
+     * @param prefetch 
+     * @param user_id - Optional user ID to filter branches based on role
      * @returns 
      */
-    async getBranchesByMerchantId(merchant_id: string, prefetch: boolean = false) {
+    async getBranchesByMerchantId(merchant_id: string, prefetch: boolean = false, user_id?: string) {
         const result = await prisma.$transaction(async (tx) => {
             let branches: Partial<Branch>[] = [];
             
+            // If user_id is provided, check their role and branch assignments
+            let userRole: string | null = null;
+            let userBranchAssignments: string[] = [];
+            
+            if (user_id) {
+                const userMerchant = await tx.userMerchant.findUnique({
+                    where: { user_id },
+                    include: {
+                        UserMerchantOnBranch: {
+                            select: { branch_id: true }
+                        }
+                    }
+                });
+                
+                if (userMerchant) {
+                    userRole = userMerchant.role;
+                    userBranchAssignments = userMerchant.UserMerchantOnBranch.map(umb => umb.branch_id);
+                }
+            }
+            
+            // Build where clause based on user role
+            let whereClause: any = { merchant_id };
+            
+            // If user is not owner and has branch assignments, filter by assigned branches
+            if (user_id && userRole && userRole !== 'OWNER' && userBranchAssignments.length > 0) {
+                whereClause.branch_id = { in: userBranchAssignments };
+            }
+            
             if (prefetch) {
                 branches = await tx.branch.findMany({
-                    where: { merchant_id },
+                    where: whereClause,
                     select: {
                         branch_id: true,
                         branch_name: true,
                     },
+                    orderBy: {
+                        created_at: 'asc'
+                    }
                 });
 
                 return { branches };
             } else {
                 branches = await tx.branch.findMany({
-                    where: { merchant_id },
+                    where: whereClause,
                     include: {
                         BranchFeature: true,
                         BranchImage: true,
@@ -388,6 +421,9 @@ export const merchantService = {
                         Address: true,
                         UserMerchantOnBranch: true,
                     },
+                    orderBy: {
+                        created_at: 'asc'
+                    }
                 });
 
                 const contactPersonIds = branches
@@ -698,17 +734,24 @@ export const merchantService = {
 
     /**
      * Delete a branch tag
-     * @param branch_id 
-     * @param tag_id 
-     * @returns 
+     * @param tag_id - The tag ID
      */
     async deleteBranchTag(tag_id: string) {  
         const result = await prisma.$transaction(async (tx) => {
-            const tag = await tx.tag.delete({
+            const tag = await tx.tag.findUnique({
                 where: { tag_id },
             });
-            return { tag };
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }); 
+
+            if (!tag) {
+                throw new AppError("Tag not found", 404);
+            }
+
+            const deletedTag = await tx.tag.delete({
+                where: { tag_id },
+            });
+
+            return { tag: deletedTag };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         if (!result) {
             throw new AppError("Failed to delete branch tag", 500);
@@ -764,6 +807,92 @@ export const merchantService = {
 
         if (!result) {
             throw new AppError("Failed to update branch opening hours", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Switch user's selected branch
+     * @param user_id - The user ID
+     * @param branch_id - The branch ID to switch to
+     * @returns The updated UserMerchant record
+     */
+    async switchBranch(user_id: string, branch_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Get user merchant data with branch assignments
+            const userMerchant = await tx.userMerchant.findUnique({
+                where: { user_id },
+                include: {
+                    UserMerchantOnBranch: {
+                        include: {
+                            Branch: {
+                                select: {
+                                    branch_id: true,
+                                    branch_name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!userMerchant) {
+                throw new AppError("User merchant not found", 404);
+            }
+
+            // Check if user is owner - owners can access all branches
+            if (userMerchant.role === 'OWNER') {
+                // For owners, just verify the branch exists and belongs to their merchant
+                const branch = await tx.branch.findFirst({
+                    where: {
+                        branch_id,
+                        merchant_id: userMerchant.merchant_id
+                    }
+                });
+
+                if (!branch) {
+                    throw new AppError("Branch not found or does not belong to this merchant", 404);
+                }
+            } else {
+                // For non-owners, check if they have access to this specific branch
+                const hasAccess = userMerchant.UserMerchantOnBranch.some(
+                    assignment => assignment.branch_id === branch_id
+                );
+
+                if (!hasAccess) {
+                    throw new AppError("You do not have access to this branch. Please contact your administrator.", 403);
+                }
+            }
+
+            // Update the selected_branch_id
+            const updatedUserMerchant = await tx.userMerchant.update({
+                where: { user_id },
+                data: {
+                    selected_branch_id: branch_id,
+                    updated_at: new Date(),
+                },
+                include: {
+                    User: true,
+                    Merchant: true,
+                    UserMerchantOnBranch: {
+                        include: {
+                            Branch: {
+                                select: {
+                                    branch_id: true,
+                                    branch_name: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return { userMerchant: updatedUserMerchant };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to switch branch", 500);
         }
 
         return result;

@@ -4,6 +4,7 @@ import DashboardSidenav from "@/components/dashboard/merchants/dashboard-sidenav
 import { prefetchBranches, prefetchMerchant, prefetchQueues } from "@/hooks/merchant-hooks";
 import { getQueryClient } from "@/lib/query-client";
 import { fetchAuth } from "@/hooks/auth-hooks";
+import { queueKeys } from "@/hooks/merchant-hooks";
 
 interface MerchantLayoutProps {
 	children: ReactNode;
@@ -19,16 +20,19 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 		if (!userData.user?.UserMerchant) throw Error("User merchant not found");
 
 		const merchantId = userData.user.UserMerchant.merchant_id;
-		const branchId = userData.user.branch_id;
+		const selectedBranchId = userData.user.UserMerchant.selected_branch_id;
+		const userId = userData.user.UserMerchant.user_id;
 
 		const merchantData = await prefetchMerchant(queryClient, merchantId);
 		queryClient.setQueryData(['merchant', merchantId], merchantData);
 
-		const branchesData = await prefetchBranches(queryClient, merchantId);
-		queryClient.setQueryData(['branches', merchantId], branchesData);
+		const branchesData = await prefetchBranches(queryClient, merchantId, userId);
+		queryClient.setQueryData(['branches', merchantId, userId], branchesData);
 
-		const queuesData = await prefetchQueues(queryClient, branchesData.branches[0].branch_id);
-		queryClient.setQueryData(['queues', branchId], queuesData);
+		if (selectedBranchId) {
+			const queuesData = await prefetchQueues(queryClient, selectedBranchId);
+			queryClient.setQueryData(queueKeys.list(selectedBranchId), queuesData);
+		}
 	} catch (error) {
 		console.error('Error prefetching user data:', error); 
 	}

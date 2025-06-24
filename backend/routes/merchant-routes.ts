@@ -10,9 +10,6 @@ const router = Router();
 // Create a new merchant
 router.post("/signup", (req, res) => {authController.register(req, res)});
 
-// Get a merchant
-router.get("/:merchant_id", requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getMerchantById);
-
 // Get all merchants
 router.get("/", () => {});
 
@@ -50,11 +47,8 @@ router.put('/branches/:branch_id/images/:image_id', requireAuth([UserRole.MERCHA
 router.delete('/branches/:branch_id/images/:image_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchImages);
 
 // Queue management (merchant only)
-router.get('/queues/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);  // Get merchant's queues
-router.post('/queues/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createQueue);  // Create new queue
-router.put('/queues/:queue_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateQueue);  // Update queue details
-router.delete('/queues/:queue_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteQueue);  // Delete queue
-router.put('/queues/:queue_id/status', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), () => {});  // Update queue status (active/paused/closed)
+router.get('/queues', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);
+router.post('/queues/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.createQueue);
 
 // Queue operations (merchant only)
 router.get('/queues/:queue_id/customers', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), () => {});  // Get queue customers
@@ -62,10 +56,21 @@ router.post('/queues/:queue_id/customers/:customer_id/next', requireAuth([UserRo
 router.post('/queues/:queue_id/customers/:customer_id/skip', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), () => {});  // Skip customer
 router.post('/queues/:queue_id/customers/:customer_id/remove', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), () => {});  // Remove customer from queue
 
+// Individual queue operations (merchant only)
+router.put('/queues/:queue_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.updateQueue);
+router.delete('/queues/:queue_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteQueue);
+router.put('/queues/:queue_id/status', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), () => {});  // Update queue status (active/paused/closed)
+
 // Merchant analytics (merchant only)
 router.get('/analytics/overview', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), () => {});  // Get merchant overview statistics
 router.get('/analytics/queues', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), () => {});  // Get queue statistics
 router.get('/analytics/customers', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), () => {});  // Get customer statistics
 router.get('/analytics/wait-times', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), () => {});  // Get wait time statistics
+
+// Branch switching (merchant only)
+router.post('/switch-branch', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.switchBranch);
+
+// Get a merchant (must be last to avoid catching other routes)
+router.get("/:merchant_id", requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getMerchantById);
 
 export default router;

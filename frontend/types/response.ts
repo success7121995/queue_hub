@@ -1,10 +1,44 @@
 import { Branch, BranchFeature, BranchImage, BranchOpeningHour, Merchant } from "./merchant";
 import { Address, MerchantRole } from "./form";
 import { QueueWithTags, Tag } from "./queue";
-import { UserMerchant } from "./user";
+import { UserAdmin, UserMerchant } from "./user";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
+
+export interface AuthResponse {
+    success: boolean;
+    user: {
+        user_id: string;
+        username?: string;
+        fname?: string;
+        lname?: string;
+        email: string;
+        phone?: string;
+        created_at?: string;
+        UserMerchant?: UserMerchant;
+        UserAdmin?: UserAdmin;
+        merchant?: Merchant;
+        branches?: Branch[];
+        role?: string;
+        merchant_id?: string;
+        branch_id?: string;
+        availableBranches?: string[];
+        message_received?: any[];
+        lang?: string;
+    };
+    sessionId?: string;
+}
+
+export interface EmployeesResponse {
+    success: boolean;
+    result: UserMerchant[];
+}
+
+export interface LogoutResponse {
+    success: boolean;
+    message?: string;
+}
 
 export interface QueueResponse {
     success: boolean;

@@ -4,16 +4,10 @@ import React from "react";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
 import { AddAdminFormFields } from "@/types/form";
+import { useLang, type Lang } from "@/constant/lang-provider";
 import Cookies from "js-cookie";
 
 const COOKIE_KEY = "signupForm";
-
-const languageOptions = [
-    { value: 'en-GB', label: 'English (UK)' },
-    { value: 'zh-CN', label: '简体中文' },
-    { value: 'zh-HK', label: '繁體中文 (香港)' },
-    { value: 'zh-TW', label: '繁體中文 (台灣)' },
-];
 
 interface AccountSetupProps {
     onNext?: () => void;
@@ -21,6 +15,7 @@ interface AccountSetupProps {
 }
 
 const AccountSetup: React.FC<AccountSetupProps> = ({ onNext, onPrev }) => {
+    const { lang, langsOptions } = useLang();
     const { formMethods } = useForm();
     const {
         register,
@@ -138,7 +133,7 @@ const AccountSetup: React.FC<AccountSetupProps> = ({ onNext, onPrev }) => {
                         defaultValue=""
                     >
                         <option value="" disabled>Select Language</option>
-                        {languageOptions.map((option) => (
+                        {langsOptions.map((option: { label: string, value: Lang, icon: React.ReactNode }) => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>

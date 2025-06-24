@@ -24,6 +24,42 @@ const registerSocketHandlers = (io: Server) => {
             }
         });
 
+        // Handle queue creation
+        socket.on("createQueue", async ({ queueName, tags }) => {
+            try {
+                // This would typically be handled by the HTTP endpoint
+                // but we can emit a refresh event to all clients
+                io.emit("queueCreated", { message: "Queue created successfully" });
+            } catch (error) {
+                console.error("Error creating queue:", error);
+                socket.emit("error", { message: "Failed to create queue" });
+            }
+        });
+
+        // Handle queue updates
+        socket.on("updateQueue", async ({ queueId, queueName, tags }) => {
+            try {
+                // This would typically be handled by the HTTP endpoint
+                // but we can emit a refresh event to all clients
+                io.emit("queueUpdated", { queueId, message: "Queue updated successfully" });
+            } catch (error) {
+                console.error("Error updating queue:", error);
+                socket.emit("error", { message: "Failed to update queue" });
+            }
+        });
+
+        // Handle queue deletion
+        socket.on("deleteQueue", async ({ queueId }) => {
+            try {
+                // This would typically be handled by the HTTP endpoint
+                // but we can emit a refresh event to all clients
+                io.emit("queueDeleted", { queueId, message: "Queue deleted successfully" });
+            } catch (error) {
+                console.error("Error deleting queue:", error);
+                socket.emit("error", { message: "Failed to delete queue" });
+            }
+        });
+
         socket.on("disconnect", () => {
             console.log("A user disconnected");
         });

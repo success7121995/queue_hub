@@ -16,8 +16,6 @@ declare module 'express-session' {
             email: string;
             role: string;
             merchant_id?: string;
-            branch_id?: string;
-            availableBranches: string[];
             merchantRole?: string;
         }
     }
@@ -70,23 +68,45 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(loggingMiddleware);
 
-// Development-only: always set a session user if not present
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    if (!req.session.user) {
-      req.session.user = {
-        user_id: "2d191057-04f8-499f-9519-a65a1d1dd8ce",
-        role: "MERCHANT",
-        email: "joechan@gmail.com",
-        merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
-        branch_id: "c5ff0a70-188e-47c5-af67-47618323df06",
-        availableBranches: ["c5ff0a70-188e-47c5-af67-47618323df06"],
-        merchantRole: "OWNER"
-      };
-    }
+// Attach socket.io instance to request object
+app.use((req, res, next) => {
+    (req as any).io = io;
     next();
-  });
-}
+});
+
+// // Development-only: always set a session user if not present (Owner)
+// if (process.env.NODE_ENV === 'development') {
+//   app.use((req, res, next) => {
+//     if (!req.session.user) {
+//       req.session.user = {
+//         user_id: "2d191057-04f8-499f-9519-a65a1d1dd8ce",
+//         role: "MERCHANT",
+//         email: "joechan@gmail.com",
+//         merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
+//         merchantRole: "OWNER"
+//       };
+//     }
+//     next();
+//   });
+// }
+
+// Development-only: always set a session user if not present (Manager)
+if (process.env.NODE_ENV === 'development') {
+    app.use((req, res, next) => {
+      if (!req.session.user) {
+        req.session.user = {
+          user_id: "a4f9af6d-5d49-4aec-b267-1b5f3fffbac8",
+          role: "MERCHANT",
+          email: "tonytam@gmail.com",
+          merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
+          merchantRole: "MANAGER"
+        };
+      }
+      next();
+    });
+  }
+
+
 
 // Routes
 app.use("/api", router);

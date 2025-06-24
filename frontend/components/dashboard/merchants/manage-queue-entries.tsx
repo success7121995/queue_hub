@@ -7,15 +7,15 @@ import NumberCard from "@/components/common/number-card";
 import { Users, Plus, Edit, Trash2, Power } from "lucide-react";
 import { useDateTime } from "@/constant/datetime-provider";
 import { useForm } from "react-hook-form";
-import { connectSocket, disconnectSocket, onQueueStatusChange, openOrCloseQueue } from "@/lib/socket";
+import { connectSocket, disconnectSocket, onQueueStatusChange, onQueueCreated, onQueueUpdated, onQueueDeleted, openOrCloseQueue } from "@/lib/socket";
 import {
 	useQueues,
 	useCreateQueue,
 	useUpdateQueue,
 	useDeleteQueue,
+	queueKeys,
 } from "@/hooks/merchant-hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import { useBranches } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { Queue, QueueWithTags, Tag as QueueTag } from "@/types/queue";
@@ -38,21 +38,43 @@ const stats = [
 	const createMutation = useCreateQueue();
 	const updateMutation = useUpdateQueue();
 	const deleteMutation = useDeleteQueue();
-	const { data: branchesData, isLoading: isBranchesDataLoading } = useBranches(currentUser?.user?.UserMerchant?.merchant_id as string);
-	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(branchesData?.branches[0].branch_id || '');
+	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(currentUser?.user?.UserMerchant?.selected_branch_id);
+
+	console.log(queuesData);
+
+	const userRole = currentUser?.user?.UserMerchant?.role;
 
 	// Connect to socket when component mounts
 	useEffect(() => {
 		connectSocket();
 
-		const unregister = onQueueStatusChange(({ queueId, status }) => {
+		const unregisterStatus = onQueueStatusChange(({ queueId, status }) => {
+			refetch();
+		});
+
+		const unregisterCreated = onQueueCreated(({ message }) => {
+			console.log('Queue created:', message);
+			refetch();
+		});
+
+		const unregisterUpdated = onQueueUpdated(({ queueId, message }) => {
+			console.log('Queue updated:', queueId, message);
+			refetch();
+		});
+
+		const unregisterDeleted = onQueueDeleted(({ queueId, message }) => {
+			console.log('Queue deleted:', queueId, message);
 			refetch();
 		});
 
 		return () => {
+			unregisterStatus();
+			unregisterCreated();
+			unregisterUpdated();
+			unregisterDeleted();
 			disconnectSocket();
 		};
-	}, []);
+	}, [refetch]);
 
 	// Form handling	
 	const createForm = useForm<Queue>({
@@ -125,7 +147,7 @@ const stats = [
 	 */
 	const handleOpenOrClose = (queue_id: string, status: QueueStatus) => {
 		// Optimistically update the UI
-			queryClient.setQueryData(['queues', currentUser?.user?.branch_id], (oldData: any) => {
+			queryClient.setQueryData(queueKeys.list(currentUser?.user?.branch_id as string), (oldData: any) => {
 			if (!oldData) return oldData;
 			return oldData.map((queue: QueueWithTags) => 
 				queue.queue_id === queue_id 
@@ -169,7 +191,7 @@ const stats = [
 		}
 	}, [selectedQueue, editForm]);
 
-	if (isBranchesDataLoading || isLoadingQueue) {
+	if (isLoadingQueue) {
 		return <LoadingIndicator fullScreen={true} />;
 	}
 
@@ -226,35 +248,42 @@ const stats = [
 	/**
 	 * Render actions for each queue
 	 */
-	const renderActions = (row: QueueWithTags) => (
-		<div className="flex gap-2">
-			<button 
-				onClick={() => handleOpenOrClose(row.queue_id, row.queue_status === 'OPEN' ? 'CLOSED' : 'OPEN')}
-				className={`flex items-center gap-1 px-3 py-1 rounded border ${
-					row.queue_status === 'OPEN' 
-						? 'border-red-500 text-red-500 hover:bg-red-50' 
-						: 'border-green-500 text-green-500 hover:bg-green-50'
-				}`}
-			>
-				<Power size={16} />
-				{row.queue_status === 'OPEN' ? 'Close' : 'Open'}
-			</button>
-			<button 
-				onClick={() => setSelectedQueue(row)}
-				className="flex items-center gap-1 px-3 py-1 rounded border border-primary-light text-primary-light hover:bg-primary-light/10"
-			>
-				<Edit size={16} />
-				Edit
-			</button>
-			<button 
-				onClick={() => handleDeleteQueue(row)}
-				className="flex items-center gap-1 px-3 py-1 rounded border border-red-500 text-red-500 hover:bg-red-50"
-			>
-				<Trash2 size={16} />
-				Delete
-			</button>
-		</div>
-	);
+	const renderActions = (row: QueueWithTags) => {
+		const isFrontline = userRole === 'FRONTLINE';
+		return (
+			<div className="flex gap-2">
+				<button 
+					onClick={() => handleOpenOrClose(row.queue_id, row.queue_status === 'OPEN' ? 'CLOSED' : 'OPEN')}
+					className={`flex items-center gap-1 px-3 py-1 rounded border ${
+						row.queue_status === 'OPEN' 
+							? 'border-red-500 text-red-500 hover:bg-red-50' 
+							: 'border-green-500 text-green-500 hover:bg-green-50'
+					}`}
+				>
+					<Power size={16} />
+					{row.queue_status === 'OPEN' ? 'Close' : 'Open'}
+				</button>
+				{!isFrontline && (
+					<>
+						<button 
+							onClick={() => setSelectedQueue(row)}
+							className="flex items-center gap-1 px-3 py-1 rounded border border-primary-light text-primary-light hover:bg-primary-light/10"
+						>
+							<Edit size={16} />
+							Edit
+						</button>
+						<button 
+							onClick={() => handleDeleteQueue(row)}
+							className="flex items-center gap-1 px-3 py-1 rounded border border-red-500 text-red-500 hover:bg-red-50"
+						>
+							<Trash2 size={16} />
+							Delete
+						</button>
+					</>
+				)}
+			</div>
+		);
+	};
 
 	return (
 		<div className="font-regular-eng p-8 min-h-screen">

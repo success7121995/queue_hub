@@ -14,10 +14,17 @@ const BranchInfo = () => {
 	const { data: currentUser, status } = useAuth();
 	
 	const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
+	const userRole = currentUser?.user?.UserMerchant?.role;
+	const userAssignedBranches = currentUser?.user?.UserMerchant?.UserMerchantOnBranch || [];
+	
 	const { data: branchesData, isLoading: isBranchesDataLoading, refetch } = useBranches(
 		merchantId as string,
+		currentUser?.user?.UserMerchant?.user_id,
 		{ enabled: status === 'success' && !!merchantId }
 	);
+	
+	// Use branches directly from backend (already filtered by role and assignments)
+	const filteredBranches = branchesData?.branches || [];
 	
 	const handleReadMore = (idx: number) => {
 		setSelectedBranchIdx(idx);
@@ -45,21 +52,24 @@ const BranchInfo = () => {
 		<div className="min-h-screen px-8 py-8 font-regular-eng">
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">Branch Info</h1>
 
-			{selectedBranchIdx !== null && branchesData?.branches?.[selectedBranchIdx] ? (
+			{selectedBranchIdx !== null && filteredBranches?.[selectedBranchIdx] ? (
 				<BranchDetail 
-					branch={branchesData.branches[selectedBranchIdx]} 
+					branch={filteredBranches[selectedBranchIdx]} 
 					onClose={handleCloseDetail}
 					onBack={handleCloseDetail}
 				/>
 			) : (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					<Link href="/merchant/add-branch">
-						<div className="h-full min-h-[200px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-							<CirclePlus className="w-12 h-12 text-gray-400 mb-2" />
-							<p className="text-gray-500 font-semibold">Expand your business</p>
-						</div>
-					</Link>
-					{branchesData?.branches?.map((branch: Branch, idx: number) => (
+					{/* Only show "Add Branch" button for OWNER role */}
+					{userRole === 'OWNER' && (
+						<Link href="/merchant/add-branch">
+							<div className="h-full min-h-[200px] bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
+								<CirclePlus className="w-12 h-12 text-gray-400 mb-2" />
+								<p className="text-gray-500 font-semibold">Expand your business</p>
+							</div>
+						</Link>
+					)}
+					{filteredBranches?.map((branch: Branch, idx: number) => (
 						<BranchCard key={branch.branch_id} branch={branch} idx={idx} onReadMore={() => handleReadMore(idx)} />
 					))}
 				</div>

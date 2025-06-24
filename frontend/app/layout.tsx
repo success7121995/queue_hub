@@ -4,6 +4,8 @@ import localFont from "next/font/local";
 import DateTimeProvider from "@/constant/datetime-provider";
 import QueryProvider from "@/constant/query-provider";
 import LangProvider from "@/constant/lang-provider";
+import DialingCodeProvider from "@/constant/dialing-code-provider";
+import React from "react";
 
 const urbanistItalic = localFont({
     src: "../public/fonts/Urbanist-Italic-VariableFont_wght.ttf",
@@ -42,7 +44,9 @@ const RootLayout = async ({
                 <QueryProvider>
                     <LangProvider>
                         <DateTimeProvider>
-                            {children}
+                            <DialingCodeProvider>
+                                {children}
+                            </DialingCodeProvider>
                         </DateTimeProvider>
                     </LangProvider>
                 </QueryProvider>

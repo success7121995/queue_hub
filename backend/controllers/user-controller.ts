@@ -1,8 +1,17 @@
 import { Request, Response } from "express";
-import { ActivityType } from "@prisma/client";
+import { ActivityType, MerchantRole } from "@prisma/client";
 import { withActivityLog } from "../utils/with-activity-log";
 import { userService } from "../services/user-service";
 import { AppError } from "../utils/app-error";
+import { z } from "zod";
+
+const updateEmployeeSchema = z.object({
+    fname: z.string().min(1, "First name is required").optional(),
+    lname: z.string().min(1, "Last name is required").optional(),
+    phone: z.string().min(1, "Phone number is required").optional(),
+    position: z.string().min(1, "Position is required").optional(),
+    role: z.nativeEnum(MerchantRole).optional(),
+});
 
 export const userController = {
     /**
@@ -26,6 +35,181 @@ export const userController = {
             extractData: (req, res, result) => ({
                 user_id: req.params.user_id,
                 updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
+     * Get current user info
+     * @param req - The request object
+     * @param res - The response object
+     */
+    me: withActivityLog(
+        async (req: Request, res: Response) => {
+            const user = req.session.user;
+
+            if (!user) {
+                throw new AppError("Not authenticated", 401);
+            }
+
+            const userData = await userService.getUserById(user.user_id);
+
+            res.status(200).json({
+                success: true,
+                user: {
+                    ...userData.user
+                }
+            });
+
+            return userData;
+        },
+        {
+            action: ActivityType.VIEW_PROFILE,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: () => ({}),
+        }
+    ),
+
+    /**
+     * Get employees
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getEmployees: withActivityLog(
+        async (req: Request, res: Response) => {    
+            const user = req.session.user;
+            const merchant_id = user?.merchant_id;
+
+            if (!merchant_id) { 
+                throw new AppError("Merchant ID not found", 404);
+            }
+
+            const result = await userService.getEmployees(merchant_id);
+
+            res.status(200).json({ success: true, result });
+        },
+    ),
+
+    /**
+     * Assign branches to employee
+     * @param req - The request object
+     * @param res - The response object
+     */
+    assignBranches: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { staff_id } = req.params;
+            const { branch_ids } = req.body;
+
+            const result = await userService.assignBranches(staff_id, branch_ids);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_STAFF_USER,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req) => ({
+                staff_id: req.params.staff_id,
+                branch_ids: req.body.branch_ids
+            }),
+        }
+    ),
+
+    /**
+     * Update employee
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateEmployee: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { staff_id } = req.params;
+            const updateData = updateEmployeeSchema.parse(req.body);
+
+            const result = await userService.updateEmployee(staff_id, updateData);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_STAFF_USER,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req) => ({
+                staff_id: req.params.staff_id,
+                updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
+     * Delete employee
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteEmployee: withActivityLog(
+        async (req: Request, res: Response) => {    
+            const { user_id } = req.params;
+            const result = await userService.deleteEmployee(user_id);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.DELETE_STAFF_USER, 
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req) => ({
+                user_id: req.params.user_id,
+            }),
+        }
+    ),
+
+    /**
+     * Upload avatar
+     * @param req - The request object
+     * @param res - The response object
+     */
+    uploadAvatar: withActivityLog(
+        async (req: Request, res: Response) => {    
+            const user = req.session.user;
+
+            if (!user) {
+                throw new AppError("Not authenticated", 401);
+            }
+
+            const file = (req as any).file;
+            
+            if (!file) {
+                throw new AppError("No file uploaded", 400);
+            }
+            
+            const image_url = `/uploads/${file.filename}`;
+            const result = await userService.uploadAvatar(user.user_id, image_url);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_USER,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req) => ({
+                user_id: req.user?.user_id ?? null,
+                image_url: (req as any).file ? `/uploads/${(req as any).file.filename}` : null,
+            }),
+        }
+    ),
+
+    /**
+     * Delete avatar
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteAvatar: withActivityLog(
+        async (req: Request, res: Response) => {
+            const user = req.session.user;
+
+            if (!user) {
+                throw new AppError("Not authenticated", 401);
+            }
+
+            const result = await userService.deleteAvatar(user.user_id);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_USER,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req) => ({
+                user_id: req.user?.user_id ?? null,
             }),
         }
     ),

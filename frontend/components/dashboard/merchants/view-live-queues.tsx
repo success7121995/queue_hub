@@ -6,8 +6,8 @@ import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
 import { useDateTime } from "@/constant/datetime-provider";
-import { connectSocket, disconnectSocket, onQueueStatusChange } from "@/lib/socket";
-import { useBranches, useQueues } from "@/hooks/merchant-hooks";
+import { connectSocket, disconnectSocket, onQueueStatusChange, onQueueCreated, onQueueUpdated, onQueueDeleted } from "@/lib/socket";
+import { useBranches, useQueues, queueKeys } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueueWithTags } from "@/types/queue";
@@ -62,22 +62,17 @@ const ViewLiveQueues = () => {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const { formatDate } = useDateTime();
 	const { data: currentUser } = useAuth();
-	const { data: branchesData } = useBranches(currentUser?.user?.UserMerchant?.merchant_id || '');
-	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(branchesData?.branches[0]?.branch_id || '');
+	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(currentUser?.user?.UserMerchant?.selected_branch_id);
 
 	// Connect to socket and listen for queue status changes
 	useEffect(() => {
-		if (!branchesData?.branches[0]?.branch_id) return;
-
 		connectSocket();
 
 		// Register callback for queue status changes
-		const unregister = onQueueStatusChange(({ queueId, status }) => {
-			console.log('queueId', queueId);
-			console.log('status', status);
+		const unregisterStatus = onQueueStatusChange(({ queueId, status }) => {
 			
 			// Optimistically update the UI
-			queryClient.setQueryData(['queues', branchesData.branches[0].branch_id], (oldData: any) => {
+			queryClient.setQueryData(queueKeys.list(currentUser?.user?.branch_id as string), (oldData: any) => {
 				if (!oldData) return oldData;
 				return oldData.map((queue: any) => 
 					queue.queue_id === queueId 
@@ -89,11 +84,29 @@ const ViewLiveQueues = () => {
 			refetch();
 		});
 
+		const unregisterCreated = onQueueCreated(({ message }) => {
+			console.log('Queue created:', message);
+			refetch();
+		});
+
+		const unregisterUpdated = onQueueUpdated(({ queueId, message }) => {
+			console.log('Queue updated:', queueId, message);
+			refetch();
+		});
+
+		const unregisterDeleted = onQueueDeleted(({ queueId, message }) => {
+			console.log('Queue deleted:', queueId, message);
+			refetch();
+		});
+
 		return () => {
-			unregister();
+			unregisterStatus();
+			unregisterCreated();
+			unregisterUpdated();
+			unregisterDeleted();
 			disconnectSocket();
 		};
-	}, [branchesData?.branches[0]?.branch_id, refetch, queryClient]);
+	}, [refetch, queryClient, currentUser?.user?.branch_id]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {

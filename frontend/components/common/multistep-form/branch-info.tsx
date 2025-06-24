@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
-import { AddBranchFormFields, SignupFormFields } from "@/types/form";
+import { AddBranchFormFields, CountryDialingCode, SignupFormFields } from "@/types/form";
 import { useUserMerchants } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
+import { CountryDialingDropdown, useDialingCode } from "@/constant/dialing-code-provider";
 
 const COOKIE_KEY = "signupForm";
 
@@ -40,6 +41,9 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
     const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
     const { data: userMerchants } = useUserMerchants(merchantId || '');
 
+    const { dialingCode, setDialingCode } = useDialingCode();
+    const [localPhone, setLocalPhone] = useState("");
+
     // Load from cookie if available
     useEffect(() => {
         const cookie = Cookies.get(COOKIE_KEY);
@@ -56,6 +60,30 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
             }
         }
     }, [setValue]);
+
+    // Load phone from cookie if available
+    useEffect(() => {
+        const cookie = Cookies.get(COOKIE_KEY);
+        if (cookie) {
+            try {
+                const parsed: CookieData = JSON.parse(cookie);
+                if (parsed.branchInfo && parsed.branchInfo.phone) {
+                    const parts = parsed.branchInfo.phone.split("-");
+                    if (parts.length === 2) {
+                        setDialingCode(parts[0] as CountryDialingCode);
+                        setLocalPhone(parts[1]);
+                    }
+                }
+            } catch {}
+        }
+    }, [setDialingCode]);
+
+    // Combine dialing code and local phone for form value
+    useEffect(() => {
+        if (localPhone) {
+            setValue("phone", `${dialingCode}-${localPhone}`);
+        }
+    }, [dialingCode, localPhone, setValue]);
 
     const onSubmit = (data: AddBranchFormFields["branchInfo"] | SignupFormFields["branchInfo"]) => {
         // Save to cookie
@@ -173,20 +201,19 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
                 {/* Branch Tel (Optional) */}
                 <div>
                     <label htmlFor="phone" className="block mb-1 font-semibold text-text-main text-sm">Branch Tel <span className="text-gray-500 text-xs">Optional</span></label>
-                    <input
-                        id="phone"
-                        type="tel"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.phone ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("phone", { 
-                            pattern: {
-                                value: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-                                message: "Invalid telephone number"
-                            }
-                        })}
-                        placeholder="Enter branch telephone number"
-                    />
+                    <div className="flex gap-2 items-center">
+                        <CountryDialingDropdown />
+                        <input
+                            id="phone"
+                            type="tel"
+                            className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                                errors.phone ? "border-red-500" : "border-gray-400"
+                            }`}
+                            value={localPhone}
+                            onChange={e => setLocalPhone(e.target.value)}
+                            placeholder="Enter branch telephone number"
+                        />
+                    </div>
                     {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
 

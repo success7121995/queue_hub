@@ -430,6 +430,7 @@ model UserMerchant {
   User                 User?                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   UserMerchantOnBranch UserMerchantOnBranch[]
   Branch               Branch[]                 @relation("BranchContactPerson")
+  selected_branch_id   String?                 
   created_at           DateTime               @default(now())
   updated_at           DateTime               @updatedAt
 }

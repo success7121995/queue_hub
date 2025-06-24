@@ -4,9 +4,12 @@ import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { SignupFormFields } from "@/types/form";
 import { useForm } from "@/constant/form-provider";
+import { Controller } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
 import Link from "next/link";
 import { useLang } from "@/constant/lang-provider";
+import { useDialingCode, CountryDialingDropdown } from "@/constant/dialing-code-provider";
+import { CountryDialingCode } from "@/types/form";
 
 type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
 
@@ -31,18 +34,21 @@ const plans = [
 const COOKIE_KEY = "signupForm";
 
 const Signup: React.FC<SignupProps> = ({ onNext }) => {
-    const { lang, langsOptions } = useLang();
+    const { langsOptions } = useLang();
+    const { dialingCodes, dialingCode, setDialingCode } = useDialingCode();
     const { formMethods } = useForm();
     const {
         register,
         handleSubmit,
         setValue,
         watch,
+        control,
         formState: { errors },
     } = formMethods as UseFormReturn<SignupFormFields["signup"]>;
 
     // Plan selection managed locally
     const [selectedPlan, setSelectedPlan] = useState<Plan>("TRIAL");
+    const [localPhoneNumber, setLocalPhoneNumber] = useState("");
 
     // Load from cookie if available
     useEffect(() => {
@@ -56,6 +62,22 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                             setValue(key as keyof SignupFormFields["signup"], value as string);
                         }
                     });
+                    
+                    // Extract dialing code and local number from stored phone
+                    if (parsed.signup.phone) {
+                        const phoneParts = parsed.signup.phone.split('-');
+                        if (phoneParts.length === 2) {
+                            const storedDialingCode = phoneParts[0];
+                            const storedLocalNumber = phoneParts[1];
+                            
+                            // Update dialing code in context if it exists in our list
+                            const matchingCode = dialingCodes.find(code => code.code === storedDialingCode);
+                            if (matchingCode) {
+                                setDialingCode(storedDialingCode as CountryDialingCode);
+                            }
+                            setLocalPhoneNumber(storedLocalNumber);
+                        }
+                    }
                 }
                 if (parsed.plan) {
                     setSelectedPlan(parsed.plan);
@@ -64,7 +86,15 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                 console.error("Error parsing cookie:", error);
             }
         }
-    }, [setValue]);
+    }, [setValue, dialingCodes, setDialingCode]);
+
+    // Update form value when dialing code or local number changes
+    useEffect(() => {
+        if (localPhoneNumber) {
+            const combinedPhone = `${dialingCode}-${localPhoneNumber}`;
+            setValue("phone", combinedPhone);
+        }
+    }, [dialingCode, localPhoneNumber, setValue]);
 
     const onSubmit = (data: SignupFormFields["signup"]) => {
         // Save to cookie
@@ -231,23 +261,37 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
                 </div>
 
-                {/* Business Tel */}
+                {/* Business Tel with Dialing Code */}
                 <div>
                     <label htmlFor="phone" className="block mb-1 font-semibold text-text-main text-sm">Business Tel</label>
-                    <input
-                        id="phone"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.phone ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("phone", { 
-                            required: "Business Tel is required",
-                            pattern: {
-                                value: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-                                message: "Invalid telephone number"
-                            }
-                        })}
-                        placeholder="Enter your business tel"
-                    />
+                    <div className="flex gap-2 items-center">
+                        {/* Reusable Country Dialing Dropdown */}
+                        <CountryDialingDropdown />
+                        {/* Phone Number Input */}
+                        <Controller
+                            name="phone"
+                            control={control}
+                            rules={{
+                                required: "Business Tel is required",
+                                pattern: {
+                                    value: /^\+[0-9]+-[0-9]{7,15}$/,
+                                    message: "Invalid phone number format"
+                                }
+                            }}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    type="text"
+                                    value={localPhoneNumber}
+                                    onChange={(e) => setLocalPhoneNumber(e.target.value)}
+                                    className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                        errors.phone ? "border-red-500" : "border-gray-400"
+                                    }`}
+                                    placeholder="Enter phone number"
+                                />
+                            )}
+                        />
+                    </div>
                     {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
 
