@@ -83,3 +83,8 @@ export interface UserSetting {
   created_at: string | Date;
   updated_at: string | Date;
 } 
+
+export interface Avatar {
+  image_id: string;
+  image_url: string;
+}

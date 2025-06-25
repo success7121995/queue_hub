@@ -40,7 +40,15 @@ export const MERCHANT_ACCESS_RULES = {
     FRONTLINE: ['view-live-queues', 'manage-queue-entries', 'view-queue-history', 'feedback', 'profile', 'account', 'settings']
 } as const;
 
+export const ADMIN_ACCESS_RULES = {
+    SUPER_ADMIN: ['metrics', 'system-health', 'add-admin', 'org-chart', 'view-merchants', 'approve-merchants', 'tickets', 'unresolved-tickets', 'resolved-tickets', 'assigned-tickets', 'logs', 'api-logs', 'admin-actions', 'login-logs', 'notifications', 'legal', 'profile', 'account', 'settings'],
+    OPS_ADMIN: ['metrics', 'system-health', 'add-admin', 'org-chart', 'view-merchants', 'approve-merchants', 'tickets', 'unresolved-tickets', 'resolved-tickets', 'assigned-tickets', 'logs', 'api-logs', 'admin-actions', 'login-logs', 'notifications', 'legal', 'profile', 'account', 'settings'],
+    SUPPORT_AGENT: ['metrics', 'system-health', 'add-admin', 'org-chart', 'view-merchants', 'approve-merchants', 'tickets', 'unresolved-tickets', 'resolved-tickets', 'assigned-tickets', 'logs', 'api-logs', 'admin-actions', 'login-logs', 'notifications', 'legal', 'profile', 'account', 'settings'],
+    DEVELOPER: ['metrics', 'system-health', 'add-admin', 'org-chart', 'view-merchants', 'approve-merchants', 'tickets', 'unresolved-tickets', 'resolved-tickets', 'assigned-tickets', 'logs', 'api-logs', 'admin-actions', 'login-logs', 'notifications', 'legal', 'profile', 'account', 'settings']
+} as const;
+
 export type MerchantRole = keyof typeof MERCHANT_ACCESS_RULES;
+export type AdminRole = keyof typeof ADMIN_ACCESS_RULES;
 
 /**
  * Check if a merchant role has access to a specific route
@@ -56,6 +64,19 @@ export const hasMerchantAccess = (merchantRole: MerchantRole | null | undefined,
 };
 
 /**
+ * Check if an admin role has access to a specific route
+ * @param adminRole - The admin role to check
+ * @param route - The route to check access for
+ * @returns boolean indicating if access is allowed
+ */
+export const hasAdminAccess = (adminRole: AdminRole | null | undefined, route: string): boolean => {
+    if (!adminRole || !ADMIN_ACCESS_RULES[adminRole]) {
+        return false;
+    }
+    return ADMIN_ACCESS_RULES[adminRole].includes(route as any);
+};
+
+/**
  * Get allowed routes for a merchant role
  * @param merchantRole - The merchant role
  * @returns Array of allowed route slugs
@@ -65,6 +86,18 @@ export const getAllowedRoutes = (merchantRole: MerchantRole | null | undefined):
         return [];
     }
     return MERCHANT_ACCESS_RULES[merchantRole];
+};
+
+/**
+ * Get allowed routes for an admin role
+ * @param adminRole - The admin role
+ * @returns Array of allowed route slugs
+ */
+export const getAllowedAdminRoutes = (adminRole: AdminRole | null | undefined): readonly string[] => {
+    if (!adminRole || !ADMIN_ACCESS_RULES[adminRole]) {
+        return [];
+    }
+    return ADMIN_ACCESS_RULES[adminRole];
 };
 
 /**

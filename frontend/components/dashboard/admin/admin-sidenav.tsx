@@ -71,6 +71,12 @@ const AdminSidenav = ({ merchantId }: AdminSidenavProps) => {
 		setAccordion((prev) => (prev === label ? null : label));
 	};
 
+	// Close sidenav and accordion when pathname changes
+	useEffect(() => {
+		setOpen(false);
+		setAccordion(null);
+	}, [pathname]);
+
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (sidenavRef.current && !sidenavRef.current.contains(event.target as Node)) {

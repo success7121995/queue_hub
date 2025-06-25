@@ -46,7 +46,6 @@ interface CookieData {
 
 const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     const [showSuccess, setShowSuccess] = useState(false);
-    const [countdown, setCountdown] = useState(8);
     const [addressError, setAddressError] = useState<string | null>(null);
 
     // Get merchant ID and staff members for add-branch form
@@ -229,7 +228,7 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
     }
 
     if (showSuccess) {
-        return <Success form={form || "signup"} countdown={countdown} />;
+        return <Success form={form || "signup"} />;
     }
 
     const isPending = form === "add-branch" ? createBranchMutation.isPending : mutation.isPending;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { User, Shield, Headset, Code2 } from "lucide-react";
 
 // Define allowed roles
-const ROLES = ["SUPER_ADMIN", "OP_ADMIN", "SUPPORT_AGENT", "DEVELOPER"] as const;
+const ROLES = ["SUPER_ADMIN", "OPS_ADMIN", "SUPPORT_AGENT", "DEVELOPER"] as const;
 type AdminRole = typeof ROLES[number];
 
 interface Admin {
@@ -29,7 +29,7 @@ avatar: "https://randomuser.me/api/portraits/men/32.jpg",
 		{
 		id: "op1",
 		name: "Olivia Parker",
-		role: "OP_ADMIN",
+		role: "OPS_ADMIN",
 		email: "olivia.parker@queuehub.com",
 		phone: "555-2001",
 		avatar: "https://randomuser.me/api/portraits/women/44.jpg",
@@ -56,14 +56,14 @@ avatar: "https://randomuser.me/api/portraits/men/32.jpg",
 
 const roleColors: Record<AdminRole, string> = {
 	SUPER_ADMIN: "bg-primary-light text-white border-primary-light",
-	OP_ADMIN: "bg-gradient-to-r from-orange-400 to-orange-500 text-white border-orange-400",
+	OPS_ADMIN: "bg-gradient-to-r from-orange-400 to-orange-500 text-white border-orange-400",
 	SUPPORT_AGENT: "bg-gradient-to-r from-green-400 to-green-500 text-white border-green-400",
 	DEVELOPER: "bg-gradient-to-r from-yellow-300 to-yellow-500 text-white border-yellow-400",
 };
 
 const roleIcons: Record<AdminRole, JSX.Element> = {
 	SUPER_ADMIN: <Shield className="w-6 h-6" />,
-	OP_ADMIN: <User className="w-6 h-6" />,
+	OPS_ADMIN: <User className="w-6 h-6" />,
 	SUPPORT_AGENT: <Headset className="w-6 h-6" />,
 	DEVELOPER: <Code2 className="w-6 h-6" />,
 };

@@ -29,13 +29,9 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 	const { data: userMerchants } = useUserMerchants(branch.merchant_id);
 	const { parseTime, formatToHHmm } = useDateTime();
 
-	const [optimisticLogoUrl, setOptimisticLogoUrl] = useState(branch.BranchImage.find(i => i.image_type === 'LOGO')?.image_url);
-	const [logoId, setLogoId] = useState(branch.BranchImage.find(i => i.image_type === 'LOGO')?.image_id);
-
 	const [optimisticFeatureImageUrl, setOptimisticFeatureImageUrl] = useState(branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_url);
 	const [featureImageId, setFeatureImageId] = useState(branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_id);
 	
-	const logoUrl = branch.BranchImage.find(i => i.image_type === 'LOGO')?.image_url;
 	const featureImageUrl = branch.BranchImage.find(i => i.image_type === 'FEATURE_IMAGE')?.image_url;
 
 	// Optimistic state for branch data
@@ -342,9 +338,6 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 					}
 				];
 
-			case 'logo':
-				return [];
-
 			case 'featureImage':
 				return [];
 
@@ -441,7 +434,6 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 			case 'address': return 'Edit Branch Address';
 			case 'email': return 'Edit Branch Email';
 			case 'phone': return 'Edit Branch Phone';
-			case 'logo': return 'Edit Branch Logo';
 			case 'featureImage': return 'Edit Feature Image';
 			case 'description': return 'Edit Branch Description';
 			case 'contact': return 'Edit Contact Information';
@@ -625,49 +617,6 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 		}
 	}, [editModal, optimisticBranch.contact_person]);
 
-	const handleLogoAdded = (image: PreviewImage): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			setOptimisticLogoUrl(image.preview);
-	
-			const uploadNew = () => {
-				uploadBranchImagesMutation.mutate({ branch_id: branch.branch_id, data: [image], image_type: 'logo' }, {
-					onSuccess: (res) => {
-						const newImage = res.images[0];
-						if (newImage) {
-							setOptimisticLogoUrl(newImage.image_url);
-							setLogoId(newImage.image_id);
-						}
-						resolve();
-					},
-					onError: (err) => {
-						setOptimisticLogoUrl(logoUrl);
-						reject(err);
-					}
-				});
-			};
-	
-			if (logoId) { // Replace
-				deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: logoId }, {
-					onSuccess: uploadNew,
-					onError: (err) => {
-						setOptimisticLogoUrl(logoUrl);
-						reject(err);
-					}
-				});
-			} else { // New upload
-				uploadNew();
-			}
-		});
-	};
-
-	const handleLogoRemoved = (id: string) => {
-		if (logoId) {
-			deleteBranchImageMutation.mutate({ branch_id: branch.branch_id, image_id: logoId });
-			setOptimisticLogoUrl(undefined);
-			setLogoId(undefined);
-		}
-	};
-
 	const handleFeatureImageAdded = (image: PreviewImage): Promise<void> => {
 		return new Promise((resolve, reject) => {
 			setOptimisticFeatureImageUrl(image.preview);
@@ -791,23 +740,6 @@ const BranchDetail = ({ branch, onClose, onBack }: BranchDetailProps) => {
 							</div>
 							<span>{optimisticBranch.phone || 'No phone'}</span>
 							<button className="ml-3 px-3 py-1 border border-primary-light text-primary-light rounded text-sm hover:bg-primary-light hover:text-white transition-all duration-200" onClick={() => setEditModal('phone')}>Edit</button>
-						</div>
-
-						{/* Logo */}
-						<div className="mb-2">
-							<div className="font-semibold text-primary-light mb-1 flex items-center gap-2">
-								<Image className="w-4 h-4" />
-								Logo
-							</div>
-							<ImageUploader
-								frameWidth={140}
-								frameHeight={140}
-								multiple={false}
-								onImageAdded={handleLogoAdded}
-								onImageRemoved={handleLogoRemoved}
-								existingImage={optimisticLogoUrl ? [{ id: logoId || 'logo', file: null as any, preview: buildImageUrl(optimisticLogoUrl)}] : []}
-								onImageClick={handleImagePreview}
-							/>
 						</div>
 
 						{/* Tags */}

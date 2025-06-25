@@ -88,21 +88,40 @@ export const authController = {
             const { email, password } = req.body;
             const result = await authService.login(email, password);
 
-            // Get merchant role if user is a merchant
-            let merchantRole: string | undefined;
-            if (result.user.role === UserRole.MERCHANT && result.userMerchant) {
-                merchantRole = result.userMerchant.role;
+            if (!result) {
+                throw new AppError("User not found", 404);
             }
 
-            // Set session data
-            req.session.user = {
-                user_id: result.user.user_id,
-                email: result.user.email,
-                role: result.user.role,
-                merchant_id: result.merchant?.merchant_id,
-                merchantRole
-            };
-            
+            // Get merchant role if user is a merchant
+            let merchantRole: string | undefined;
+            let adminRole: string | undefined;
+
+            if (result.user.role === UserRole.ADMIN && result.userAdmin) {
+                adminRole = result.userAdmin.role;
+
+                // Set session data
+                req.session.user = {
+                    user_id: result.user.user_id,
+                    email: result.user.email,
+                    role: result.user.role,
+                    adminRole,
+                    admin_id: result.userAdmin?.admin_id,
+                };
+            }
+
+            if (result?.user.role === UserRole.MERCHANT && result.userMerchant) {
+                merchantRole = result.userMerchant.role;
+
+                // Set session data
+                req.session.user = {
+                    user_id: result.user.user_id,
+                    email: result.user.email,
+                    role: result.user.role,
+                    merchant_id: result.merchant?.merchant_id,
+                    merchantRole,
+                };
+            }
+
             // Save session explicitly
             await new Promise<void>((resolve, reject) => {
                 req.session.save((err) => {
@@ -112,6 +131,8 @@ export const authController = {
                     resolve();
                 });
             });
+
+            console.log(result);
 
             res.status(200).json({ 
                 success: true, 

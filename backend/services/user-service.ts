@@ -424,6 +424,13 @@ export const userService = {
             }
 
             if (user.Avatar) {
+
+                // Delete the avatar record from database
+                await tx.avatar.delete({
+                    where: { image_id: user.Avatar.image_id }
+                });
+
+                // Delete the avatar file
                 const filePath = path.join(process.cwd(), 'public', user.Avatar.image_url);
                 fs.unlink(filePath, (err) => {
                     if (err) {
@@ -431,14 +438,12 @@ export const userService = {
                     }
                 });
 
-                // Delete the avatar record from database
-                await tx.avatar.delete({
-                    where: { image_id: user.Avatar.image_id }
-                });
             }
 
             return { success: true };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
     },
 
     /**

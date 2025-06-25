@@ -455,7 +455,7 @@ const ManageUsers = () => {
 	};
 
 	if (isLoading) {
-		return <LoadingIndicator />;
+		return <LoadingIndicator text="Loading employees..." fullScreen={true} />;
 	}
 
 	if (error) {

@@ -13,6 +13,7 @@ const Login = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const loginMutation = useLogin();
 
     const {
@@ -23,6 +24,8 @@ const Login = () => {
 
     const onSubmit = async (data: LoginFormInputs) => {
         setError(null);
+        setIsProcessing(true);
+        
         try {
             const res = await loginMutation.mutateAsync(data);
             const { result, sessionId } = res;
@@ -46,8 +49,9 @@ const Login = () => {
 
             // Handle redirect based on role and return URL
             const returnUrl = searchParams.get('from') || '/';
-            const isAdmin = ['SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'].includes(result.user.role);
+            const isAdmin = result.user.role === 'ADMIN';
             
+            // Keep loading state active during navigation
             if (isAdmin) {
                 const firstAdminSlug = getFirstAdminSlug();
                 router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
@@ -57,12 +61,21 @@ const Login = () => {
             } else {
                 router.push(returnUrl);
             }
+            // Note: isProcessing remains true during navigation to keep loading state
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+            setIsProcessing(false);
         }
     };
 
-    const isLoading = loginMutation.isPending;
+    const isLoading = loginMutation.isPending || isProcessing;
+    
+    // Determine loading text based on current state
+    const getLoadingText = () => {
+        if (loginMutation.isPending) return "Signing in...";
+        if (isProcessing) return "Redirecting...";
+        return "Loading...";
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center max-w-[1200px] mx-auto font-regular-eng">
@@ -70,7 +83,7 @@ const Login = () => {
             {isLoading && (
                 <LoadingIndicator 
                     fullScreen 
-                    text="Signing in..." 
+                    text={getLoadingText()} 
                     className="bg-white/80"
                 />
             )}
@@ -104,6 +117,7 @@ const Login = () => {
                             <input
                                 id="email"
                                 type="email"
+                                disabled={isLoading}
                                 {...register("email", { 
                                     required: "Email is required",
                                     pattern: {
@@ -111,7 +125,7 @@ const Login = () => {
                                         message: "Invalid email address"
                                     }
                                 })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             {errors.email && (
                                 <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -125,6 +139,7 @@ const Login = () => {
                             <input
                                 id="password"
                                 type="password"
+                                disabled={isLoading}
                                 {...register("password", { 
                                     required: "Password is required",
                                     minLength: {
@@ -132,14 +147,15 @@ const Login = () => {
                                         message: "Password must be at least 8 characters"
                                     }
                                 })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             {errors.password && (
                                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                             )}
                         </div>
-                                        {/* Privacy Policy and Terms of Service */}
-                        <div className="text-xs mb-2">
+
+                        {/* Privacy Policy and Terms of Service */}
+                        <div className={`text-xs mb-2 ${isLoading ? 'pointer-events-none opacity-50' : ''}`}>
                             By proceeding, I agree to <span className="font-bold text-primary">QueueHub</span>'s <br />
                             <Link href="/privacy-policy" className="underline">Privacy Policy</Link> and <Link href="/terms-of-service" className="underline">Terms of Service</Link>
                         </div>
@@ -158,7 +174,7 @@ const Login = () => {
                             </button>
                         </div>
 
-                        <div className="text-center">
+                        <div className={`text-center ${isLoading ? 'pointer-events-none opacity-50' : ''}`}>
                             <p className="text-sm text-gray-600">
                                 Don't have an account?{' '}
                                 <Link href="/signup" className="font-medium text-primary hover:text-primary-hover">

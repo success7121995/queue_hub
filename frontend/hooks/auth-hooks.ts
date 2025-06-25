@@ -2,6 +2,7 @@ import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } 
 import Cookies from 'js-cookie';
 import { AddEmployeeFormFields } from "@/types/form";
 import { AuthResponse, LogoutResponse } from "@/types/response";
+import { User, UserMerchant } from "@/types/user";
 
 // Types
 export interface LoginFormInputs {
@@ -79,7 +80,7 @@ export const fetchCreateUser = async (data: AddEmployeeFormFields): Promise<Auth
  * @param data 
  * @returns 
  */
-export const fetchLogin = async (data: LoginFormInputs): Promise<AuthResponse> => {
+export const fetchLogin = async (data: LoginFormInputs): Promise<{success: boolean, result: {user: User, userMerchant?: UserMerchant }, sessionId: string}> => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -90,11 +91,11 @@ export const fetchLogin = async (data: LoginFormInputs): Promise<AuthResponse> =
     });
 
     const responseData = await res.json();
-
+    
     if (!res.ok) {
         throw new Error(responseData.message || 'Login failed');
     }
-
+    
     return responseData;
 };
 
@@ -164,7 +165,7 @@ export const useCreateUser = (options?: Omit<UseMutationOptions<AuthResponse, Er
  * @param options 
  * @returns 
  */
-export const useLogin = (options?: Omit<UseMutationOptions<AuthResponse, Error, LoginFormInputs>, 'mutationFn'>) => {
+export const useLogin = (options?: Omit<UseMutationOptions<{success: boolean, result: {user: User, userMerchant?: UserMerchant}, sessionId: string}, Error, LoginFormInputs>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchLogin,
         ...options,

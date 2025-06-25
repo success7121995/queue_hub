@@ -139,6 +139,14 @@ export const authService = {
                 });
             }
 
+            // 8. Assign merchant to branch
+            await tx.userMerchantOnBranch.create({
+                data: {
+                    staff_id: staff.staff_id,
+                    branch_id: branch.branch_id,
+                }
+            });
+
             return { user, merchant, branch };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
@@ -180,7 +188,7 @@ export const authService = {
                 }
 
                 if (userMerchant?.UserMerchantOnBranch.length === 0) {
-                    throw new AppError("User merchant not found", 404);
+                    throw new AppError("User is not assigned to any branch", 403);
                 }
 
                 const merchant = await tx.merchant.findUnique({
@@ -195,7 +203,18 @@ export const authService = {
                 return { user, merchant, userMerchant, redirect: "/merchant" };
             }
 
-            return { user, redirect: "/admin" };
+            if (user.role === UserRole.ADMIN) {
+                const userAdmin = await tx.userAdmin.findUnique({
+                    where: { user_id: user.user_id },
+                });
+
+                if (!userAdmin) {
+                    throw new AppError("User admin not found", 404);
+                }
+
+                return { user, userAdmin, redirect: "/admin" };
+            }
+
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         return result;

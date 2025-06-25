@@ -40,11 +40,13 @@ router.put('/branches/:branch_id/opening-hours', requireAuth([UserRole.MERCHANT]
 router.delete('/branches/:branch_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), () => {});  // Delete branch
 
 // Branch images management (merchant only)
-router.post('/branches/:branch_id/images/logo', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadLogo, merchantController.uploadBranchImages);
 router.post('/branches/:branch_id/images/feature-image', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadFeatureImage, merchantController.uploadBranchImages);
 router.post('/branches/:branch_id/images/galleries', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadGalleries, merchantController.uploadBranchImages);
-router.put('/branches/:branch_id/images/:image_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), uploadLogo, merchantController.uploadBranchImages);
 router.delete('/branches/:branch_id/images/:image_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), merchantController.deleteBranchImages);
+
+// Logo management (merchant only)
+router.post('/logo', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), uploadLogo, merchantController.uploadLogo);
+router.delete('/logo/:logo_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), merchantController.deleteLogo);
 
 // Queue management (merchant only)
 router.get('/queues', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER, MerchantRole.FRONTLINE]), merchantController.viewQueuesByBranch);

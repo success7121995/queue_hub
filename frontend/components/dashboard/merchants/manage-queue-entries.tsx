@@ -13,6 +13,7 @@ import {
 	useCreateQueue,
 	useUpdateQueue,
 	useDeleteQueue,
+	useSwitchBranch,
 	queueKeys,
 } from "@/hooks/merchant-hooks";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,11 +39,15 @@ const stats = [
 	const createMutation = useCreateQueue();
 	const updateMutation = useUpdateQueue();
 	const deleteMutation = useDeleteQueue();
+	const switchBranchMutation = useSwitchBranch();
 	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(currentUser?.user?.UserMerchant?.selected_branch_id);
 
 	console.log(queuesData);
 
 	const userRole = currentUser?.user?.UserMerchant?.role;
+
+	// Check if any mutations are pending
+	const isAnyMutationPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || switchBranchMutation.isPending;
 
 	// Connect to socket when component mounts
 	useEffect(() => {
@@ -96,6 +101,54 @@ const stats = [
 	 * @param data - The form data
 	 */
 	const onCreateSubmit = (data: Queue) => {
+		// Check if user has a selected branch
+		const selectedBranchId = currentUser?.user?.UserMerchant?.selected_branch_id;
+		
+		if (!selectedBranchId) {
+			// If no branch is selected, try to select the first available branch
+			const availableBranches = currentUser?.user?.UserMerchant?.UserMerchantOnBranch || [];
+			
+			if (availableBranches.length > 0) {
+				const firstBranchId = availableBranches[0].branch_id;
+				
+				// Switch to the first available branch first, then create the queue
+				switchBranchMutation.mutate(firstBranchId, {
+					onSuccess: (switchData) => {
+						// Update the auth data with the new user data
+						queryClient.setQueryData(['auth'], {
+							success: true,
+							user: switchData.user
+						});
+						
+						// Now create the queue
+						const payload: Queue = {
+							queue_name: data.queue_name,
+							tags: data.tags || '',
+						};
+						
+						createMutation.mutate(payload, {
+							onSuccess: async () => {
+								setIsCreateModalOpen(false);
+								createForm.reset();
+								refetch();
+							},
+							onError: (error) => {
+								console.error('Create queue error:', error);
+							},
+						});
+					},
+					onError: (error) => {
+						console.error('Failed to switch branch:', error);
+					}
+				});
+				return;
+			} else {
+				console.error('No branches available for this user');
+				return;
+			}
+		}
+		
+		// If branch is already selected, create the queue directly
 		const payload: Queue = {
 			queue_name: data.queue_name,
 			tags: data.tags || '',
@@ -191,8 +244,56 @@ const stats = [
 		}
 	}, [selectedQueue, editForm]);
 
-	if (isLoadingQueue) {
+	// Show loading indicator for initial data fetch or any pending mutations
+	if (isLoadingQueue || isAnyMutationPending) {
 		return <LoadingIndicator fullScreen={true} />;
+	}
+
+	// Check if user has a selected branch
+	const selectedBranchId = currentUser?.user?.UserMerchant?.selected_branch_id;
+	const availableBranches = currentUser?.user?.UserMerchant?.UserMerchantOnBranch || [];
+	
+	if (!selectedBranchId) {
+		if (availableBranches.length === 0) {
+			return (
+				<div className="font-regular-eng p-8 min-h-screen">
+					<div className="flex justify-center items-center h-64">
+						<div className="text-center">
+							<h2 className="text-2xl font-bold text-gray-700 mb-4">No Branches Available</h2>
+							<p className="text-gray-600 mb-4">You don't have access to any branches. Please contact your administrator.</p>
+						</div>
+					</div>
+				</div>
+			);
+		} else {
+			// Auto-select the first available branch
+			const firstBranchId = availableBranches[0].branch_id;
+			switchBranchMutation.mutate(firstBranchId, {
+				onSuccess: (switchData) => {
+					// Update the auth data with the new user data
+					queryClient.setQueryData(['auth'], {
+						success: true,
+						user: switchData.user
+					});
+					// Invalidate queries to refresh data
+					queryClient.invalidateQueries();
+				},
+				onError: (error) => {
+					console.error('Failed to switch branch:', error);
+				}
+			});
+			
+			return (
+				<div className="font-regular-eng p-8 min-h-screen">
+					<div className="flex justify-center items-center h-64">
+						<div className="text-center">
+							<LoadingIndicator />
+							<p className="text-gray-600 mt-4">Setting up your branch access...</p>
+						</div>
+					</div>
+				</div>
+			);
+		}
 	}
 
 	/**
@@ -312,7 +413,7 @@ const stats = [
 			<div className="bg-white p-4 rounded-lg shadow-sm">
 				{isLoadingQueue ? (
 					<div className="flex justify-center items-center py-8">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-light"></div>
+						<LoadingIndicator />
 					</div>
 				) : (
 					<Table

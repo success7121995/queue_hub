@@ -197,6 +197,14 @@ model LegalDocuement {
   updated_at    DateTime          @updatedAt
 }
 
+model Logo {
+  logo_id String @id
+  merchant_id String @unique
+  logo_url String
+  created_at DateTime @default(now())
+  Merchant Merchant @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
+}
+
 model Merchant {
   merchant_id         String             @id
   owner_id            String @unique
@@ -219,6 +227,7 @@ model Merchant {
   News                News[]
   Review              Review[]
   UserMerchant        UserMerchant[]
+  Logo                Logo?
 }
 
 model Message {

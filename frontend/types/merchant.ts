@@ -11,6 +11,7 @@ export interface Merchant {
   created_at: string;
   updated_at: string;
   user: User;
+  logo?: Logo;
 }
 
 export interface Address {
@@ -100,4 +101,12 @@ export interface Branch {
   Address: Address | null;
   UserMerchantOnBranch: UserMerchantOnBranch[] | [];
   Tag: Tag[] | [];
+}
+
+export interface Logo {
+  logo_id: string;
+  merchant_id: string;
+  logo_url: string;
+  created_at: string;
+  updated_at: string;
 }

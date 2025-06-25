@@ -17,6 +17,8 @@ declare module 'express-session' {
             role: string;
             merchant_id?: string;
             merchantRole?: string;
+            adminRole?: string;
+            admin_id?: string;
         }
     }
 }
@@ -74,37 +76,53 @@ app.use((req, res, next) => {
     next();
 });
 
-// // Development-only: always set a session user if not present (Owner)
-// if (process.env.NODE_ENV === 'development') {
-//   app.use((req, res, next) => {
-//     if (!req.session.user) {
-//       req.session.user = {
-//         user_id: "2d191057-04f8-499f-9519-a65a1d1dd8ce",
-//         role: "MERCHANT",
-//         email: "joechan@gmail.com",
-//         merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
-//         merchantRole: "OWNER"
-//       };
-//     }
-//     next();
-//   });
-// }
+// Development-only: always set a session user if not present (Owner)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    if (!req.session.user) {
+      req.session.user = {
+        user_id: "665831f7-4655-4844-bdc4-319f2d9f038e",
+        role: "MERCHANT",
+        email: "joechan@gmail.com",
+        merchant_id: "2d5d13cb-35ba-42c3-aca5-188851be9da9",
+        merchantRole: "OWNER"
+      };
+    }
+    next();
+  });
+}
 
 // Development-only: always set a session user if not present (Manager)
-if (process.env.NODE_ENV === 'development') {
-    app.use((req, res, next) => {
-      if (!req.session.user) {
-        req.session.user = {
-          user_id: "a4f9af6d-5d49-4aec-b267-1b5f3fffbac8",
-          role: "MERCHANT",
-          email: "tonytam@gmail.com",
-          merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
-          merchantRole: "MANAGER"
-        };
-      }
-      next();
-    });
-  }
+// if (process.env.NODE_ENV === 'development') {
+//     app.use((req, res, next) => {
+//       if (!req.session.user) {
+//         req.session.user = {
+//           user_id: "a4f9af6d-5d49-4aec-b267-1b5f3fffbac8",
+//           role: "MERCHANT",
+//           email: "tonytam@gmail.com",
+//           merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
+//           merchantRole: "MANAGER"
+//         };
+//       }
+//       next();
+//     });
+//   }
+
+// Development-only: always set a session user if not present (SUPER_ADMIN)
+// if (process.env.NODE_ENV === 'development') {
+//     app.use((req, res, next) => {
+//       if (!req.session.user) {
+//         req.session.user = {
+//           user_id: "be0d2494-9566-4659-a6e0-96697518cd32",
+//           role: "ADMIN",
+//           email: "success7121995@gmail.com",
+//           admin_id: "55a3842b-90a2-4926-8dc2-abc4cd815dc8",
+//           adminRole: "SUPER_ADMIN"
+//         };
+//       }
+//       next();
+//     });
+//   }
 
 
 

@@ -1,7 +1,7 @@
-import { Branch, BranchFeature, BranchImage, BranchOpeningHour, Merchant } from "./merchant";
+import { Branch, BranchFeature, BranchImage, BranchOpeningHour, Logo, Merchant } from "./merchant";
 import { Address, MerchantRole } from "./form";
 import { QueueWithTags, Tag } from "./queue";
-import { UserAdmin, UserMerchant } from "./user";
+import { Avatar, UserAdmin, UserMerchant } from "./user";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
@@ -26,6 +26,7 @@ export interface AuthResponse {
         availableBranches?: string[];
         message_received?: any[];
         lang?: string;
+        Avatar?: Avatar;
     };
     sessionId?: string;
 }
@@ -53,6 +54,7 @@ export interface QueueResponse {
 export interface MerchantResponse {
     success: boolean;
     merchant: Merchant;
+    logo?: Logo;
 }
 
 export interface BranchesResponse {
@@ -107,4 +109,9 @@ export interface BranchOpeningHourResponse {
 export interface BranchImagesResponse {
     success: boolean;
     images: BranchImage[];
+}
+
+export interface LogoResponse {
+    success: boolean;
+    logo: Logo;
 }

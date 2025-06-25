@@ -1,11 +1,46 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+
 interface SuccessProps {
     form: "signup" | "add-branch" | "add-admin" | "add-employee";
-    countdown: number;
 }
 
-const Success: React.FC<SuccessProps> = ({ form, countdown }) => {
+const Success: React.FC<SuccessProps> = ({ form }) => {
+    const router = useRouter();
+    const [countdown, setCountdown] = useState(8);
+    const [redirectUrl, setRedirectUrl] = useState("");
+
+    useEffect(() => {
+        // Set the redirect URL based on form type
+        switch (form) {
+            case "signup":
+                setRedirectUrl("/");
+                break;
+            case "add-branch":
+                setRedirectUrl("/merchant/branch-info");
+                break;
+            case "add-admin":
+                setRedirectUrl("/admin/metrics");
+                break;
+            case "add-employee":
+                setRedirectUrl("/merchant/manage-employees");
+                break;
+        }
+
+        const timer = setInterval(() => {
+            setCountdown(prev => prev - 1);
+        }, 1000);
+
+        if (countdown === 0) {
+            router.push(redirectUrl);
+        }
+
+        return () => clearInterval(timer);
+    }, [countdown, redirectUrl, router, form]);
+
     const renderContent = () => {
         switch (form) {
             case "signup":
@@ -54,8 +89,9 @@ const Success: React.FC<SuccessProps> = ({ form, countdown }) => {
 
                 {renderContent()}
 
-                <div className="w-full flex justify-center">
+                <div className="w-full flex flex-col justify-center items-center gap-4">
                     <p className="text-gray-600 text-center mb-8 text-base max-w-md">You will be redirected to the {form === "signup" ? "home page" : "dashboard" } in {countdown} seconds.</p>
+                    <Link href={redirectUrl} className="text-primary-light hover:text-primary-dark transition-colors">Skip</Link>
                 </div>
             </div>
         </div>

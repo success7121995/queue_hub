@@ -1,8 +1,8 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { Branch, MerchantRole, Prisma, Queue, Tag, TagEntity, User, ImageType } from "@prisma/client";
-import { BranchSchema, BranchImageSchema, AddressSchema, BranchFeatureSchema, BranchTagSchema, BranchOpeningHourSchema } from "../controllers/merchant-controller";
+import { Branch, Prisma, Tag, TagEntity, ImageType, BranchOpeningHour } from "@prisma/client";
+import { BranchSchema, AddressSchema } from "../controllers/merchant-controller";
 import fs from "fs";
 import path from "path";
 
@@ -29,8 +29,11 @@ export const merchantService = {
             if (!merchant) {
                 throw new AppError("Merchant not found", 404);
             }
+            const logo = await tx.logo.findUnique({
+                where: { merchant_id },
+            });
 
-            return { merchant };
+            return { merchant, logo };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         if (!result) {
@@ -54,12 +57,6 @@ export const merchantService = {
                 include: {
                     User: true,
                 }
-            });
-            
-            const branches = await tx.branch.findMany({
-                where: {
-                    merchant_id,
-                },
             });
             
             return { user_merchants: userMerchants };
@@ -570,8 +567,7 @@ export const merchantService = {
                 for (const img of data) {
                     // Determine correct image_type
                     let image_type: ImageType = ImageType.IMAGE;
-                    if (img.image_type === 'LOGO') image_type = ImageType.LOGO;
-                    else if (img.image_type === 'FEATURE_IMAGE') image_type = ImageType.FEATURE_IMAGE;
+                    if (img.image_type === 'FEATURE_IMAGE') image_type = ImageType.FEATURE_IMAGE;
                     
                     // Use image_url as provided (should be /uploads/filename)
                     const record = await tx.branchImage.create({
@@ -763,7 +759,7 @@ export const merchantService = {
     /**
      * Update branch opening hours
      */
-    async updateBranchOpeningHours(branch_id: string, data: Partial<BranchOpeningHourSchema>) {
+    async updateBranchOpeningHours(branch_id: string, data: Partial<BranchOpeningHour>) {
         const { day_of_week, open_time, close_time, is_closed } = data;
 
         if (!day_of_week) {
@@ -899,8 +895,103 @@ export const merchantService = {
     },
 
     /**
-     * Update branch contact person
+     * Upload logo
+     * @param merchant_id - The merchant ID
+     * @param logo_url - The logo URL
+     * @returns The updated logo
      */
+    async uploadLogo(merchant_id: string, logo_url: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Check if there's already a logo for this merchant
+            const existingLogo = await tx.logo.findUnique({
+                where: { merchant_id },
+            });
 
-    /** */
+            let logo;
+            if (existingLogo) {
+                // Delete the old logo file if it exists
+                if (existingLogo.logo_url) {
+                    const oldFilePath = path.join(process.cwd(), 'public', existingLogo.logo_url);
+                    if (fs.existsSync(oldFilePath)) {
+                        fs.unlinkSync(oldFilePath);
+                    }
+                }
+                
+                // Update existing logo
+                logo = await tx.logo.update({
+                    where: { logo_id: existingLogo.logo_id },
+                    data: {
+                        logo_url,
+                    },
+                });
+            } else {
+                // Create new logo
+                logo = await tx.logo.create({
+                    data: {
+                        logo_id: uuidv4(),
+                        merchant_id,
+                        logo_url,
+                    },
+                });
+            }
+
+            if (!logo) {
+                throw new AppError("Failed to upload logo", 500);
+            }
+
+            return { logo };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to upload logo", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Delete logo
+     * @param logo_id - The logo ID
+     * @returns The deleted logo
+     */
+    async deleteLogo(logo_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const logo = await tx.logo.findUnique({
+                where: { logo_id },
+            });
+
+            if (!logo) {
+                throw new AppError("Logo not found", 404);
+            }
+
+            const deletedLogo = await tx.logo.delete({
+                where: { logo_id },
+            });
+            
+            if (!deletedLogo) {
+                throw new AppError("Failed to delete logo", 500);
+            }
+
+            // Delete the logo file
+            const filePath = path.join(process.cwd(), 'public', logo.logo_url);
+
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+
+            fs.unlink(filePath, (err) => {
+                if (err) {
+                    console.error(`Failed to delete logo file: ${err.message}`);
+                }
+            });
+
+            return { success: true };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to delete logo", 500);
+        }
+
+        return result;
+    }
 }; 

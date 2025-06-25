@@ -1,6 +1,6 @@
 // middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirstAdminSlug, getFirstMerchantSlug, hasMerchantAccess } from '@/lib/utils';
+import { getFirstAdminSlug, getFirstMerchantSlug, hasMerchantAccess, hasAdminAccess } from '@/lib/utils';
 
 const PUBLIC_PATHS = [
     '/',
@@ -15,7 +15,7 @@ const PUBLIC_PATHS = [
     '/unauthorized',
 ];  
 
-const ADMIN_ROLES = ['SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'];
+const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'OPS_ADMIN', 'SUPPORT_AGENT', 'DEVELOPER'];
 
 const getUserRole = async (req: NextRequest) => {
     try {
@@ -29,7 +29,8 @@ const getUserRole = async (req: NextRequest) => {
         const data = await res.json();
         return {
             userRole: data.user?.role || null,
-            merchantRole: data.user?.UserMerchant?.role || null
+            merchantRole: data.user?.UserMerchant?.role || null,
+            adminRole: data.user?.UserAdmin?.role || null
         };
     } catch {
         return null;
@@ -39,6 +40,11 @@ const getUserRole = async (req: NextRequest) => {
 const isMerchantRouteAllowed = (merchantRole: string, pathname: string): boolean => {
     const currentSlug = pathname.split('/').pop();
     return hasMerchantAccess(merchantRole as any, currentSlug || '');
+};
+
+const isAdminRouteAllowed = (adminRole: string, pathname: string): boolean => {
+    const currentSlug = pathname.split('/').pop();
+    return hasAdminAccess(adminRole as any, currentSlug || '');
 };
 
 export const middleware = async (req: NextRequest) => {
@@ -54,6 +60,7 @@ export const middleware = async (req: NextRequest) => {
         const roleData = await getUserRole(req);
         const userRole = roleData?.userRole;
         const merchantRole = roleData?.merchantRole;
+        const adminRole = roleData?.adminRole;
 
         // If accessing /login or /signup, always redirect to dashboard if session is set and role is known
         if (pathname === '/login' || pathname === '/signup') {
@@ -74,6 +81,13 @@ export const middleware = async (req: NextRequest) => {
             if (!userRole) return NextResponse.next(); // If role is unknown, do nothing
             if (!ADMIN_ROLES.includes(userRole)) {
                 return NextResponse.redirect(new URL('/login', req.url));
+            }
+            
+            // Check admin role-based access for specific admin routes
+            if (pathname.includes('/admin/') && pathname.split('/').length > 2) {
+                if (!isAdminRouteAllowed(adminRole, pathname)) {
+                    return NextResponse.redirect(new URL('/404', req.url));
+                }
             }
         }
         

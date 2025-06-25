@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/auth-hooks";
 import { hasMerchantAccess } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import LoadingIndicator from "@/components/common/loading-indicator";
 
 interface MerchantDashboardProps {
 	slug: string;
@@ -44,7 +45,7 @@ const MerchantDashboard = ({ slug }: MerchantDashboardProps) => {
 		return (
 			<div className="pt-24 2xl:p-10">
 				<div className="flex items-center justify-center min-h-[400px]">
-					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+					<LoadingIndicator />
 				</div>
 			</div>
 		);

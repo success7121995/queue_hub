@@ -23,11 +23,13 @@ interface ImageUploaderProps {
 	canRemove?: boolean;
 	fontSize?: number;
 	onImageClick?: (imageUrl: string, alt?: string) => void;
+	acceptSvg?: boolean;
+	noSizeRestriction?: boolean;
 }
 
 const ImageUploader = ({
-	frameWidth = "100%",
-	frameHeight = "300px",
+	frameWidth = 200,
+	frameHeight = 200,
 	className = "",
 	multiple = false,
 	existingImage = [],
@@ -35,7 +37,9 @@ const ImageUploader = ({
 	onImageRemoved,
 	fontSize = 12,
 	onImageClick,
-	canRemove = true
+	canRemove = true,
+	acceptSvg = false,
+	noSizeRestriction = false
 }: ImageUploaderProps) => {
 	const [previewImages, setPreviewImages] = useState<PreviewImage[]>([]);
 	const existingImageIds = JSON.stringify(existingImage?.map(i => i.id));
@@ -75,6 +79,12 @@ const ImageUploader = ({
 	 */
 	const compressImage = (file: File): Promise<File> => {
 		return new Promise((resolve, reject) => {
+			// If no size restriction is set, return the original file
+			if (noSizeRestriction) {
+				resolve(file);
+				return;
+			}
+
 			new Compressor(file, {
 				quality: 0.8,
 				maxWidth: 1920,
@@ -140,7 +150,11 @@ const ImageUploader = ({
 	 */
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({
 		onDrop,
-		accept: {
+		accept: acceptSvg ? {
+			'image/jpeg': [],
+			'image/png': [],
+			'image/svg+xml': [],
+		} : {
 			'image/jpeg': [],
 			'image/png': [],
 		},
@@ -169,7 +183,9 @@ const ImageUploader = ({
 							<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
 								{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
 							</p>
-							<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
+							<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>
+								{acceptSvg ? 'Supports JPEG, PNG, SVG' : 'Supports JPEG, PNG'}
+							</p>
 						</div>
 					</div>
 		
@@ -263,7 +279,9 @@ const ImageUploader = ({
 						<p className="text-gray-600 mb-2" style={{ fontSize: fontSize }}>
 						{isDragActive ? 'Drop the image here' : 'Drag & drop or click to upload image'}
 						</p>
-						<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>Supports JPEG, PNG</p>
+						<p className="text-sm text-gray-500" style={{ fontSize: fontSize - 2 }}>
+							{acceptSvg ? 'Supports JPEG, PNG, SVG' : 'Supports JPEG, PNG'}
+						</p>
 					</div>
 				)}
 			</div>

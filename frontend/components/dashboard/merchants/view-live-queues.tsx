@@ -11,6 +11,7 @@ import { useBranches, useQueues, queueKeys } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueueWithTags } from "@/types/queue";
+import LoadingIndicator from "@/components/common/loading-indicator";
 
 const mockStats = {
 	servedToday: 45,
@@ -336,7 +337,7 @@ const ViewLiveQueues = () => {
 					<div className="text-xl mb-2 text-primary-light font-bold">Active Queues</div>
 					{isLoadingQueue ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-light"></div>
+							<LoadingIndicator />
 						</div>
 					) : (
 						<Table

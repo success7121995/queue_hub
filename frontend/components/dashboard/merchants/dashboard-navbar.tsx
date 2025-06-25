@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, Globe, Mail, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
+import { Menu, X, ChevronDown, Mail, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
 import { Dropdown } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
@@ -12,8 +13,10 @@ import { useLang, type Lang } from "@/constant/lang-provider";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { Branch } from "@/types/merchant";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 
 const DashboardNavbar = () => {
+	const pathname = usePathname();
 	const [profileOpen, setProfileOpen] = useState(false);
 	const [mailOpen, setMailOpen] = useState(false);
 	const [branchOpen, setBranchOpen] = useState(false);
@@ -39,6 +42,8 @@ const DashboardNavbar = () => {
 
 	// Extract user info for navbar display - with better fallbacks
 	const username = userData?.user?.username || userData?.user?.fname || 'User';
+	const firstName = userData?.user?.fname || '';
+	const lastName = userData?.user?.lname || '';
 	const position = userData?.user?.UserMerchant?.position || userData?.user?.role || '';
 	const merchantName = merchantData?.merchant?.business_name || 'Business';
 	const messageReceived = userData?.user?.message_received || [];
@@ -52,8 +57,22 @@ const DashboardNavbar = () => {
 	) || branchesData?.branches?.[0];
 
 	const selectedBranchName = selectedBranchObj?.branch_name || '';
+	const avatar = userData?.user?.Avatar?.image_url || '';
+	const avatarUrl = avatar ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${avatar}` : '';
+	const logo = merchantData?.logo?.logo_url || '';
+	const logoUrl = logo ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${logo}` : '';
+
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const { mutate: logout } = useLogout();
+
+	// Close all dropdowns when pathname changes
+	useEffect(() => {
+		setProfileOpen(false);
+		setMailOpen(false);
+		setBranchOpen(false);
+		setMobileNavOpen(false);
+		setProfileAccordion(false);
+	}, [pathname]);
 
 	useEffect(() => {
 		if (userData?.user?.UserMerchant?.selected_branch_id) {
@@ -222,10 +241,12 @@ const DashboardNavbar = () => {
 			{/* Desktop navbar: left group (company + branch) */}
 			<div className="hidden lg:flex items-center space-x-6 ml-8">
 				<div className="flex items-center space-x-2">
-					<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
+			
+					{ logoUrl ? (
+						<Image src={logoUrl} alt="Logo" width={48} height={48} className="rounded-[5px]" />
+					) : (
 						<UserCircle size={28} className="text-text-light" />
-					</div>
-
+					) }
 
 					<span className="text-base font-semibold text-text-light">
 						{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
@@ -303,8 +324,18 @@ const DashboardNavbar = () => {
 				{/* Profile */}
 				<div ref={profileRef}>
 					<button className="flex items-center space-x-2" onClick={() => setProfileOpen((v) => !v)}>
-						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
-							<UserCircle size={28} className="text-text-light" />
+						<div className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center">
+							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+								avatarUrl ? (
+									<div className="w-10 h-10 rounded-full flex items-center justify-center">
+										<Image src={avatarUrl} alt="Avatar" width={38} height={38} className="rounded-full" />
+									</div>
+								) : (
+									<div className="w-10 h-10 rounded-full bg-text-light text-primary-light text-lg font-bold flex items-center justify-center">
+										{ firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase() }
+									</div>
+								)
+							}
 						</div>
 						<div className="flex flex-col items-start">
 							<span className="text-base font-semibold text-text-light">
@@ -388,9 +419,11 @@ const DashboardNavbar = () => {
 			{mobileNavOpen && (
 				<div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-white shadow z-50 flex flex-col p-4 2xl:hidden">
 					<div className="flex items-center space-x-2 mb-4">
-						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
-							<UserCircle size={28} />
-						</div>
+						{ logoUrl ? (
+							<Image src={logoUrl} alt="Logo" width={48} height={48} className="rounded-[5px]" />
+						) : (
+							<UserCircle size={28} className="text-text-light" />
+						) }
 						<span className="text-lg font-medium">
 							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 								merchantName
@@ -425,7 +458,15 @@ const DashboardNavbar = () => {
 							onClick={() => setProfileAccordion((v) => !v)}
 						>
 							<span className="flex items-center">
-								<UserCircle size={28} />
+								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
+									avatarUrl ? (
+										<Image src={avatarUrl} alt="Avatar" width={48} height={48} className="rounded-full border-[3px] border-primary-light" />
+									) : (
+										<div className="w-10 h-10 rounded-full bg-primary text-text-light text-lg font-bold flex items-center justify-center">
+											{ firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase() }
+										</div>
+									)
+								}
 								<span className="ml-2 text-lg font-medium">
 									{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 										"Hi, " + username

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
-import type { Queue, QueueStatus, Tag } from "@/types/queue";
+import type { Queue, QueueStatus } from "@/types/queue";
 import type {
     QueuesResponse,
     QueueResponse,
@@ -12,6 +12,7 @@ import type {
     BranchFeatureResponse,
     BranchTagResponse,
     BranchOpeningHourResponse,
+    LogoResponse,
 } from "@/types/response";
 import type { Address, Branch, BranchOpeningHour } from "@/types/merchant";
 
@@ -504,6 +505,75 @@ export const fetchCreateBranch = async (data: {
 };
 
 /**
+ * Fetch create logo
+ * @param data 
+ * @returns 
+ */
+export const fetchCreateLogo = async (data: { merchant_id: string; logo_url: string }): Promise<LogoResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/logo/create`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to create logo');
+    }
+
+    const responseData = await res.json();
+    return responseData.result;
+};
+
+/**
+ * Fetch upload logo
+ * @param file - The logo file to upload
+ * @returns 
+ */
+export const fetchUploadLogo = async (file: File): Promise<LogoResponse> => {
+    const formData = new FormData();
+    formData.append('LOGO', file);
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/logo`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Logo upload failed with status:", res.status, errorText);
+        throw new Error('Failed to upload logo');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+};
+
+/**
+ * Fetch delete logo
+ * @param logo_id - The logo ID to delete
+ * @returns 
+ */
+export const fetchDeleteLogo = async (logo_id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/logo/${logo_id}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to delete logo');
+    }
+
+    return res.json();
+};
+
+/**
  * Switch user's selected branch
  * @param branch_id - The branch ID to switch to
  * @returns 
@@ -525,6 +595,18 @@ export const fetchSwitchBranch = async (branch_id: string): Promise<{ success: b
     const responseData = await res.json();
     return responseData;
 };
+
+
+
+
+
+
+
+
+
+
+
+
 
 /********************************* Hooks *********************************/
 
@@ -771,6 +853,30 @@ export const useCreateBranch = (options?: Omit<UseMutationOptions<BranchResponse
 export const useSwitchBranch = (options?: Omit<UseMutationOptions<{ success: boolean; result: any; user: any }, Error, string>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchSwitchBranch,
+        ...options,
+    });
+};
+
+/**
+ * Use upload logo
+ * @param options 
+ * @returns 
+ */
+export const useUploadLogo = (options?: Omit<UseMutationOptions<LogoResponse, Error, File>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchUploadLogo,
+        ...options,
+    });
+};
+
+/**
+ * Use delete logo
+ * @param options 
+ * @returns 
+ */
+export const useDeleteLogo = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, string>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchDeleteLogo,
         ...options,
     });
 };

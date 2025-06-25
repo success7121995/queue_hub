@@ -165,6 +165,12 @@ const createBranchSchema = z.object({
 
 export type CreateBranchSchema = z.infer<typeof createBranchSchema>;
 
+const logoSchema = z.object({
+    logo_url: z.string().min(1, "Logo URL is required"),
+});
+
+export type LogoSchema = z.infer<typeof logoSchema>;
+
 // Merchant controller
 // Handles: profile management, queue operations, analytics
 export const merchantController = {
@@ -715,5 +721,63 @@ export const merchantController = {
         }
     ),
 
+    /**
+     * Create a new logo
+     * @param req - The request object
+     * @param res - The response object
+     */
+    uploadLogo: withActivityLog(
+        async (req: Request, res: Response) => {
+            const user = req.session.user;
 
+            if (!user) {
+                throw new AppError("User not found", 404);
+            }
+
+            const merchant_id = user.merchant_id;
+
+            if (!merchant_id) {
+                throw new AppError("Merchant not found", 404);
+            }
+
+            // Check if file was uploaded
+            if (!(req as any).file) {
+                throw new AppError("No logo file uploaded", 400);
+            }
+
+            const logo_url = `/uploads/${(req as any).file.filename}`;
+
+            const result = await merchantService.uploadLogo(merchant_id, logo_url);
+
+            res.status(200).json({ success: true, result });
+        }, {
+            action: ActivityType.UPDATE_MERCHANT,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                merchant_id: req.session.user?.merchant_id,
+                logo_url: (req as any).file ? `/uploads/${(req as any).file.filename}` : null,
+            }),
+        }
+    ),
+
+    /**
+     * Delete a logo
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteLogo: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { logo_id } = req.params;
+
+            const result = await merchantService.deleteLogo(logo_id);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_MERCHANT,
+            extractUserId: (req) => req.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                logo_id: req.params.logo_id,
+            }),
+        }   
+    ),
 }; 
