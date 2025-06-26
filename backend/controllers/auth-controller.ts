@@ -76,6 +76,14 @@ const employeeSchema = z.object({
 
 export type EmployeeSchema = z.infer<typeof employeeSchema>;
 
+const changePasswordSchema = z.object({
+    old_password: z.string().min(8, "Password must be at least 8 characters"),
+    new_password: z.string().min(8, "Password must be at least 8 characters"),
+    confirm_password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
+
 export const authController = {
 
     /**
@@ -131,8 +139,6 @@ export const authController = {
                     resolve();
                 });
             });
-
-            console.log(result);
 
             res.status(200).json({ 
                 success: true, 
@@ -247,6 +253,38 @@ export const authController = {
             extractData: (req, res, result) => ({
                 email: req.body.email,
                 role: req.body.role,
+            }),
+        }
+    ),
+
+    /**
+     * Change password
+     */
+    changePassword: withActivityLog(
+        async (req: Request, res: Response) => {
+            const user = req.session.user;
+
+            if (!user?.user_id) {
+                throw new AppError("User ID not found", 404);
+            }
+
+            const validatedData = changePasswordSchema.parse(req.body);
+
+            if (validatedData.new_password !== validatedData.confirm_password) {
+                throw new AppError("Passwords do not match", 400);
+            }
+
+            await authService.changePassword(user.user_id, validatedData);
+
+            res.status(200).json({
+                success: true,
+            });
+        },
+        {
+            action: ActivityType.CHANGE_PASSWORD,
+            extractUserId: (req) => req.session.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                user_id: req.session.user?.user_id,
             }),
         }
     )

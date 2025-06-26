@@ -79,57 +79,6 @@ const branchOpeningHourSchema = z.object({
 
 export type BranchOpeningHourSchema = z.infer<typeof branchOpeningHourSchema>;
 
-// Validation schemas
-const signupSchema = z.object({
-    userInfo: z.object({
-        username: z.string().min(3, "Username must be at least 3 characters"),
-        email: z.string().email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
-        fname: z.string().min(1, "First name is required"),
-        lname: z.string().min(1, "Last name is required"),
-        phone: z.string().min(1, "Phone number is required"),
-        position: z.string().min(1, "Position is required"),
-        role: z.nativeEnum(MerchantRole),
-        lang: z.nativeEnum(Lang),
-    }),
-    branchInfo: z.object({
-        branch_name: z.string().min(1, "Branch name is required"),
-        phone: z.preprocess(
-            (val) => val === "" ? undefined : val,
-            z.string().optional()
-        ),
-        email: z.preprocess(
-            (val) => val === "" ? undefined : val,
-            z.string().email("Invalid email address").optional()
-        ),
-        description: z.preprocess(
-            (val) => val === "" ? undefined : val,
-            z.string().optional()
-        ),
-        opening_hours: z.array(z.object({
-            day_of_week: z.number().min(1).max(7),
-            open_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-            close_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-            is_closed: z.boolean().default(false),
-        })).optional(),
-    }),
-    address: z.object({
-        country: z.string().min(1, "Country is required"),
-        street: z.string().min(1, "Street is required"),
-        city: z.string().min(1, "City is required"),
-        state: z.string().min(1, "State is required"),
-        zip: z.string().min(1, "ZIP code is required"),
-        unit: z.preprocess(
-            (val) => val === "" ? undefined : val,
-            z.string().optional()
-        ),
-        floor: z.preprocess(
-            (val) => val === "" ? undefined : val,
-            z.string().optional()
-        ),
-    }),
-});
-
 const branchImageSchema = z.object({
     logo: z.preprocess(
         (val) => val === "" ? undefined : val,

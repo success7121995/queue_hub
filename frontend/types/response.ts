@@ -1,7 +1,7 @@
 import { Branch, BranchFeature, BranchImage, BranchOpeningHour, Logo, Merchant } from "./merchant";
 import { Address, MerchantRole } from "./form";
 import { QueueWithTags, Tag } from "./queue";
-import { Avatar, UserAdmin, UserMerchant } from "./user";
+import { Avatar, User, UserAdmin, UserMerchant } from "./user";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
@@ -114,4 +114,8 @@ export interface BranchImagesResponse {
 export interface LogoResponse {
     success: boolean;
     logo: Logo;
+}
+
+export interface ChangePasswordResponse {
+    success: boolean;
 }

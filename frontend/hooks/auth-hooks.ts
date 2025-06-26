@@ -1,13 +1,19 @@
 import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
 import Cookies from 'js-cookie';
 import { AddEmployeeFormFields } from "@/types/form";
-import { AuthResponse, LogoutResponse } from "@/types/response";
+import { AuthResponse, ChangePasswordResponse, LogoutResponse } from "@/types/response";
 import { User, UserMerchant } from "@/types/user";
 
 // Types
 export interface LoginFormInputs {
     email: string;
     password: string;
+}
+
+export interface ChangePasswordFormInputs {
+    old_password: string;
+    new_password: string;
+    confirm_password: string;
 }
 
 /**
@@ -122,10 +128,29 @@ export const fetchLogout = async (): Promise<LogoutResponse> => {
     return responseData;
 };
 
+/**
+ * Fetch change password
+ * @param data 
+ * @returns 
+ */
+export const fetchChangePassword = async (data: ChangePasswordFormInputs): Promise<ChangePasswordResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/change-password`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    });
 
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to change password' }));
+        throw new Error(errorData.message || 'Failed to change password');
+    }
 
-
-
+    const responseData = await res.json();
+    return responseData;
+};
 
 
 
@@ -180,6 +205,13 @@ export const useLogin = (options?: Omit<UseMutationOptions<{success: boolean, re
 export const useLogout = (options?: Omit<UseMutationOptions<LogoutResponse, Error, void>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchLogout,
+        ...options,
+    });
+};
+
+export const useChangePassword = (options?: Omit<UseMutationOptions<ChangePasswordResponse, Error, ChangePasswordFormInputs>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchChangePassword,
         ...options,
     });
 };

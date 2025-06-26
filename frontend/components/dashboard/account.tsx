@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useEffect } from "react"
-import { useAuth } from "@/hooks/auth-hooks";
+import { useAuth, useChangePassword } from "@/hooks/auth-hooks";
 import { useUploadLogo, useDeleteLogo, useMerchant } from "@/hooks/merchant-hooks";
 import { ConfirmationModal } from "@/components/common/confirmation-modal";
 import { ImageUploader, ImagePreviewModal, LoadingIndicator } from "@/components";
@@ -77,13 +77,13 @@ const mockSessions: Session[] = [
 ];
 
 const Account = () => {
-    const { data: authData, refetch } = useAuth();
+    const { data: authData, isLoading: isAuthLoading, refetch } = useAuth();
     const user = authData?.user || mockUser;
     const merchantRole = user.UserMerchant?.role || "OWNER";
     const isOwner = merchantRole === "OWNER";
 
     // Get merchant data for logo
-    const { data: merchantData } = useMerchant(user.UserMerchant?.merchant_id as string);
+    const { data: merchantData, isLoading: isMerchantLoading } = useMerchant(user.UserMerchant?.merchant_id as string);
     const logo = merchantData?.logo;
 
     // Logo upload state
@@ -97,6 +97,9 @@ const Account = () => {
 
     const uploadLogoMutation = useUploadLogo();
     const deleteLogoMutation = useDeleteLogo();
+    const changePasswordMutation = useChangePassword();
+
+    const { mutate: changePassword, isPending: isChangingPassword } = changePasswordMutation;
 
     // Password change state
     const [passwordData, setPasswordData] = useState({
@@ -110,6 +113,8 @@ const Account = () => {
         confirm: false
     });
     const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+    const [passwordChangeError, setPasswordChangeError] = useState<string>("");
+    const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string>("");
 
     // Email verification state
     const [isResendingVerification, setIsResendingVerification] = useState(false);
@@ -133,6 +138,13 @@ const Account = () => {
         }
     }, [logo]);
 
+    /**
+     * Builds the image URL from the given URL.
+     * If the URL is a blob URL or a HTTP URL, it returns the URL as is.
+     * If the URL is a relative URL, it prepends the NEXT_PUBLIC_BACKEND_URL to the URL.
+     * @param url - The URL to build.
+     * @returns The built URL.
+     */
     const buildImageUrl = (url: string) => {
         if (!url) return '';
         if (url.startsWith('blob:') || url.startsWith('http')) {
@@ -141,6 +153,12 @@ const Account = () => {
         return `${process.env.NEXT_PUBLIC_BACKEND_URL}${url}`;
     };
 
+    /**
+     * Handles the image preview.
+     * Opens the image preview modal with the given image URL and alt text.
+     * @param imageUrl - The image URL to preview.
+     * @param alt - The alt text for the image.
+     */
     const handleImagePreview = useCallback((imageUrl: string, alt?: string) => {
         setImagePreviewModal({
             isOpen: true,
@@ -149,6 +167,9 @@ const Account = () => {
         });
     }, []);
 
+    /**
+     * Closes the image preview modal.
+     */
     const handleCloseImagePreview = useCallback(() => {
         setImagePreviewModal({
             isOpen: false,
@@ -157,6 +178,12 @@ const Account = () => {
         });
     }, []);
 
+    /**
+     * Handles the logo added event.
+     * Uploads the logo to the server and updates the optimistic logo URL and ID.
+     * @param image - The image to upload.
+     * @returns A promise that resolves when the logo is uploaded.
+     */
     const handleLogoAdded = (image: PreviewImage): Promise<void> => {
         return new Promise((resolve, reject) => {
             setOptimisticLogoUrl(image.preview);
@@ -192,6 +219,11 @@ const Account = () => {
         });
     };
 
+    /**
+     * Handles the logo removed event.
+     * Deletes the logo from the server and updates the optimistic logo URL and ID.
+     * @param id - The ID of the logo to delete.
+     */
     const handleLogoRemoved = (id: string) => {
         if (logoId) {
             deleteLogoMutation.mutate(logoId, {
@@ -207,7 +239,10 @@ const Account = () => {
         }
     };
 
-    // Password validation
+    /**
+     * Validates the password.
+     * @returns True if the password is valid, false otherwise.
+     */
     const validatePassword = () => {
         const errors: Record<string, string> = {};
 
@@ -231,22 +266,59 @@ const Account = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // Handle password change
+    /**
+     * Handles the password change.
+     * Validates the password and updates the password data.
+     */
     const handlePasswordChange = () => {
+        // Clear previous messages
+        setPasswordChangeError("");
+        setPasswordChangeSuccess("");
+        setPasswordErrors({});
+        
+        console.log(passwordData);
         if (validatePassword()) {
-            // Mock password change logic
-            console.log("Password changed successfully");
-            setPasswordData({
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: ""
+            changePassword({
+                old_password: passwordData.currentPassword,
+                new_password: passwordData.newPassword,
+                confirm_password: passwordData.confirmPassword
+            }, {
+                onSuccess: () => {
+                    console.log("Password changed successfully");
+                    setPasswordChangeSuccess("Password changed successfully!");
+                    setPasswordData({
+                        currentPassword: "",
+                        newPassword: "",
+                        confirmPassword: ""
+                    });
+                    setShowPasswords({
+                        current: false,
+                        new: false,
+                        confirm: false
+                    });
+                    
+                    // Clear success message after 5 seconds
+                    setTimeout(() => {
+                        setPasswordChangeSuccess("");
+                    }, 5000);
+                },
+                onError: (error) => {
+                    console.error("Password change failed:", error);
+                    setPasswordChangeError(error.message || "Password change failed. Please try again.");
+                    
+                    // Clear error message after 5 seconds
+                    setTimeout(() => {
+                        setPasswordChangeError("");
+                    }, 5000);
+                },
             });
-            setPasswordErrors({});
-            // Here you would typically make an API call
         }
     };
 
-    // Handle resend verification email
+    /**
+     * Handles the resend verification email.
+     * Sends a verification email to the user.
+     */
     const handleResendVerification = () => {
         setIsResendingVerification(true);
         // Mock API call
@@ -256,7 +328,11 @@ const Account = () => {
         }, 2000);
     };
 
-    // Handle session revocation
+    /**
+     * Handles the session revocation.
+     * Revokes the session with the given ID.
+     * @param sessionId - The ID of the session to revoke.
+     */
     const handleRevokeSession = (sessionId: string) => {
         setRevokingSession(sessionId);
         // Mock API call
@@ -266,7 +342,10 @@ const Account = () => {
         }, 1000);
     };
 
-    // Handle account deletion
+    /**
+     * Handles the account deletion.
+     * Deletes the account.
+     */
     const handleDeleteAccount = () => {
         setIsDeleting(true);
         // Mock API call
@@ -277,7 +356,11 @@ const Account = () => {
         }, 2000);
     };
 
-    // Format date helper
+    /**
+     * Formats the date.
+     * @param dateString - The date string to format.
+     * @returns The formatted date.
+     */
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -288,7 +371,11 @@ const Account = () => {
         });
     };
 
-    // Get device type from user agent
+    /**
+     * Gets the device type from the user agent.
+     * @param userAgent - The user agent to get the device type from.
+     * @returns The device type.
+     */
     const getDeviceType = (userAgent: string) => {
         if (userAgent.includes('iPhone') || userAgent.includes('Android')) {
             return 'Mobile';
@@ -298,6 +385,10 @@ const Account = () => {
             return 'Desktop';
         }
     };
+
+    if (isAuthLoading || isMerchantLoading || isChangingPassword) {
+        return <LoadingIndicator fullScreen={true} text="Loading account settings..." />;
+    }   
 
     return (
         <div className="w-full max-w-4xl mx-auto font-regular-eng p-6">
@@ -348,6 +439,20 @@ const Account = () => {
                         <Lock className="w-5 h-5" />
                         Change Password
                     </h2>
+                    
+                    {/* Success Message */}
+                    {passwordChangeSuccess && (
+                        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-green-700 text-sm">{passwordChangeSuccess}</p>
+                        </div>
+                    )}
+                    
+                    {/* Error Message */}
+                    {passwordChangeError && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-700 text-sm">{passwordChangeError}</p>
+                        </div>
+                    )}
                     
                     <div className="space-y-4">
                         {/* Current Password */}
@@ -436,10 +541,10 @@ const Account = () => {
 
                         <button
                             onClick={handlePasswordChange}
-                            disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                            disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword || isChangingPassword}
                             className="px-6 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Change Password
+                            {isChangingPassword ? "Changing Password..." : "Change Password"}
                         </button>
                     </div>
                 </div>

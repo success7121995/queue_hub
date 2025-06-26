@@ -1,4 +1,4 @@
-import { EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
+import { ChangePasswordSchema, EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
 import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole } from '@prisma/client';
@@ -268,6 +268,38 @@ export const authService = {
 
             return { user, userMerchant, avatar };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        return result;
+    },
+
+    /**
+     * Change password
+     * @param user_id - The user id
+     * @param data - The data
+     */
+    async changePassword(user_id: string, data: ChangePasswordSchema) {
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.findUnique({ where: { user_id } });
+
+            if (!user) {
+                throw new AppError("User not found", 404);
+            }
+
+            const isPasswordValid = await bcrypt.compare(data.old_password, user.password_hash ?? "");
+
+            if (!isPasswordValid) {
+                throw new AppError("Invalid password", 401);
+            }
+
+            const newPasswordHash = await bcrypt.hash(data.new_password, 10);
+
+            await tx.user.update({
+                where: { user_id },
+                data: { password_hash: newPasswordHash }
+            });
+
+            return { success: true };
+        });
 
         return result;
     }

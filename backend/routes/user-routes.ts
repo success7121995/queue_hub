@@ -25,7 +25,7 @@ router.put('/employee/:staff_id', requireAuth([UserRole.MERCHANT]), requireMerch
 router.delete('/employee/:user_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), (req, res) => userController.deleteEmployee(req, res));
 
 // User profile routes
-router.put('/change-password', requireAuth(), () => {});  // Change user password
+router.put('/change-password', requireAuth(), (req, res) => authController.changePassword(req, res));  // Change user password
 
 // User queue management (protected)
 router.get('/queues', requireAuth(), () => {});  // Get user's active queues
