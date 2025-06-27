@@ -171,7 +171,7 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
                             errors.staff_id ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("staff_id", { required: "Staff ID is required" })}
+                        {...register("staff_id")}
                         placeholder="Enter staff ID"
                     />
                     {errors.staff_id && <span className="text-red-500 text-xs">{errors.staff_id.message}</span>}

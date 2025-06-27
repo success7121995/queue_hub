@@ -24,16 +24,17 @@ export const merchantService = {
         const result = await prisma.$transaction(async (tx) => {
             const merchant = await tx.merchant.findUnique({
                 where: { merchant_id },
+                include: {
+                    Address: true,
+                    Logo: true,
+                },
             });
 
             if (!merchant) {
                 throw new AppError("Merchant not found", 404);
             }
-            const logo = await tx.logo.findUnique({
-                where: { merchant_id },
-            });
 
-            return { merchant, logo };
+            return { merchant };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         if (!result) {
@@ -90,6 +91,55 @@ export const merchantService = {
 
         if (!result) {
             throw new AppError("Failed to update merchant profile", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Update merchant address
+     * @param merchant_id - The merchant ID
+     * @param data - The address data to update
+     */
+    async updateMerchantAddress(merchant_id: string, data: Partial<AddressSchema>) {
+        const result = await prisma.$transaction(async (tx) => {
+            // First, find the address associated with this merchant
+            const existingAddress = await tx.address.findFirst({
+                where: { merchant_id },
+            });
+
+            let address;
+            if (existingAddress) {
+                // Update existing address
+                address = await tx.address.update({
+                    where: { address_id: existingAddress.address_id },
+                    data: {
+                        ...data,
+                        updated_at: new Date(),
+                    },
+                });
+            } else {
+                // Create new address
+                address = await tx.address.create({
+                    data: {
+                        address_id: uuidv4(),
+                        merchant_id,
+                        street: data.street!,
+                        city: data.city!,
+                        state: data.state!,
+                        country: data.country!,
+                        zip: data.zip!,
+                        unit: data.unit,
+                        floor: data.floor,
+                    },
+                });
+            }
+
+            return { address };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to update merchant address", 500);
         }
 
         return result;

@@ -1,13 +1,15 @@
 import { Server } from "socket.io";
-import { prisma } from "./prisma";
 import { merchantService } from "../services/merchant-service";
+import { messageService } from "../services/message-service";
 
 
 const registerSocketHandlers = (io: Server) => {
     io.on("connection", (socket) => {
         console.log("A user connected");
 
-        // Handle queue status changes
+        /**
+         * Handle queue status changes
+         */
         socket.on("openOrCloseQueue", async ({ queueId, status }) => {
             try {
                 // Update queue status in database
@@ -24,7 +26,9 @@ const registerSocketHandlers = (io: Server) => {
             }
         });
 
-        // Handle queue creation
+        /**
+         * Handle queue creation
+         */
         socket.on("createQueue", async ({ queueName, tags }) => {
             try {
                 // This would typically be handled by the HTTP endpoint
@@ -36,7 +40,9 @@ const registerSocketHandlers = (io: Server) => {
             }
         });
 
-        // Handle queue updates
+        /**
+         * Handle queue updates
+         */
         socket.on("updateQueue", async ({ queueId, queueName, tags }) => {
             try {
                 // This would typically be handled by the HTTP endpoint
@@ -48,7 +54,9 @@ const registerSocketHandlers = (io: Server) => {
             }
         });
 
-        // Handle queue deletion
+        /**
+         * Handle queue deletion
+         */
         socket.on("deleteQueue", async ({ queueId }) => {
             try {
                 // This would typically be handled by the HTTP endpoint
@@ -60,6 +68,43 @@ const registerSocketHandlers = (io: Server) => {
             }
         });
 
+        /**
+         * Handle message preview
+         */
+        socket.on("getMessagePreview", async ({ user_id }) => {
+            const response = await messageService.getMessagePreview(user_id);
+            socket.emit("messagePreview", response);
+        });
+
+        /**
+         * Handle message read
+         */
+        socket.on("markMessageAsRead", async ({ message_id }) => {
+            const response = await messageService.markMessageAsRead(message_id);
+            socket.emit("messageRead", response);
+            io.emit("messageRead", { message_id, is_read: true });
+        });
+
+        // /**
+        //  * Handle message send
+        //  */
+        // socket.on("sendMessage", async ({ message }) => {
+        //     const response = await messageService.sendMessage(message);
+        //     socket.emit("messageSent", response);
+        //     io.emit("messageSent", { message });
+        // });
+
+        // /**
+        //  * Handle message delete
+        //  */
+        // socket.on("deleteMessage", async ({ message_id }) => {
+        //     const response = await messageService.deleteMessage(message_id);
+        //     socket.emit("messageDeleted", response);
+        // });
+
+        /**
+         * Handle disconnect
+         */
         socket.on("disconnect", () => {
             console.log("A user disconnected");
         });

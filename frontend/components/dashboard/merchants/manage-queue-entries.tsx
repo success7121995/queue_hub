@@ -42,8 +42,6 @@ const stats = [
 	const switchBranchMutation = useSwitchBranch();
 	const { data: queuesData, isLoading: isLoadingQueue, refetch } = useQueues(currentUser?.user?.UserMerchant?.selected_branch_id);
 
-	console.log(queuesData);
-
 	const userRole = currentUser?.user?.UserMerchant?.role;
 
 	// Check if any mutations are pending
@@ -246,7 +244,7 @@ const stats = [
 
 	// Show loading indicator for initial data fetch or any pending mutations
 	if (isLoadingQueue || isAnyMutationPending) {
-		return <LoadingIndicator fullScreen={true} />;
+		return <LoadingIndicator fullScreen={true} text="Loading queues..." />;
 	}
 
 	// Check if user has a selected branch
@@ -411,17 +409,28 @@ const stats = [
 			</div>
 
 			<div className="bg-white p-4 rounded-lg shadow-sm">
-				{isLoadingQueue ? (
-					<div className="flex justify-center items-center py-8">
-						<LoadingIndicator />
-					</div>
-				) : (
+				{queuesData && queuesData.length > 0 ? (
 					<Table
 						columns={columns}
-						data={queuesData || []}
+						data={queuesData}
 						renderActions={renderActions}
-						loading={isLoadingQueue}
+						loading={false}
 					/>
+				) : (
+					<div className="flex flex-col items-center justify-center py-12">
+						<Users size={48} className="text-gray-400 mb-4" />
+						<h3 className="text-lg font-semibold text-gray-600 mb-2">No Queues Found</h3>
+						<p className="text-gray-500 text-center mb-6">
+							You haven't created any queues yet. Create your first queue to get started.
+						</p>
+						<button
+							onClick={() => setIsCreateModalOpen(true)}
+							className="flex items-center gap-2 px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-light/90 transition-colors"
+						>
+							<Plus size={20} />
+							Create Your First Queue
+						</button>
+					</div>
 				)}
 			</div>
 

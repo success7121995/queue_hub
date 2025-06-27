@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, AlertCircle, CheckCircle, Clock, Database, Globe, Server, Shield } from "lucide-react";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import ExportBtn from "@/components/common/export-btn";
-import { LineChart } from "@/components/ui/charts";
+import { LineChart } from "@/components/common/charts";
 
 interface SystemHealthData {
 	uptime: number;

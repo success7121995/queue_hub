@@ -280,6 +280,29 @@ export const fetchUpdateBranchAddress = async ({ branch_id, data }: { branch_id:
 };
 
 /**
+ * Fetch update merchant address
+ * @param merchant_id 
+ * @param data 
+ * @returns 
+ */
+export const fetchUpdateMerchantAddress = async ({ merchant_id, data }: { merchant_id: string; data: Partial<Address> }): Promise<{ success: boolean; result: { address: Address } }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/${merchant_id}/address`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to update merchant address');
+    }
+
+    return res.json();
+};
+
+/**
  * Fetch update branch features
  * @param branch_id 
  * @param data 
@@ -744,6 +767,18 @@ export const useUpdateBranch = (options?: Omit<UseMutationOptions<BranchResponse
 export const useUpdateBranchAddress = (options?: Omit<UseMutationOptions<BranchAddressResponse, Error, { branch_id: string; data: Partial<Address> }>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchUpdateBranchAddress,
+        ...options,
+    });
+};
+
+/**
+ * Use update merchant address
+ * @param options 
+ * @returns 
+ */
+export const useUpdateMerchantAddress = (options?: Omit<UseMutationOptions<{ success: boolean; result: { address: Address } }, Error, { merchant_id: string; data: Partial<Address> }>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchUpdateMerchantAddress,
         ...options,
     });
 };

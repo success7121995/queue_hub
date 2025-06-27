@@ -73,7 +73,7 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
             case "signup":
                 switch (currentStep) {
                     case 1: return <Signup onNext={handleNext} />;
-                    case 2: return <BranchInfo onNext={handleNext} onPrev={handlePrev} />;
+                    case 2: return <BranchInfo onNext={handleNext} onPrev={handlePrev} isSignupForm={true} />;
                     case 3: return (
                         <Address 
                             onNext={handleNext} 
@@ -81,6 +81,7 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                             showUseSameAddressCheckbox={true}
                             useSameAddress={useSameAddress}
                             onUseSameAddressChange={setUseSameAddress}
+                            isSignupForm={true}
                         />
                     );
                     case 4: {
@@ -99,7 +100,7 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                         );
                     }
                     case 5: return <Payment onNext={handleNext} onPrev={handlePrev} />;
-                case 6: return <Preview form="signup" onPrev={handlePrev} />;
+                    case 6: return <Preview form="signup" onPrev={handlePrev} isSignupForm={true} />;
                     default: return null;
                 }
             case "add-branch":

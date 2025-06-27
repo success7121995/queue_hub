@@ -6,6 +6,7 @@ interface DateTimeContextType {
 	formatDate: (date: Date | string | null | undefined) => string;
 	parseTime: (time: string | Date | null) => string | undefined;
 	formatToHHmm: (dateString: string | null | undefined) => string;
+	formatRelativeTime: (date: Date) => string;
 }
 
 export const dayOfWeekMap = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY', 'PUBLIC_HOLIDAY'] as const;
@@ -38,6 +39,11 @@ const DateTimeProvider = ({ children }: { children: React.ReactNode }) => {
         }).format(new Date(date));
     };
 
+    /**
+     * Parse the time
+     * @param time - The time to parse
+     * @returns The parsed time
+     */
     const parseTime = (time: string | Date | null): string | undefined => {
         if (!time) return undefined;
     
@@ -71,6 +77,11 @@ const DateTimeProvider = ({ children }: { children: React.ReactNode }) => {
         return baseDate.toISOString();
     };
 
+    /**
+     * Format the time to HH:mm
+     * @param dateString - The date string to format
+     * @returns The formatted time
+     */
     const formatToHHmm = (dateString: string | null | undefined): string => {
         if (!dateString) return '00:00';
         const date = new Date(dateString);
@@ -79,8 +90,26 @@ const DateTimeProvider = ({ children }: { children: React.ReactNode }) => {
         return `${hours}:${minutes}`;
     };
 
+    /**
+     * Format the time to "Just now", "1h ago", "2d ago" etc. It is used for notifications and messages.
+     * @param date - The date to format
+     * @returns The formatted time
+     */
+    const formatRelativeTime = (date: Date) => {
+        const now = new Date();
+        const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        const diffInDays = Math.floor(diffInHours / 24);
+        
+        if (diffInMinutes < 1) return 'Just now';
+        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+        if (diffInDays < 7) return `${diffInDays}d ago`;
+        return date.toLocaleDateString();
+    }
+
     return (
-        <DateTimeContext.Provider value={{ formatDate, parseTime, formatToHHmm }}>
+        <DateTimeContext.Provider value={{ formatDate, parseTime, formatToHHmm, formatRelativeTime }}>
             {children}
         </DateTimeContext.Provider>
     );

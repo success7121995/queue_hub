@@ -13,6 +13,8 @@ import {
 	SystemHealth,
 	Profile,
 	Account,
+	Billing,
+	Setting,
 } from "@/components";
 import { useAuth } from "@/hooks/auth-hooks";
 import { hasMerchantAccess } from "@/lib/utils";
@@ -82,6 +84,10 @@ const MerchantDashboard = ({ slug }: MerchantDashboardProps) => {
 				return <Profile />;
 			case "account":
 				return <Account />;
+			case "billing":
+				return <Billing />;
+			case "settings":
+				return <Setting />;
 			default:
 				return <div>No content found</div>;
 		}

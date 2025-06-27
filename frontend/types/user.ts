@@ -61,13 +61,6 @@ export interface UserAdmin {
   position: string;
 }
 
-export interface Message {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string | Date;
-}
-
 export interface UserProfile {
   username: string;
   lang?: Lang;
@@ -87,4 +80,21 @@ export interface UserSetting {
 export interface Avatar {
   image_id: string;
   image_url: string;
+}
+
+export interface Message {
+  message: {    
+    message_id: string;
+    sender_id: string;
+    receiver_id: string;
+    content: string;
+    created_at: string | Date;
+  },
+  user: {
+    user_id: string;
+    username: string;
+    Avatar?: {
+      image_url: string;
+    } | null;
+  }
 }

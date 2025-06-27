@@ -2,9 +2,11 @@ import { ReactNode } from "react";
 import DashboardNavbar from "@/components/dashboard/merchants/dashboard-navbar";
 import DashboardSidenav from "@/components/dashboard/merchants/dashboard-sidenav";
 import { prefetchBranches, prefetchMerchant, prefetchQueues } from "@/hooks/merchant-hooks";
+import { prefetchGetMessagePreview } from "@/hooks/user-hooks";
 import { getQueryClient } from "@/lib/query-client";
 import { fetchAuth } from "@/hooks/auth-hooks";
 import { queueKeys } from "@/hooks/merchant-hooks";
+import { Chatbox } from "@/components";
 
 interface MerchantLayoutProps {
 	children: ReactNode;
@@ -33,6 +35,9 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 			const queuesData = await prefetchQueues(queryClient, selectedBranchId);
 			queryClient.setQueryData(queueKeys.list(selectedBranchId), queuesData);
 		}
+
+		const messagePreviewData = await prefetchGetMessagePreview();
+		queryClient.setQueryData(['messagePreview'], messagePreviewData);
 	} catch (error) {
 		console.error('Error prefetching user data:', error); 
 	}
@@ -55,6 +60,11 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 				<main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-50">
 					{children}
 				</main>
+
+				{/* Chatbox */}
+				<div className="fixed bottom-2 right-2 z-50">
+					<Chatbox />
+				</div>
 			</div>
 		</div>
 	);

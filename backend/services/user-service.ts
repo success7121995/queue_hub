@@ -93,7 +93,7 @@ export const userService = {
                             image_id: true,
                             image_url: true,
                         }
-                    }
+                    },
                 },
             });
 

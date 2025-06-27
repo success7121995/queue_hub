@@ -8,7 +8,7 @@ import { uploadLogo, uploadFeatureImage, uploadGalleries } from '../lib/multer';
 const router = Router();
 
 // Create a new merchant
-router.post("/signup", (req, res) => {authController.register(req, res)});
+router.post("/signup", (req, res) => {authController.registerMerchant(req, res)});
 
 // Get all merchants
 router.get("/", () => {});
@@ -23,6 +23,7 @@ router.delete("/:id", () => {});
 router.get('/profile', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), () => {});  // Get merchant profile
 router.put('/profile', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), () => {});  // Update merchant profile
 router.put('/settings', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), () => {});  // Update merchant settings
+router.patch('/:merchant_id/address', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER]), merchantController.updateMerchantAddress);  // Update merchant address
 
 // User merchant management (merchant only)
 router.get('/user-merchants/:merchant_id', requireAuth([UserRole.MERCHANT]), requireMerchantRole(), merchantController.getUserMerchants);

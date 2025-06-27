@@ -337,7 +337,7 @@ const ViewLiveQueues = () => {
 					<div className="text-xl mb-2 text-primary-light font-bold">Active Queues</div>
 					{isLoadingQueue ? (
 						<div className="flex justify-center items-center py-8">
-							<LoadingIndicator />
+							<LoadingIndicator text="Loading queues..."/>
 						</div>
 					) : (
 						<Table

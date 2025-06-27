@@ -4,6 +4,7 @@ import { z } from "zod";
 export type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
 export type MerchantRole = "OWNER" | "MANAGER" | "FRONTLINE";
 export type AdminRole = "SUPER_ADMIN" | "OPS_ADMIN" | "DEVELOPER" | "SUPPORT_AGENT";
+
 export type CountryDialingCode =
   | '+1'    // US, Canada
   | '+44'   // United Kingdom

@@ -5,6 +5,8 @@ let statusChangeCallbacks: ((data: { queueId: string; status: "OPEN" | "CLOSED" 
 let queueCreatedCallbacks: ((data: { message: string }) => void)[] = [];
 let queueUpdatedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
 let queueDeletedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
+let newMessageCallbacks: ((data: any) => void)[] = [];
+let messageReadCallbacks: ((data: { message_id: string; is_read: boolean }) => void)[] = [];
 
 /**
  * Connect to the socket
@@ -67,6 +69,22 @@ export const connectSocket = () => {
      */
     socket.on("queueDeleted", (data) => {
         queueDeletedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle new messages
+     * @param data - The data containing the new message
+     */
+    socket.on("newMessage", (data) => {
+        newMessageCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle message read status updates
+     * @param data - The data containing the message ID and read status
+     */
+    socket.on("messageRead", (data) => {
+        messageReadCallbacks.forEach(callback => callback(data));
     });
 
     /**
@@ -146,6 +164,30 @@ export const onQueueDeleted = (callback: (data: { queueId: string; message: stri
 };
 
 /**
+ * Register a callback for new messages
+ * @param callback - The callback function to be called when a new message is received
+ * @returns A function to unregister the callback
+ */
+export const onNewMessage = (callback: (data: any) => void) => {
+    newMessageCallbacks.push(callback);
+    return () => {
+        newMessageCallbacks = newMessageCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for message read status updates
+ * @param callback - The callback function to be called when message read status changes
+ * @returns A function to unregister the callback
+ */
+export const onMessageRead = (callback: (data: { message_id: string; is_read: boolean }) => void) => {
+    messageReadCallbacks.push(callback);
+    return () => {
+        messageReadCallbacks = messageReadCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
  * Open or close a queue
  * @param queueId - The queue ID
  * @param status - The status to set
@@ -153,5 +195,15 @@ export const onQueueDeleted = (callback: (data: { queueId: string; message: stri
 export const openOrCloseQueue = (queueId: string, status: "OPEN" | "CLOSED") => {
     if (socket) {
         socket.emit("openOrCloseQueue", { queueId, status });
+    }
+};
+
+/**
+ * Mark a message as read via socket
+ * @param messageId - The message ID to mark as read
+ */
+export const socketMarkMessageAsRead = (messageId: string) => {
+    if (socket) {
+        socket.emit("markMessageAsRead", { message_id: messageId });
     }
 };

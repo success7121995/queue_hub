@@ -11,7 +11,8 @@ export interface Merchant {
   created_at: string;
   updated_at: string;
   user: User;
-  logo?: Logo;
+  Logo?: Logo;
+  Address?: Address;
 }
 
 export interface Address {

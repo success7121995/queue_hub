@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, Globe, Mail, UserCircle } from "lucide-react";
-import { Dropdown } from '@/components';
+import { Menu, X, ChevronDown, Globe, UserCircle } from "lucide-react";
+import { Dropdown, MsgDropdown, Notification } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
@@ -9,12 +9,10 @@ import LoadingIndicator from "@/components/common/loading-indicator";
 
 const AdminNavbar = () => {
 	const [profileOpen, setProfileOpen] = useState(false);
-	const [mailOpen, setMailOpen] = useState(false);
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const [profileAccordion, setProfileAccordion] = useState(false);
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const profileRef = useRef<HTMLDivElement>(null);
-	const mailRef = useRef<HTMLDivElement>(null);
 	const { mutate: logout } = useLogout();
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const { data: userData, isLoading: isUserDataLoading } = useAuth();
@@ -23,7 +21,6 @@ const AdminNavbar = () => {
 	const username = userData?.user.username;
 	const role = userData?.user.role;
 	const messageReceived = userData?.user.message_received;
-	const messageCount = messageReceived?.length;
 	const language = userData?.user.lang;
 
 	const languages = [
@@ -52,9 +49,6 @@ const AdminNavbar = () => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
 				setProfileOpen(false);
-			}
-			if (mailRef.current && !mailRef.current.contains(event.target as Node)) {
-				setMailOpen(false);
 			}
 		};
 		document.addEventListener("mousedown", handleClickOutside);
@@ -100,28 +94,13 @@ const AdminNavbar = () => {
 						onSelect={(item) => setSelectedLanguage(item)}
 					/>
 				</span>
-				<div ref={mailRef} className="relative">
-					<button 
-						className="flex items-center" 
-						onClick={() => setMailOpen((v) => !v)}
-					>
-						<Mail size={22} className="text-text-light" />
-						<ChevronDown size={16} className="text-text-light" />
-					</button>
-					{mailOpen && (
-						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
-							<ul className="py-1">
-								{isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									messageCount && messageCount > 0 ? messageReceived?.map((message: any) => (
-										<li key={message.id} className="cursor-pointer">
-											{message.title}
-										</li>
-									)) : "No new messages"
-								}
-							</ul>
-						</div>
-					)}
-				</div>
+				<MsgDropdown 
+					messages={messageReceived}
+					isLoading={isUserDataLoading}
+				/>
+				<Notification 
+					isLoading={isUserDataLoading}
+				/>
 				<div ref={profileRef}>
 					<button className="flex items-center space-x-2" onClick={() => setProfileOpen((v) => !v)}>
 						<div className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center">
@@ -164,13 +143,33 @@ const AdminNavbar = () => {
 			</div>
 
 			{/* Mobile hamburger and menu toggler */}
-			<button
-				className="lg:hidden ml-auto text-text-light cursor-pointer"
-				onClick={() => setMobileNavOpen((v) => !v)}
-				aria-label="Open menu"
-			>
-				{mobileNavOpen ? <X size={28} /> : <Menu size={28} />}
-			</button>
+			<div className="lg:hidden ml-auto flex items-center space-x-2 sm:space-x-3">
+				{/* Messages - Mobile */}
+				<div className="flex items-center">
+					<MsgDropdown 
+						messages={messageReceived}
+						isLoading={isUserDataLoading}
+						className="!relative"
+					/>
+				</div>
+				
+				{/* Notifications - Mobile */}
+				<div className="flex items-center">
+					<Notification 
+						isLoading={isUserDataLoading}
+						className="!relative"
+					/>
+				</div>
+				
+				{/* Hamburger Menu */}
+				<button
+					className="text-text-light cursor-pointer p-1"
+					onClick={() => setMobileNavOpen((v) => !v)}
+					aria-label="Open menu"
+				>
+					{mobileNavOpen ? <X size={24} className="sm:w-7 sm:h-7" /> : <Menu size={24} className="sm:w-7 sm:h-7" />}
+				</button>
+			</div>
 
 			{/* Mobile dropdown */}
 			{mobileNavOpen && (
@@ -183,10 +182,6 @@ const AdminNavbar = () => {
 							onSelect={(item) => setSelectedLanguage(item)}
 						/>
 					</span>
-					<div className="flex items-center mb-4">
-						<Mail size={22} />
-						<span className="ml-2">Mail</span>
-					</div>
 					{/* Profile accordion */}
 					<div className="flex flex-col mb-2">
 						<button

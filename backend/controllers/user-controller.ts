@@ -11,6 +11,7 @@ const updateEmployeeSchema = z.object({
     phone: z.string().min(1, "Phone number is required").optional(),
     position: z.string().min(1, "Position is required").optional(),
     role: z.nativeEnum(MerchantRole).optional(),
+    staff_id: z.string().min(1, "Staff ID is required").optional(),
 });
 
 export const userController = {
@@ -278,17 +279,6 @@ export const userController = {
             });
             res.status(200).json({ success: true, result });
             return result;
-        },
-        {
-            action: ActivityType.VIEW_QUEUE,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: (req, res, result) => ({
-                date_range: {
-                    start: req.query.start_date,
-                    end: req.query.end_date,
-                },
-                queue_count: result?.entries?.length ?? 0,
-            }),
         }
     ),
 }; 

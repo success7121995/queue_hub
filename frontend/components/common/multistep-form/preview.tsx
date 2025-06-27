@@ -15,6 +15,7 @@ import { useCreateUser } from "@/hooks/auth-hooks";
 interface PreviewProps {
     form?: "signup" | "add-branch" | "add-admin" | "add-employee";
     onPrev: () => void;
+    isSignupForm?: boolean;
 }
 
 const COOKIE_KEY = "signupForm";
@@ -44,14 +45,14 @@ interface CookieData {
     [key: string]: any;
 }
 
-const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
+const Preview: React.FC<PreviewProps> = ({ form, onPrev, isSignupForm = false }) => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [addressError, setAddressError] = useState<string | null>(null);
 
-    // Get merchant ID and staff members for add-branch form
-    const { data: currentUser } = useAuth();
+    // Get merchant ID and staff members for add-branch form - only when not in signup form
+    const { data: currentUser } = isSignupForm ? { data: null } : useAuth();
     const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
-    const { data: userMerchants } = useUserMerchants(merchantId || '');
+    const { data: userMerchants } = isSignupForm ? { data: null } : useUserMerchants(merchantId || '');
 
     // Use the createBranch hook for add-branch forms
     const createBranchMutation = useCreateBranch({
@@ -220,7 +221,12 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev }) => {
 
     // Helper to get contact person name
     function getContactPersonName(contactPersonId: string): string {
-        const staff = userMerchants?.user_merchants?.find((s: any) => s.staff_id === contactPersonId);
+        // In signup form context, userMerchants will be null, so just return the ID
+        if (isSignupForm || !userMerchants?.user_merchants) {
+            return contactPersonId;
+        }
+        
+        const staff = userMerchants.user_merchants.find((s: any) => s.staff_id === contactPersonId);
         if (staff) {
             return `${staff.User?.fname || ''} ${staff.User?.lname || ''}`.trim() || staff.staff_id;
         }

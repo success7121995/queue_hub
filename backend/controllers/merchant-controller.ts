@@ -162,6 +162,29 @@ export const merchantController = {
     ),
 
     /**
+     * Update merchant address
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateMerchantAddress: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { merchant_id } = req.params;
+            const updateData = req.body;
+            
+            const result = await merchantService.updateMerchantAddress(merchant_id, updateData);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_MERCHANT,
+            extractUserId: (req, res, result) => result?.merchant?.owner_id ?? null,
+            extractData: (req, res, result) => ({
+                merchant_id: req.params.merchant_id,
+                updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
      * Get user merchants
      * @param req - The request object
      * @param res - The response object

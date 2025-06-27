@@ -234,12 +234,11 @@ model Message {
   message_id                     String   @id
   sender_id                      String
   receiver_id                    String
-  subject_id                     String
   content                        String
-  created_at                     DateTime @default(now())
+  is_read                        Boolean  @default(false)
+  created_at                     DateTime  @default(now())
   User_Message_receiver_idToUser User     @relation("Message_receiver_idToUser", fields: [receiver_id], references: [user_id], onDelete: Cascade)
   User_Message_sender_idToUser   User     @relation("Message_sender_idToUser", fields: [sender_id], references: [user_id], onDelete: Cascade)
-  Queue                          Queue    @relation(fields: [subject_id], references: [queue_id], onDelete: Cascade)
 }
 
 model News {
@@ -250,6 +249,18 @@ model News {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
   Merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
+}
+
+model Notification {
+  notification_id String @id
+  user_id String
+  title String
+  content String
+  is_read Boolean @default(false)
+  read_at DateTime?
+  redirect_url String?
+  created_at DateTime @default(now())
+  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model OAuthAccount {
@@ -286,6 +297,17 @@ model PaymentMethod {
   AcceptPayment       AcceptPayment[]
 }
 
+model Preference {
+  preference_id String @id
+  user_id String @unique
+  allow_email_notification Boolean  @default(true)
+  allow_inbox_notification Boolean  @default(true)
+  preference_type PreferenceType
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
 model Queue {
   queue_id     String           @id
   branch_id    String?
@@ -293,7 +315,6 @@ model Queue {
   queue_status QueueStatus @default(CLOSED)
   created_at   DateTime         @default(now())
   updated_at   DateTime
-  Message      Message[]
   Branch       Branch?          @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
   QueueEntry   QueueEntry[]
 }
@@ -310,17 +331,6 @@ model QueueEntry {
   completed_at DateTime?
   Queue        Queue            @relation(fields: [queue_id], references: [queue_id], onDelete: Cascade)
   User         User             @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-}
-
-model QueueReminderOption {
-  option_key                 String                       @id
-  label                      String
-  description                String?
-  is_active                  Boolean                      @default(true)
-  sort_order                 Int                          @default(0)
-  UserQueueReminderReference UserQueueReminderReference[]
-  created_at                 DateTime                     @default(now())
-  updated_at                 DateTime                     @updatedAt
 }
 
 model Review {
@@ -389,15 +399,16 @@ model User {
   Merchant                          Merchant?
   Message_Message_receiver_idToUser Message[]                    @relation("Message_receiver_idToUser")
   Message_Message_sender_idToUser   Message[]                    @relation("Message_sender_idToUser")
+  Notification                      Notification[]
   OAuthAccount                      OAuthAccount[]
   PasswordReset                     PasswordReset[]
   QueueEntry                        QueueEntry[]
   Review                            Review[]
   UserDevice                        UserDevice[]
   UserMerchant                      UserMerchant?
-  UserQueueReminderReference        UserQueueReminderReference?
   UserAdmin                         UserAdmin?
   Avatar                            Avatar?
+  Preference                        Preference?
 }
 
 model UserAdmin {
@@ -454,17 +465,6 @@ model UserMerchantOnBranch {
   @@id([staff_id, branch_id])
 }
 
-model UserQueueReminderReference {
-  preference_id       String              @id
-  user_id             String @unique
-  option_key          String
-  enabled             Boolean             @default(true)
-  created_at          DateTime            @default(now())
-  updated_at          DateTime
-  QueueReminderOption QueueReminderOption @relation(fields: [option_key], references: [option_key], onDelete: Cascade)
-  User                User?                @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-}
-
 enum ActivityType {
   CREATE_USER
   UPDATE_USER
@@ -492,8 +492,6 @@ enum ActivityType {
   DELETE_BRANCH
   APPROVE_MERCHANT
   REJECT_MERCHANT
-  VIEW_QUEUE
-  VIEW_ALL_QUEUES
   CREATE_QUEUE
   UPDATE_QUEUE
   DELETE_QUEUE
@@ -637,6 +635,12 @@ enum MetricType {
   POSTIVE_RATIO
   FEEDBACK_RESPONSE_RATE
   TOTAL_ACCOUNT_DELETIN
+}
+
+enum PreferenceType {
+  QUEUE_ENTRY
+  MESSAGE
+  FEEDBACK
 }
 
 enum Provider {

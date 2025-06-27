@@ -7,6 +7,7 @@ import { useState } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { useLogin, LoginFormInputs } from "@/hooks/auth-hooks";
 import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
+import { Eye, EyeOff } from "lucide-react";
 import Cookies from 'js-cookie';
 
 const Login = () => {
@@ -15,6 +16,12 @@ const Login = () => {
     const [error, setError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const loginMutation = useLogin();
+    const [showPassword, setShowPassword] = useState(false);
+
+    /**
+     * Toggle password visibility
+     */
+    const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
     const {
         register,
@@ -132,13 +139,13 @@ const Login = () => {
                             )}
                         </div>
 
-                        <div>
+                        <div className="relative">
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                                 Password
                             </label>
                             <input
                                 id="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 disabled={isLoading}
                                 {...register("password", { 
                                     required: "Password is required",
@@ -147,11 +154,19 @@ const Login = () => {
                                         message: "Password must be at least 8 characters"
                                     }
                                 })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed pr-10"
+                                placeholder="Enter your password"
                             />
                             {errors.password && (
                                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                             )}
+                            <button
+                                type="button"
+                                onClick={togglePasswordVisibility}
+                                className="absolute right-3 top-[68%] -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
                         </div>
 
                         {/* Privacy Policy and Terms of Service */}

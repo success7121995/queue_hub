@@ -16,6 +16,7 @@ export interface AddressProps {
     onUseSameAddressChange?: (checked: boolean) => void;
     isBranchAddress?: boolean;
     formType?: "signup" | "add-branch";
+    isSignupForm?: boolean;
 }
 
 interface CookieData {
@@ -50,7 +51,8 @@ const Address: React.FC<AddressProps> = ({
     useSameAddress = true,
     onUseSameAddressChange,
     isBranchAddress = false,
-    formType = "signup"
+    formType = "signup",
+    isSignupForm = false
 }) => {
     const { formMethods } = useForm();
     const {

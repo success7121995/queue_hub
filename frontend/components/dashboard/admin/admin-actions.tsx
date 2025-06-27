@@ -7,7 +7,7 @@ import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import ExportBtn from "@/components/common/export-btn";
 import { useDateTime } from "@/constant/datetime-provider";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/common/badge";
 import { User, Settings, Shield, AlertCircle, CheckCircle } from "lucide-react";
 
 interface AdminAction {

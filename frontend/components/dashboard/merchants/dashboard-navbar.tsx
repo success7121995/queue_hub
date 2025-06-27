@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, Mail, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
-import { Dropdown } from '@/components';
+import { Menu, X, ChevronDown, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
+import { Dropdown, MsgDropdown, Notification } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
@@ -14,17 +14,16 @@ import LoadingIndicator from "@/components/common/loading-indicator";
 import { Branch } from "@/types/merchant";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
+import { hasMerchantAccess, MerchantRole } from "@/lib/utils";
 
 const DashboardNavbar = () => {
 	const pathname = usePathname();
 	const [profileOpen, setProfileOpen] = useState(false);
-	const [mailOpen, setMailOpen] = useState(false);
 	const [branchOpen, setBranchOpen] = useState(false);
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const [profileAccordion, setProfileAccordion] = useState(false);
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const profileRef = useRef<HTMLDivElement>(null);
-	const mailRef = useRef<HTMLDivElement>(null);
 	const branchRef = useRef<HTMLDivElement>(null);
 	const updateUserProfile = useUpdateUserProfile();
 	const queryClient = useQueryClient();
@@ -46,7 +45,6 @@ const DashboardNavbar = () => {
 	const lastName = userData?.user?.lname || '';
 	const position = userData?.user?.UserMerchant?.position || userData?.user?.role || '';
 	const merchantName = merchantData?.merchant?.business_name || 'Business';
-	const messageReceived = userData?.user?.message_received || [];
 
 	// Branch selection - use selected_branch_id from UserMerchant
 	const [selectedBranch, setSelectedBranch] = useState(userData?.user?.UserMerchant?.selected_branch_id || branchesData?.branches[0]?.branch_id || "");
@@ -59,7 +57,7 @@ const DashboardNavbar = () => {
 	const selectedBranchName = selectedBranchObj?.branch_name || '';
 	const avatar = userData?.user?.Avatar?.image_url || '';
 	const avatarUrl = avatar ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${avatar}` : '';
-	const logo = merchantData?.logo?.logo_url || '';
+	const logo = merchantData?.merchant?.Logo?.logo_url || '';
 	const logoUrl = logo ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${logo}` : '';
 
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -68,7 +66,6 @@ const DashboardNavbar = () => {
 	// Close all dropdowns when pathname changes
 	useEffect(() => {
 		setProfileOpen(false);
-		setMailOpen(false);
 		setBranchOpen(false);
 		setMobileNavOpen(false);
 		setProfileAccordion(false);
@@ -117,9 +114,6 @@ const DashboardNavbar = () => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
 				setProfileOpen(false);
-			}
-			if (mailRef.current && !mailRef.current.contains(event.target as Node)) {
-				setMailOpen(false);
 			}
 			if (branchRef.current && !branchRef.current.contains(event.target as Node)) {
 				setBranchOpen(false);
@@ -295,31 +289,13 @@ const DashboardNavbar = () => {
 					/>
 				</span>
 
-				{/* Mail */}
-				<div ref={mailRef} className="relative">
-					<button 
-						className="flex items-center" 
-						onClick={() => setMailOpen((v) => !v)}
-					>
-						<Mail size={22} className="text-text-light" />
-						<ChevronDown size={16} className="text-text-light" />
-				</button>
-					{mailOpen && (
+				{/* Messages */}
+				<MsgDropdown />
 
-						
-						<div className="absolute right-0 top-10 bg-white border rounded shadow px-4 py-2 z-10 min-w-[120px]">
-							<ul className="py-1">
-								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
-									messageReceived && messageReceived.length > 0 ? messageReceived.map((message: any) => (
-										<li key={message.id} className="cursor-pointer">
-											{message.title}
-										</li>
-									)) : "No new messages"
-								}
-							</ul>
-						</div>
-					)}
-				</div>
+				{/* Notifications */}
+				<Notification 
+					isLoading={isUserDataLoading}
+				/>
 
 				{/* Profile */}
 				<div ref={profileRef}>
@@ -369,13 +345,19 @@ const DashboardNavbar = () => {
 									<Settings size={16} className="text-gray-500" />
 									Account
 								</Link>
-								<Link 
-									href="/merchant/billing" 
-									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
-								>
-									<CreditCard size={16} className="text-gray-500" />
-									Billing
-								</Link>
+
+								{
+									hasMerchantAccess(userData?.user?.UserMerchant?.role as MerchantRole, "billing") && (				
+										<Link 
+											href="/merchant/billing" 
+											className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
+										>
+											<CreditCard size={16} className="text-gray-500" />
+											Billing
+										</Link>
+									)
+								}
+								
 								<Link 
 									href="/merchant/settings" 
 									className="flex items-center gap-3 w-full text-left py-2.5 px-3 hover:bg-gray-50 rounded-md duration-200 text-sm font-medium text-gray-700 hover:text-primary-600"
@@ -407,13 +389,29 @@ const DashboardNavbar = () => {
 			</div>
 
 			{/* Mobile hamburger and menu toggler always on the far right */}
-			<button
-				className="lg:hidden ml-auto text-text-light cursor-pointer"
-				onClick={() => setMobileNavOpen((v) => !v)}
-				aria-label="Open menu"
-			>
-				{mobileNavOpen ? <X size={28} /> : <Menu size={28} />}
-			</button>
+			<div className="lg:hidden ml-auto flex items-center space-x-2 sm:space-x-3">
+				{/* Messages - Mobile */}
+				<div className="flex items-center">
+					<MsgDropdown className="!relative" />
+				</div>
+				
+				{/* Notifications - Mobile */}
+				<div className="flex items-center">
+					<Notification 
+						isLoading={isUserDataLoading}
+						className="!relative"
+					/>
+				</div>
+				
+				{/* Hamburger Menu */}
+				<button
+					className="text-text-light cursor-pointer p-1"
+					onClick={() => setMobileNavOpen((v) => !v)}
+					aria-label="Open menu"
+				>
+					{mobileNavOpen ? <X size={24} className="sm:w-7 sm:h-7" /> : <Menu size={24} className="sm:w-7 sm:h-7" />}
+				</button>
+			</div>
 
 			{/* Mobile dropdown */}
 			{mobileNavOpen && (
@@ -446,10 +444,6 @@ const DashboardNavbar = () => {
 							onSelect={(item) => setLang(item.value as Lang)}
 						/>
 					</span>
-					<div className="flex items-center mb-4">
-						<Mail size={22} />
-						<span className="ml-2">Mail</span>
-					</div>
 					{/* Profile accordion */}
 					<div className="flex flex-col mb-2">
 						<button

@@ -2,11 +2,14 @@
 
 import React, { useState, useCallback, useEffect } from "react"
 import { useAuth, useChangePassword } from "@/hooks/auth-hooks";
-import { useUploadLogo, useDeleteLogo, useMerchant } from "@/hooks/merchant-hooks";
+import { useUploadLogo, useDeleteLogo, useMerchant, useUpdateMerchantAddress } from "@/hooks/merchant-hooks";
+import { useUploadAvatar, useDeleteAvatar } from "@/hooks/user-hooks";
 import { ConfirmationModal } from "@/components/common/confirmation-modal";
 import { ImageUploader, ImagePreviewModal, LoadingIndicator } from "@/components";
-import { Shield, Lock, Mail, Monitor, Trash2, Eye, EyeOff, CheckCircle, XCircle, AlertTriangle, Image } from "lucide-react";
+import { Shield, Lock, Mail, Monitor, Trash2, Eye, EyeOff, CheckCircle, XCircle, AlertTriangle, Image, MapPin, Save, User } from "lucide-react";
 import type { PreviewImage } from "@/components/common/image-uploader";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Address } from "@/types/form";
 
 // Mock session data structure
 interface Session {
@@ -84,7 +87,8 @@ const Account = () => {
 
     // Get merchant data for logo
     const { data: merchantData, isLoading: isMerchantLoading } = useMerchant(user.UserMerchant?.merchant_id as string);
-    const logo = merchantData?.logo;
+    const logo = merchantData?.merchant?.Logo;
+    const address = merchantData?.merchant?.Address;
 
     // Logo upload state
     const [optimisticLogoUrl, setOptimisticLogoUrl] = useState<string | undefined>();
@@ -98,6 +102,8 @@ const Account = () => {
     const uploadLogoMutation = useUploadLogo();
     const deleteLogoMutation = useDeleteLogo();
     const changePasswordMutation = useChangePassword();
+    const updateMerchantAddressMutation = useUpdateMerchantAddress();
+    const queryClient = useQueryClient();
 
     const { mutate: changePassword, isPending: isChangingPassword } = changePasswordMutation;
 
@@ -127,6 +133,24 @@ const Account = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Merchant address state
+    const [isEditingAddress, setIsEditingAddress] = useState(false);
+    const [addressData, setAddressData] = useState<Partial<Address>>({
+        street: "",
+        city: "",
+        state: "",
+        country: "",
+        zip: "",
+        unit: "",
+        floor: ""
+    });
+    const [addressError, setAddressError] = useState<string>("");
+    const [addressSuccess, setAddressSuccess] = useState<string>("");
+
+    // Avatar upload state
+    const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>();
+    const [avatarId, setAvatarId] = useState<string | undefined>();
+
     // Sync logo state with merchant data
     useEffect(() => {
         if (logo && logo.logo_url && logo.logo_id) {
@@ -137,6 +161,23 @@ const Account = () => {
             setLogoId(undefined);
         }
     }, [logo]);
+
+    // Initialize address data from merchant
+    useEffect(() => {
+        const merchant = merchantData?.merchant;
+        if (merchant && (merchant as any)?.Address) {
+            const address = (merchant as any).Address;
+            setAddressData({
+                street: address.street || "",
+                city: address.city || "",
+                state: address.state || "",
+                country: address.country || "",
+                zip: address.zip || "",
+                unit: address.unit || "",
+                floor: address.floor || ""
+            });
+        }
+    }, [merchantData?.merchant]);
 
     /**
      * Builds the image URL from the given URL.
@@ -191,8 +232,8 @@ const Account = () => {
             const uploadNew = () => {
                 uploadLogoMutation.mutate(image.file, {
                     onSuccess: async (res) => {
-                        // Refetch merchant data to get new logo info
-                        await refetch();
+                        // Update query cache for instant navbar update
+                        queryClient.invalidateQueries({ queryKey: ['merchant'] });
                         resolve();
                     },
                     onError: async (err) => {
@@ -228,8 +269,8 @@ const Account = () => {
         if (logoId) {
             deleteLogoMutation.mutate(logoId, {
                 onSuccess: async () => {
-                    // Refetch merchant data to clear logo info
-                    await refetch();
+                    // Update query cache for instant navbar update
+                    queryClient.invalidateQueries({ queryKey: ['merchant'] });
                 },
                 onError: () => {
                     setOptimisticLogoUrl(undefined);
@@ -237,6 +278,44 @@ const Account = () => {
                 }
             });
         }
+    };
+
+    /**
+     * Handles the address update.
+     * Updates the merchant address and shows success/error messages.
+     */
+    const handleAddressUpdate = () => {
+        // Clear previous messages
+        setAddressError("");
+        setAddressSuccess("");
+        
+        if (!user.UserMerchant?.merchant_id) {
+            setAddressError("Merchant ID not found");
+            return;
+        }
+
+        updateMerchantAddressMutation.mutate({
+            merchant_id: user.UserMerchant.merchant_id,
+            data: addressData
+        }, {
+            onSuccess: () => {
+                setAddressSuccess("Address updated successfully!");
+                setIsEditingAddress(false);
+                
+                // Clear success message after 5 seconds
+                setTimeout(() => {
+                    setAddressSuccess("");
+                }, 5000);
+            },
+            onError: (error) => {
+                setAddressError(error.message || "Failed to update address. Please try again.");
+                
+                // Clear error message after 5 seconds
+                setTimeout(() => {
+                    setAddressError("");
+                }, 5000);
+            },
+        });
     };
 
     /**
@@ -430,6 +509,168 @@ const Account = () => {
                                 Upload your company logo. Supports SVG, JPEG, PNG formats.
                             </p>
                         </div>
+                    </div>
+                )}
+
+                {/* Merchant Address Section - Only for OWNER */}
+                {isOwner && (
+                    <div className="bg-white rounded-2xl shadow-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold text-primary-light flex items-center gap-2">
+                                <MapPin className="w-5 h-5" />
+                                Company Address
+                            </h2>
+                            {!isEditingAddress && (
+                                <button
+                                    onClick={() => setIsEditingAddress(true)}
+                                    className="px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors"
+                                >
+                                    Edit Address
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* Success Message */}
+                        {addressSuccess && (
+                            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-green-700 text-sm">{addressSuccess}</p>
+                            </div>
+                        )}
+                        
+                        {/* Error Message */}
+                        {addressError && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-red-700 text-sm">{addressError}</p>
+                            </div>
+                        )}
+                        
+                        {isEditingAddress ? (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            Street Address *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.street}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, street: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter street address"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            City *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.city}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, city: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter city"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            State/Province *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.state}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, state: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter state/province"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            ZIP/Postal Code *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.zip}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, zip: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter ZIP/postal code"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            Country *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.country}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, country: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter country"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            Unit/Apartment
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.unit || ""}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, unit: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter unit/apartment"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block font-semibold text-primary-light mb-2">
+                                            Floor
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addressData.floor || ""}
+                                            onChange={(e) => setAddressData(prev => ({ ...prev, floor: e.target.value }))}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent"
+                                            placeholder="Enter floor"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleAddressUpdate}
+                                        disabled={updateMerchantAddressMutation.isPending}
+                                        className="px-6 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {updateMerchantAddressMutation.isPending ? (
+                                            <LoadingIndicator size="sm" className="!mt-0" />
+                                        ) : (
+                                            <Save className="w-4 h-4" />
+                                        )}
+                                        {updateMerchantAddressMutation.isPending ? "Saving..." : "Save Address"}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditingAddress(false)}
+                                        className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {merchantData?.merchant && (merchantData.merchant as any)?.Address ? (
+                                    <div className="text-gray-700">
+                                        <p className="font-medium">
+                                            {addressData.street}
+                                            {addressData.unit && `, ${addressData.unit}`}
+                                            {addressData.floor && `, Floor ${addressData.floor}`}
+                                        </p>
+                                        <p>{addressData.city}, {addressData.state} {addressData.zip}</p>
+                                        <p>{addressData.country}</p>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 italic">No address set</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 

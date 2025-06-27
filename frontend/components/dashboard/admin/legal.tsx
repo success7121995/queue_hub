@@ -8,7 +8,7 @@ import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import ExportBtn from "@/components/common/export-btn";
 import { useDateTime } from "@/constant/datetime-provider";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/common/badge";
 import { FileText, Edit2, Trash2, Eye, CheckCircle, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 

@@ -15,6 +15,7 @@ interface BranchInfoProps {
     onNext?: () => void;
     onPrev?: () => void;
     formType?: "signup" | "add-branch";
+    isSignupForm?: boolean;
 }
 
 interface CookieData {
@@ -25,7 +26,7 @@ interface CookieData {
     [key: string]: any;
 }
 
-const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "signup" }) => {
+const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "signup", isSignupForm = false }) => {
     const { formMethods } = useForm();
     const {
         register,
@@ -36,10 +37,10 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
         formState: { errors },
     } = (formMethods as unknown) as UseFormReturn<AddBranchFormFields["branchInfo"] | SignupFormFields["branchInfo"]>;
 
-    // Get merchant ID for fetching staff members
-    const { data: currentUser } = useAuth();
+    // Get merchant ID for fetching staff members - only when not in signup form
+    const { data: currentUser } = isSignupForm ? { data: null } : useAuth();
     const merchantId = currentUser?.user?.UserMerchant?.merchant_id;
-    const { data: userMerchants } = useUserMerchants(merchantId || '');
+    const { data: userMerchants } = isSignupForm ? { data: null } : useUserMerchants(merchantId || '');
 
     const { dialingCode, setDialingCode } = useDialingCode();
     const [localPhone, setLocalPhone] = useState("");
@@ -116,11 +117,11 @@ const BranchInfo: React.FC<BranchInfoProps> = ({ onNext, onPrev, formType = "sig
         if (onNext) onNext();
     };
 
-    // Get staff options for contact person selection
-    const staffOptions = userMerchants?.user_merchants?.map((staff: any) => ({
+    // Get staff options for contact person selection - only when not in signup form
+    const staffOptions = isSignupForm ? [] : (userMerchants?.user_merchants?.map((staff: any) => ({
         value: staff.staff_id,
         label: `${staff.User?.fname || ''} ${staff.User?.lname || ''}`.trim() || staff.staff_id
-    })) || [];
+    })) || []);
 
     return (
         <form

@@ -1,4 +1,4 @@
-import { ChangePasswordSchema, EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
+import { ChangePasswordSchema, CustomerSchema, EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
 import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole } from '@prisma/client';
@@ -302,5 +302,32 @@ export const authService = {
         });
 
         return result;
-    }
+    },
+
+    /**
+     * Register a customer
+     * @param data - The data
+     */
+    async registerCustomer(data: CustomerSchema) {
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    user_id: uuidv4(),
+                    username: data.username,
+                    fname: data.fname,
+                    lname: data.lname,
+                    email: data.email,
+                    phone: data.phone,
+                    role: UserRole.CUSTOMER,
+                    status: UserStatus.ACTIVE,
+                    lang: Lang.EN,
+                    updated_at: new Date()
+                }
+            });
+
+            return { user };        
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        return result;
+    }   
 }; 

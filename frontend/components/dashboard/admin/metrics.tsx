@@ -4,7 +4,7 @@ import { useState } from "react";
 // TODO: Enable when backend is ready
 // import { useQuery } from "@tanstack/react-query";
 import LoadingIndicator from "@/components/common/loading-indicator";
-import { LineChart, BarChart, PieChart } from "@/components/ui/charts";
+import { LineChart, BarChart, PieChart } from "@/components/common/charts";
 import { Users, Clock, Activity, AlertCircle } from "lucide-react";
 import NumberCard from "@/components/common/number-card";
 import ExportBtn from "@/components/common/export-btn";

@@ -1,6 +1,6 @@
 import { UserProfile } from "@/types/user";
 import { useMutation, useQuery, type UseMutationOptions, type UseQueryOptions } from "@tanstack/react-query";
-import { EmployeesResponse } from "@/types/response";
+import { EmployeesResponse, MessagePreviewResponse } from "@/types/response";
 import { EditEmployeeFormFields } from "@/types/form";
 
 /**
@@ -10,6 +10,7 @@ export const userKeys = {
     all: ['user'] as const,
     employees: () => [...userKeys.all, 'employees'] as const,
     avatar: () => [...userKeys.all, 'avatar'] as const,
+    messages: () => [...userKeys.all, 'messages'] as const,
 } as const;
 
 /**
@@ -164,6 +165,56 @@ export const fetchDeleteAvatar = async (): Promise<{ success: boolean }> => {
     return responseData;
 }
 
+/**
+ * Fetch get message preview
+ * @returns 
+ */
+export const fetchGetMessagePreview = async (limit: number = 5): Promise<MessagePreviewResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/preview?limit=${limit}`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get message preview');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch mark message as read
+ * @param message_id 
+ * @returns 
+ */
+export const fetchMarkMessageAsRead = async (message_id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/${message_id}/read`, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        method: 'PUT',
+        body: JSON.stringify({ message_id }),
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to mark message as read');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -244,9 +295,61 @@ export const useUploadAvatar = (options?: Omit<UseMutationOptions<{ success: boo
     });
 }
 
+/**
+ * Use delete avatar
+ * @param options 
+ * @returns 
+ */
 export const useDeleteAvatar = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, string>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchDeleteAvatar,
         ...options,
+    });
+}
+
+/**
+ * Use get message preview
+ * @param options 
+ * @returns 
+ */
+export const useGetMessagePreview = (limit: number = 10, options?: Omit<UseQueryOptions<MessagePreviewResponse, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: userKeys.messages(),  
+        queryFn: () => fetchGetMessagePreview(limit),
+        ...options,
+    });
+}
+
+/**
+ * Use mark message as read 
+ * @param options 
+ * @returns 
+ */
+export const useMarkMessageAsRead = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, string>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchMarkMessageAsRead,
+        ...options,
+    });
+}
+
+
+
+
+
+
+
+
+
+
+/***************** Prefetch *****************/
+
+/**
+ * Prefetch get message preview
+ * @returns 
+ */
+export const prefetchGetMessagePreview = async (limit: number = 5) => {
+    return useQuery({
+        queryKey: userKeys.messages(),
+        queryFn: () => fetchGetMessagePreview(limit),
     });
 }

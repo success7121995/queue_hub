@@ -8,6 +8,7 @@ import { uploadAvatar } from "../lib/multer";
 const router = Router();
 
 // Auth routes
+
 router.post('/login', (req, res) => authController.login(req, res));
 router.post('/logout', (req, res) => authController.logout(req, res));
 router.get('/me', (req, res) => userController.me(req, res));
@@ -29,8 +30,9 @@ router.put('/change-password', requireAuth(), (req, res) => authController.chang
 
 // User queue management (protected)
 router.get('/queues', requireAuth(), () => {});  // Get user's active queues
-router.post('/queues/:queueId/join', requireAuth(), () => {});  // Join a queue
-router.delete('/queues/:queueId/leave', requireAuth(), () => {});  // Leave a queue
-router.get('/queues/:queueId/status', requireAuth(), () => {});  // Get queue status
+router.post('/queues/:queue_id/join', requireAuth(), () => {});  // Join a queue
+router.delete('/queues/:queue_id/leave', requireAuth(), () => {});  // Leave a queue
+router.get('/queues/:queue_id/status', requireAuth(), () => {});  // Get queue status
+
 
 export default router;

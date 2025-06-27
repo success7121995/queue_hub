@@ -1,7 +1,7 @@
 "use client";
 
 import Table, { type Column } from "@/components/common/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/common/card";
 import { Activity } from "lucide-react";
 import ExportBtn from "@/components/common/export-btn";
 

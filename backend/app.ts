@@ -81,10 +81,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     if (!req.session.user) {
       req.session.user = {
-        user_id: "665831f7-4655-4844-bdc4-319f2d9f038e",
+        user_id: "b95b8cd8-63c5-4d60-821a-6fc371013b36",
         role: "MERCHANT",
         email: "joechan@gmail.com",
-        merchant_id: "2d5d13cb-35ba-42c3-aca5-188851be9da9",
+        merchant_id: "860b3626-17c2-42b8-aa26-6afc2d7f4077",
         merchantRole: "OWNER"
       };
     }

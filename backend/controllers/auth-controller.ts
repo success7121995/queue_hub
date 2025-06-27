@@ -66,7 +66,7 @@ const employeeSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm_password: z.string().min(8, "Password must be at least 8 characters"),
-    staff_id: z.string().min(1, "Staff ID is required"),
+    staff_id: z.string().min(1, "Staff ID is required").optional(),
     email: z.string().email("Invalid email address"),
     phone: z.string().min(1, "Phone number is required"),
     role: z.enum(["FRONTLINE", "MANAGER", "OWNER"]),
@@ -83,6 +83,16 @@ const changePasswordSchema = z.object({
 });
 
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
+
+const customerSchema = z.object({
+    fname: z.string().min(1, "First name is required"),
+    lname: z.string().min(1, "Last name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(1, "Phone number is required")
+});
+
+export type CustomerSchema = z.infer<typeof customerSchema>;
 
 export const authController = {
 
@@ -190,7 +200,7 @@ export const authController = {
      * @param req - The request object
      * @param res - The response object
      */
-    register: withActivityLog(
+    registerMerchant: withActivityLog(
         async (req: Request<{}, {}, MerchantSchema>, res: Response) => {
             // Validate request body against schema
             const validatedData = merchantSchema.parse(req.body);
@@ -285,6 +295,31 @@ export const authController = {
             extractUserId: (req) => req.session.user?.user_id ?? null,
             extractData: (req, res, result) => ({
                 user_id: req.session.user?.user_id,
+            }),
+        }
+    ),
+
+    /**
+     * Register a customer
+     * @param req - The request object
+     * @param res - The response object
+     */
+    registerCustomer: withActivityLog(
+        async (req: Request, res: Response) => {
+            const validatedData = customerSchema.parse(req.body);
+
+            const result = await authService.registerCustomer(validatedData);
+
+            res.status(201).json({
+                success: true,
+                result
+            }); 
+        },
+        {
+            action: ActivityType.CREATE_USER,
+            extractUserId: (req, res, result) => result?.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                email: req.body.email,
             }),
         }
     )
