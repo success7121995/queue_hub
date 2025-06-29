@@ -1,30 +1,19 @@
-import express from "express";
-import dotenv from "dotenv";
-import router from "./routes";
-import cors from "cors";
-import session from "express-session";
-import { createServer } from "http";
-import { loggingMiddleware } from "./middleware/logging-middleware";
-import { Server } from "socket.io";
-import registerSocketHandlers from "./lib/socket";
-import path from "path";
-// Extend the Session type
-declare module 'express-session' {
-    interface SessionData {
-        user: {
-            user_id: string;
-            email: string;
-            role: string;
-            merchant_id?: string;
-            merchantRole?: string;
-            adminRole?: string;
-            admin_id?: string;
-        }
-    }
-}
-
-dotenv.config();
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const dotenv_1 = __importDefault(require("dotenv"));
+const routes_1 = __importDefault(require("./routes"));
+const cors_1 = __importDefault(require("cors"));
+const express_session_1 = __importDefault(require("express-session"));
+const http_1 = require("http");
+const logging_middleware_1 = require("./middleware/logging-middleware");
+const socket_io_1 = require("socket.io");
+const socket_1 = __importDefault(require("./lib/socket"));
+const path_1 = __importDefault(require("path"));
+dotenv_1.default.config();
 // CORS configuration
 const corsOptions = {
     origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
@@ -32,29 +21,23 @@ const corsOptions = {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]
 };
-
 // Port configuration
 const port = process.env.PORT || 5500;
-const app = express();
-
+const app = (0, express_1.default)();
 // HTTP server wrapper for Express
-const server = createServer(app);
-
+const server = (0, http_1.createServer)(app);
 // Setup Socket.IO server with proper CORS
-const io = new Server(server, {
+const io = new socket_io_1.Server(server, {
     cors: corsOptions,
     path: '/socket.io'
 });
-
-app.use(cors(corsOptions));
-
+app.use((0, cors_1.default)(corsOptions));
 // Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));
 // Session configuration
-app.use(session({
+app.use((0, express_session_1.default)({
     name: 'session_id',
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -64,34 +47,30 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
-
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(loggingMiddleware);
-
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
+app.use(logging_middleware_1.loggingMiddleware);
 // Attach socket.io instance to request object
 app.use((req, res, next) => {
-    (req as any).io = io;
+    req.io = io;
     next();
 });
-
 // Development-only: always set a session user if not present (Owner)
 if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    if (!req.session.user) {
-      req.session.user = {
-        user_id: "d6ab0d83-3990-4083-9af7-a39de3fd3625",
-        role: "MERCHANT",
-        email: "joechan@gmail.com",
-        merchant_id: "0c8f48b7-d4f3-467e-afd6-f610d9124b31",
-        merchantRole: "OWNER"
-      };
-    }
-    next();
-  });
+    app.use((req, res, next) => {
+        if (!req.session.user) {
+            req.session.user = {
+                user_id: "d6ab0d83-3990-4083-9af7-a39de3fd3625",
+                role: "MERCHANT",
+                email: "joechan@gmail.com",
+                merchant_id: "0c8f48b7-d4f3-467e-afd6-f610d9124b31",
+                merchantRole: "OWNER"
+            };
+        }
+        next();
+    });
 }
-
 // Development-only: always set a session user if not present (Manager)
 // if (process.env.NODE_ENV === 'development') {
 //     app.use((req, res, next) => {
@@ -107,7 +86,6 @@ if (process.env.NODE_ENV === 'development') {
 //       next();
 //     });
 //   }
-
 // Development-only: always set a session user if not present (SUPER_ADMIN)
 // if (process.env.NODE_ENV === 'development') {
 //     app.use((req, res, next) => {
@@ -123,15 +101,10 @@ if (process.env.NODE_ENV === 'development') {
 //       next();
 //     });
 //   }
-
-
-
 // Routes
-app.use("/api", router);
-
+app.use("/api", routes_1.default);
 // Register socket handlers
-registerSocketHandlers(io);
-
+(0, socket_1.default)(io);
 // Start server using the HTTP server instance
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);

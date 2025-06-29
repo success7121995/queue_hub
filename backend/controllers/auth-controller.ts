@@ -242,7 +242,6 @@ export const authController = {
             const user = req.session.user;
 
             const merchant_id = user?.merchant_id;
-            console.log(validatedData);
 
             if (!merchant_id) {
                 throw new AppError("Merchant ID not found", 404);

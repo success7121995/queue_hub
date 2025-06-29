@@ -168,6 +168,16 @@ model FavoriteMercahnt {
   User                    User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
+model HiddenChat {
+  id      String @id
+  user_id String
+  other_user_id String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@unique([user_id, other_user_id])
+  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
 model Invoice {
   invoice_id           String        @id
   merchant_id          String
@@ -235,10 +245,15 @@ model Message {
   sender_id                      String
   receiver_id                    String
   content                        String
-  is_read                        Boolean  @default(false)
+  is_read                        Boolean  @default(false)   
   created_at                     DateTime  @default(now())
   User_Message_receiver_idToUser User     @relation("Message_receiver_idToUser", fields: [receiver_id], references: [user_id], onDelete: Cascade)
   User_Message_sender_idToUser   User     @relation("Message_sender_idToUser", fields: [sender_id], references: [user_id], onDelete: Cascade)
+
+  @@index([sender_id, created_at])
+  @@index([receiver_id, created_at])
+  @@index([sender_id, receiver_id, created_at])
+  @@index([is_read])
 }
 
 model News {
@@ -409,6 +424,7 @@ model User {
   UserAdmin                         UserAdmin?
   Avatar                            Avatar?
   Preference                        Preference?
+  HiddenChat                        HiddenChat[]
 }
 
 model UserAdmin {

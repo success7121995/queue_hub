@@ -1,44 +1,37 @@
-import { Request, Response } from "express";
-import { ActivityType } from "@prisma/client";
-import { adminService } from "../services/admin-service";
-import { AppError } from "./app-error";
-
-export const withActivityLog = (
-    handler: (req: Request, res: Response) => Promise<any>,
-    config?: {
-        action?: ActivityType;
-        extractUserId?: (req: Request, res: Response, result: any) => string | null;
-        extractData?: (req: Request, res: Response, result: any) => any;
-    }
-) => {
-    return async (req: Request, res: Response) => {
-        let error: string | null = null;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.withActivityLog = void 0;
+const app_error_1 = require("./app-error");
+const withActivityLog = (handler, config) => {
+    return async (req, res) => {
+        let error = null;
         let status = 500;
-        let user_id: string | null = null;
-        let result: any = null;
-
+        let user_id = null;
+        let result = null;
         const originalJson = res.json.bind(res);
-        res.json = (body: any) => {
+        res.json = (body) => {
             status = res.statusCode;
             return originalJson(body);
         };
-
         try {
             result = await handler(req, res);
             status = res.statusCode;
             error = null;
-        } catch (err) {
-            if (err instanceof AppError) {
+        }
+        catch (err) {
+            if (err instanceof app_error_1.AppError) {
                 status = err.status;
                 error = err.message;
                 res.status(status).json({ success: false, error });
-            } else {
+            }
+            else {
                 status = 500;
                 error = "Unexpected error";
                 res.status(500).json({ success: false, error });
                 console.error(err);
             }
-        } finally {
+        }
+        finally {
             // try {
             //     await adminService.createActivityLog({
             //         action: config.action,
@@ -54,3 +47,4 @@ export const withActivityLog = (
         }
     };
 };
+exports.withActivityLog = withActivityLog;

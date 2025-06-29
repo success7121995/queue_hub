@@ -120,17 +120,6 @@ export const adminController = {
             });
             res.status(200).json({ success: true, result });
             return result;
-        },
-        {
-            action: ActivityType.VIEW_ALL_QUEUES,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: (req, res, result) => ({
-                date_range: {
-                    start: req.query.start_date,
-                    end: req.query.end_date,
-                },
-                metrics: Object.keys(result?.metrics ?? {}),
-            }),
         }
     ),
 }; 
