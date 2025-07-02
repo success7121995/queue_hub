@@ -916,6 +916,21 @@ export const useDeleteLogo = (options?: Omit<UseMutationOptions<{ success: boole
     });
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /********************************* Prefetch Functions *********************************/
 
 /**

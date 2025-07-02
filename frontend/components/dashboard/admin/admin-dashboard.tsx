@@ -16,13 +16,16 @@ import {
 	AdminActions,
 	LoginLogs,
 	Notifications,
-	Legal
+	Legal,
+	Account,
+	Profile
 } from "@/components";
 import { useAuth } from "@/hooks/auth-hooks";
 import { hasAdminAccess } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
+import { Settings } from "lucide-react";
 
 interface AdminDashboardProps {
 	slug: string;
@@ -71,25 +74,6 @@ const AdminDashboard = ({ slug }: AdminDashboardProps) => {
 		return null;
 	}
 
-	// Mock merchant data
-	const mockMerchant = {
-		id: 1,
-		name: "Demo Merchant",
-		email: "demo@merchant.com",
-		phone: "+1234567890",
-		address: "123 Demo St, Demo City",
-		status: "active",
-		createdAt: new Date().toISOString(),
-		branches: [
-			{
-				id: 1,	
-				name: "Main Branch",
-				address: "123 Demo St, Demo City",
-				status: "active"
-			}
-		]
-	};
-
 	const renderContent = () => {
 		switch (slug) {
 			case "metrics":
@@ -124,6 +108,12 @@ const AdminDashboard = ({ slug }: AdminDashboardProps) => {
 				return <Notifications />;
 			case "legal":
 				return <Legal />;
+			case "profile":
+				return <Profile />;
+			case "account":
+				return <Account />;
+			case "settings":
+				return <Settings />;
 			default:
 				return <div>No content found</div>;
 		}

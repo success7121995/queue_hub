@@ -47,6 +47,7 @@ function hasAvatar(user: any): user is UserWithAvatar {
 
 const Profile = () => {
     const { data: authData, refetch, isLoading: isAuthLoading } = useAuth();
+    console.log('authData', authData);
     const user = authData?.user as UserWithAvatar | undefined;
     const [isEditing, setIsEditing] = useState(false);
     const [imagePreviewModal, setImagePreviewModal] = useState<{ isOpen: boolean; imageUrl: string; alt: string }>({
@@ -463,7 +464,7 @@ const Profile = () => {
                             <div>
                                 <label className="block font-semibold text-primary-light mb-2">Position</label>
                                 <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-700">
-                                    {user.UserMerchant?.position || 'Not assigned'}
+                                    {user.UserMerchant?.position || user.UserAdmin?.position || 'Not assigned'}
                                 </div>
                             </div>
 

@@ -3,9 +3,9 @@ import DashboardNavbar from "@/components/dashboard/merchants/dashboard-navbar";
 import DashboardSidenav from "@/components/dashboard/merchants/dashboard-sidenav";
 import { prefetchBranches, prefetchMerchant, prefetchQueues } from "@/hooks/merchant-hooks";
 import { getQueryClient } from "@/lib/query-client";
-import { fetchAuth } from "@/hooks/auth-hooks";
+import { prefetchAuth, useAuth } from "@/hooks/auth-hooks";
 import { queueKeys } from "@/hooks/merchant-hooks";
-import { Chatbox } from "@/components";
+import { Chatbox, LoadingIndicator } from "@/components";
 
 interface MerchantLayoutProps {
 	children: ReactNode;
@@ -15,11 +15,9 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 	const queryClient = getQueryClient();
 
 	try {
-		const userData = await fetchAuth();
-		queryClient.setQueryData(['auth'], userData);
+		const userData = await prefetchAuth(queryClient);
 
-		if (!userData.user?.UserMerchant) throw Error("User merchant not found");
-
+		if (!userData?.user?.UserMerchant) throw Error("User merchant not found");
 		const merchantId = userData.user.UserMerchant.merchant_id;
 		const selectedBranchId = userData.user.UserMerchant.selected_branch_id;
 		const userId = userData.user.UserMerchant.user_id;

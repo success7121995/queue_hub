@@ -491,11 +491,3 @@ export const useUpdateHiddenChat = (user_id: string, other_user_id: string, opti
 
 
 
-/*********** PREFETCH ***********/
-
-
-
-
-
-
-

@@ -446,7 +446,7 @@ const DashboardNavbar = () => {
 							<span className="flex items-center">
 								{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 									avatarUrl ? (
-										<Image src={avatarUrl} alt="Avatar" width={48} height={48} className="rounded-full border-[3px] border-primary-light" />
+										<Image src={avatarUrl} alt="Avatar" width={48} height={48} className="rounded-full border-[3px] border-primary-light w-12 h-12 object-cover" />
 									) : (
 										<div className="w-10 h-10 rounded-full bg-primary text-text-light text-lg font-bold flex items-center justify-center">
 											{ firstName.charAt(0).toUpperCase() + lastName.charAt(0).toUpperCase() }

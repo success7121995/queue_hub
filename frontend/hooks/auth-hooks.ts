@@ -1,8 +1,9 @@
-import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions, QueryClient } from "@tanstack/react-query";
 import Cookies from 'js-cookie';
 import { AddEmployeeFormFields, AddAdminFormFields, SignupFormFields } from "@/types/form";
 import { AuthResponse, ChangePasswordResponse, LogoutResponse } from "@/types/response";
 import { User, UserMerchant } from "@/types/user";
+import { fetchQueues, queueKeys } from "./merchant-hooks";
 
 // Types
 export interface LoginFormInputs {
@@ -310,4 +311,24 @@ export const useChangePassword = (options?: Omit<UseMutationOptions<ChangePasswo
         mutationFn: fetchChangePassword,
         ...options,
     });
+};
+
+
+
+
+
+
+
+
+
+/***************** Prefetch *****************/
+export const prefetchAuth = async (queryClient: any) => {
+    await queryClient.prefetchQuery({
+        queryKey: authKeys.user(),
+        queryFn: fetchAuth,
+        staleTime: 1000 * 60,
+        gcTime: 1000 * 60 * 5,
+    });
+
+    return queryClient.getQueryData(authKeys.user());
 };
