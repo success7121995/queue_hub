@@ -85,7 +85,7 @@ const MerchantDashboard = ({ slug }: MerchantDashboardProps) => {
 			case "account":
 				return <Account />;
 			case "billing":
-				return <Billing />;
+				return <Billing />;		
 			case "settings":
 				return <Setting />;
 			default:

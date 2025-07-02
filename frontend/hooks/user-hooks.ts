@@ -1,7 +1,7 @@
 import { UserProfile } from "@/types/user";
-import { useMutation, useQuery, type UseMutationOptions, type UseQueryOptions } from "@tanstack/react-query";
-import { EmployeesResponse, MessagePreviewResponse } from "@/types/response";
-import { EditEmployeeFormFields } from "@/types/form";
+import { QueryClient, useMutation, useQuery, type UseMutationOptions, type UseQueryOptions } from "@tanstack/react-query";
+import { EmployeesResponse, MessagePreviewResponse, MessageResponse } from "@/types/response";
+import { AddAdminFormFields, EditEmployeeFormFields } from "@/types/form";
 
 /**
  * Query keys
@@ -11,6 +11,8 @@ export const userKeys = {
     employees: () => [...userKeys.all, 'employees'] as const,
     avatar: () => [...userKeys.all, 'avatar'] as const,
     messages: () => [...userKeys.all, 'messages'] as const,
+    lastMessages: () => [...userKeys.all, 'lastMessages'] as const,
+    conversation: (other_user_id: string) => [...userKeys.all, 'conversation', other_user_id] as const,
 } as const;
 
 /**
@@ -166,18 +168,65 @@ export const fetchDeleteAvatar = async (): Promise<{ success: boolean }> => {
 }
 
 /**
- * Fetch get message preview
+ * Fetch send message
+ * @param receiverId - The receiver's user ID
+ * @param content - The message content
  * @returns 
  */
-export const fetchGetMessagePreview = async (limit: number = 5): Promise<MessagePreviewResponse> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/preview?limit=${limit}`, {
+export const fetchSendMessage = async ({ receiverId, content }: { receiverId: string; content: string }): Promise<MessageResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/send`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ receiverId, content }),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to send message');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Get all last messages (previews)
+ * @returns 
+ */
+export const fetchGetAllLastMessages = async (): Promise<{ success: boolean; messages: any[] }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/last`, {
         method: 'GET',
         credentials: 'include',
     });
 
     if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to get message preview');
+        throw new Error(errorData.message || 'Failed to get all messages');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Get conversation with a specific user
+ * @param other_user_id - The other user's ID
+ * @param before - The timestamp of the last message
+ * @param limit - The number of messages to fetch
+ * @returns 
+ */
+export const fetchGetConversation = async (other_user_id: string, before: string, limit: number): Promise<{ success: boolean; messages: any[]; hasMore: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/conversation/${other_user_id}?before=${before}&limit=${limit}`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get conversation');
     }
 
     const responseData = await res.json();
@@ -191,17 +240,64 @@ export const fetchGetMessagePreview = async (limit: number = 5): Promise<Message
  */
 export const fetchMarkMessageAsRead = async (message_id: string): Promise<{ success: boolean }> => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/${message_id}/read`, {
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        method: 'PUT',
-        body: JSON.stringify({ message_id }),
         credentials: 'include',
     });
 
     if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to mark message as read');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch hide chat
+ * @param user_id 
+ * @param other_user_id 
+ * @returns 
+ */
+export const fetchHideChat = async (user_id: string, other_user_id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/conversation/${other_user_id}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+    })
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to hide chat');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch update hidden chat
+ * @param user_id
+ * @param other_user_id
+ * @returns
+ */
+export const fetchUpdateHiddenChat = async (user_id: string, other_user_id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/conversation/${other_user_id}/update`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update hidden chat');
     }
 
     const responseData = await res.json();
@@ -221,7 +317,13 @@ export const fetchMarkMessageAsRead = async (message_id: string): Promise<{ succ
 
 
 
-/***************** Hooks *****************/
+
+
+
+
+
+
+/*********** HOOKS ***********/
 /**
  * Use update user profile
  * @param options
@@ -308,14 +410,41 @@ export const useDeleteAvatar = (options?: Omit<UseMutationOptions<{ success: boo
 }
 
 /**
- * Use get message preview
+ * Use send message
  * @param options 
  * @returns 
  */
-export const useGetMessagePreview = (limit: number = 10, options?: Omit<UseQueryOptions<MessagePreviewResponse, Error>, 'queryKey' | 'queryFn'>) => {
+export const useSendMessage = (options?: Omit<UseMutationOptions<MessageResponse, Error, { receiverId: string; content: string }>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchSendMessage,
+        ...options,
+    });
+}
+
+/**
+ * Use get all last messages
+ * @param options 
+ * @returns 
+ */
+export const useGetAllLastMessages = (options?: Omit<UseQueryOptions<{ success: boolean; messages: any[] }, Error>, 'queryKey' | 'queryFn'>) => {
     return useQuery({
-        queryKey: userKeys.messages(),  
-        queryFn: () => fetchGetMessagePreview(limit),
+        queryKey: userKeys.lastMessages(),
+        queryFn: fetchGetAllLastMessages,
+        ...options,
+    });
+}
+
+/**
+ * Use get conversation
+ * @param other_user_id - The other user's ID
+ * @param options 
+ * @returns 
+ */
+export const useGetConversation = (other_user_id: string, before: string, limit: number, options?: Omit<UseQueryOptions<{ success: boolean; messages: any[]; hasMore: boolean }, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: userKeys.conversation(other_user_id),
+        queryFn: () => fetchGetConversation(other_user_id, before, limit),
+        enabled: !!other_user_id,
         ...options,
     });
 }
@@ -332,24 +461,41 @@ export const useMarkMessageAsRead = (options?: Omit<UseMutationOptions<{ success
     });
 }
 
-
-
-
-
-
-
-
-
-
-/***************** Prefetch *****************/
-
 /**
- * Prefetch get message preview
+ * Use hide chat
+ * @param options 
  * @returns 
  */
-export const prefetchGetMessagePreview = async (limit: number = 5) => {
-    return useQuery({
-        queryKey: userKeys.messages(),
-        queryFn: () => fetchGetMessagePreview(limit),
+export const useHideChat = (user_id: string, other_user_id: string, options?: Omit<UseMutationOptions<{ success: boolean }, Error, { user_id: string; other_user_id: string }>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: () => fetchHideChat(user_id, other_user_id),
+        ...options,
     });
 }
+
+/**
+ * Use update hidden chat
+ * @param options
+ * @returns
+ */
+export const useUpdateHiddenChat = (user_id: string, other_user_id: string, options?: Omit<UseMutationOptions<{ success: boolean }, Error, void>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: () => fetchUpdateHiddenChat(user_id, other_user_id),
+        ...options,
+    });
+}
+
+
+
+
+
+
+
+/*********** PREFETCH ***********/
+
+
+
+
+
+
+

@@ -59,7 +59,7 @@ const PLAN_DATA = {
 
 const Billing = () => {
     const router = useRouter();
-    const { data: authData, isLoading: isAuthLoading, refetch, error: authError } = useAuth();
+    const { data: authData, isLoading: isAuthLoading } = useAuth();
     const user = authData?.user;
     const merchantId = user?.UserMerchant?.merchant_id;
 
@@ -72,13 +72,12 @@ const Billing = () => {
     const [isCancelling, setIsCancelling] = useState(false);
 
     // Subscription data
-    const subscription = merchant?.subscription_status || "TRIAL";
-    const subscriptionEnd = merchant?.subscription_end;
-    const subscriptionStart = merchant?.subscription_start;
-    const autoRenewal = merchant?.auto_renewal || false;
-    const createdAt = merchant?.created_at;
-    const updatedAt = merchant?.updated_at;
-    const approvedAt = merchant?.approved_at;
+    const subscription = merchant?.merchant.subscription_status;
+    const subscriptionEnd = merchant?.merchant.subscription_end;
+    const subscriptionStart = merchant?.merchant.subscription_start;
+    const autoRenewal = merchant?.merchant.auto_renewal || false;
+    const createdAt = merchant?.merchant.created_at;
+    const updatedAt = merchant?.merchant.updated_at;
 
     // Get current plan data
     const currentPlan = PLAN_DATA[subscription as keyof typeof PLAN_DATA] || PLAN_DATA.TRIAL;
@@ -109,7 +108,6 @@ const Billing = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
         setIsUpdatingAutoRenewal(false);
         // In real implementation, this would update the merchant data
-        console.log("Auto-renewal toggled");
     };
 
     // Handle subscription cancellation
@@ -119,8 +117,7 @@ const Billing = () => {
         await new Promise(resolve => setTimeout(resolve, 2000));
         setIsCancelling(false);
         setShowCancelModal(false);
-        // In real implementation, this would update the merchant data
-        console.log("Subscription cancelled");
+        // In real implementation, this would update the merchant data  
     };
 
     // Format date helper

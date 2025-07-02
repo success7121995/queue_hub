@@ -335,7 +335,6 @@ const Table = <T extends Record<string, any>>({
 	};
 
 	if (isLoading) {
-		console.log( "loading", isLoading);
 		return <LoadingIndicator fullScreen={true} size="lg" />;
 	}
 

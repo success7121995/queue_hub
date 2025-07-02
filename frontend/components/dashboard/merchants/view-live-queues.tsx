@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MoreVertical, UserCircle, Edit, Trash2, Users, UserCheck, AlertTriangle } from "lucide-react";
+import { MoreVertical, UserCircle, Users, UserCheck, AlertTriangle } from "lucide-react";
 import Table, { type Column } from "@/components/common/table";
 import Tag from "@/components/common/tag";
 import NumberCard from "@/components/common/number-card";
 import { useDateTime } from "@/constant/datetime-provider";
 import { connectSocket, disconnectSocket, onQueueStatusChange, onQueueCreated, onQueueUpdated, onQueueDeleted } from "@/lib/socket";
-import { useBranches, useQueues, queueKeys } from "@/hooks/merchant-hooks";
+import { useQueues, queueKeys } from "@/hooks/merchant-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueueWithTags } from "@/types/queue";
@@ -86,17 +86,14 @@ const ViewLiveQueues = () => {
 		});
 
 		const unregisterCreated = onQueueCreated(({ message }) => {
-			console.log('Queue created:', message);
 			refetch();
 		});
 
 		const unregisterUpdated = onQueueUpdated(({ queueId, message }) => {
-			console.log('Queue updated:', queueId, message);
 			refetch();
 		});
 
 		const unregisterDeleted = onQueueDeleted(({ queueId, message }) => {
-			console.log('Queue deleted:', queueId, message);
 			refetch();
 		});
 
@@ -121,15 +118,6 @@ const ViewLiveQueues = () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
 	}, []);
-
-	const formatTimeFromMinutes = (minutes: number | null | undefined) => {
-		if (minutes === null || minutes === undefined || isNaN(minutes)) {
-			return 'N/A';
-		}
-		const hours = Math.floor(minutes / 60);
-		const mins = minutes % 60;
-		return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-	};
 
 	const activeQueuesColumns: Column<QueueWithTags>[] = [
 		{ 

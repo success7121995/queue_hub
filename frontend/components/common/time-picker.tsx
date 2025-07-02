@@ -27,7 +27,6 @@ const TimePicker: React.FC<TimePickerProps & { className?: string; style?: React
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (timePickerRef.current && !timePickerRef.current.contains(event.target as Node)) {
-                console.log("clicked outside")
 				setOpen(false);
 			}
 		};

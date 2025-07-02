@@ -69,11 +69,11 @@ export interface UserInfo {
 }
 
 export interface EmployeeInfo extends UserInfo {
-  role: "EMPLOYEE" | "MANAGER" | "OWNER";
+  role: MerchantRole;
 }
 
 export interface AdminInfo extends UserInfo {
-  role: "OWNER" | "MANAGER";
+  role: AdminRole;
 }
 
 // ========================

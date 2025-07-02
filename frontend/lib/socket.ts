@@ -5,6 +5,9 @@ let statusChangeCallbacks: ((data: { queueId: string; status: "OPEN" | "CLOSED" 
 let queueCreatedCallbacks: ((data: { message: string }) => void)[] = [];
 let queueUpdatedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
 let queueDeletedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
+let messagePreviewsCallbacks: ((data: any[]) => void)[] = [];
+let receiveMessageCallbacks: ((data: any) => void)[] = [];
+let messageSentCallbacks: ((data: { success: boolean; message?: any; error?: string }) => void)[] = [];
 let newMessageCallbacks: ((data: any) => void)[] = [];
 let messageReadCallbacks: ((data: { message_id: string; is_read: boolean }) => void)[] = [];
 
@@ -23,6 +26,10 @@ export const connectSocket = () => {
         reconnectionAttempts: 5,
         reconnectionDelay: 1000
     });
+
+    if (typeof window !== 'undefined') {
+        (window as any).socket = socket;
+    }
 
     /**
      * Handle socket connection
@@ -72,7 +79,31 @@ export const connectSocket = () => {
     });
 
     /**
-     * Handle new messages
+     * Handle message previews (inbox updates)
+     * @param data - The data containing message previews
+     */
+    socket.on("messagePreviews", (data) => {
+        messagePreviewsCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle received messages (new messages in conversation)
+     * @param data - The data containing the received message
+     */
+    socket.on("receiveMessage", (data) => { 
+        receiveMessageCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle message sent confirmation
+     * @param data - The data containing success status and message or error
+     */
+    socket.on("messageSent", (data) => {
+        messageSentCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle new messages (legacy event)
      * @param data - The data containing the new message
      */
     socket.on("newMessage", (data) => {
@@ -112,6 +143,11 @@ export const disconnectSocket = () => {
         socket.disconnect();
         socket = null;
         statusChangeCallbacks = [];
+        messagePreviewsCallbacks = [];
+        receiveMessageCallbacks = [];
+        messageSentCallbacks = [];
+        newMessageCallbacks = [];
+        messageReadCallbacks = [];
     }
 };
 
@@ -164,7 +200,43 @@ export const onQueueDeleted = (callback: (data: { queueId: string; message: stri
 };
 
 /**
- * Register a callback for new messages
+ * Register a callback for message previews (inbox updates)
+ * @param callback - The callback function to be called when message previews are received
+ * @returns A function to unregister the callback
+ */
+export const onMessagePreviews = (callback: (data: any[]) => void) => {
+    messagePreviewsCallbacks.push(callback);
+    return () => {
+        messagePreviewsCallbacks = messagePreviewsCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for received messages
+ * @param callback - The callback function to be called when a message is received
+ * @returns A function to unregister the callback
+ */
+export const onReceiveMessage = (callback: (data: any) => void) => {
+    receiveMessageCallbacks.push(callback);
+    return () => {
+        receiveMessageCallbacks = receiveMessageCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for message sent confirmation
+ * @param callback - The callback function to be called when a message is sent
+ * @returns A function to unregister the callback
+ */
+export const onMessageSent = (callback: (data: { success: boolean; message?: any; error?: string }) => void) => {
+    messageSentCallbacks.push(callback);
+    return () => {
+        messageSentCallbacks = messageSentCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for new messages (legacy)
  * @param callback - The callback function to be called when a new message is received
  * @returns A function to unregister the callback
  */
@@ -199,11 +271,73 @@ export const openOrCloseQueue = (queueId: string, status: "OPEN" | "CLOSED") => 
 };
 
 /**
+ * Send a message via socket
+ * @param senderId - The sender's user ID
+ * @param receiverId - The receiver's user ID
+ * @param content - The message content
+ */
+export const sendMessage = (senderId: string, receiverId: string, content: string) => {
+    if (socket) {
+        socket.emit("sendMessage", { senderId, receiverId, content });
+    }
+};
+
+/**
  * Mark a message as read via socket
  * @param messageId - The message ID to mark as read
+ * @param userId - The user ID
+ * @param otherUserId - The other user's ID
  */
-export const socketMarkMessageAsRead = (messageId: string) => {
+export const markMessageAsRead = (messageId: string, userId: string, otherUserId: string) => {
     if (socket) {
-        socket.emit("markMessageAsRead", { message_id: messageId });
+        socket.emit("markMessageAsRead", { message_id: messageId, user_id: userId, otherUserId });
+    }
+};
+
+/**
+ * Hide a chat via socket
+ * @param userId - The user ID
+ * @param otherUserId - The other user's ID
+ */
+export const hideChat = (userId: string, otherUserId: string) => {
+    if (socket) {
+        socket.emit("hideChat", { user_id: userId, other_user_id: otherUserId });
+    }
+};
+
+/**
+ * Get last messages (previews) via socket
+ * @param userId - The user ID
+ */
+export const getLastMessages = (userId: string) => {
+    if (socket) {
+        socket.emit("getLastMessages", { user_id: userId });
+    }
+};
+
+/**
+ * Join user room for receiving messages
+ * @param userId - The user ID
+ */
+export const joinRoom = (userId: string) => {
+    if (socket) {
+        socket.emit("joinRoom", { user_id: userId });
+    }
+};
+
+/**
+ * Get the socket instance
+ * @returns The socket instance
+ */
+export const getSocket = () => socket;
+
+/**
+ * Update hidden chat via socket
+ * @param userId - The user ID
+ * @param otherUserId - The other user's ID
+ */
+export const updateHiddenChat = (userId: string, otherUserId: string) => {
+    if (socket) {
+        socket.emit("updateHiddenChat", { user_id: userId, other_user_id: otherUserId });
     }
 };

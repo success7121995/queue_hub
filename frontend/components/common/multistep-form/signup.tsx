@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useLang } from "@/constant/lang-provider";
 import { useDialingCode, CountryDialingDropdown } from "@/constant/dialing-code-provider";
 import { CountryDialingCode } from "@/types/form";
+import { fetchUniqueUsernameAndEmail } from "@/hooks/auth-hooks";
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
 
@@ -49,6 +51,75 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
     // Plan selection managed locally
     const [selectedPlan, setSelectedPlan] = useState<Plan>("TRIAL");
     const [localPhoneNumber, setLocalPhoneNumber] = useState("");
+
+    // Validation states
+    const [usernameChecked, setUsernameChecked] = useState(false);
+    const [emailChecked, setEmailChecked] = useState(false);
+    const [usernameValid, setUsernameValid] = useState<boolean | null>(null);
+    const [emailValid, setEmailValid] = useState<boolean | null>(null);
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+    // Password visibility states
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Watch form values
+    const watchedUsername = watch("username");
+    const watchedEmail = watch("email");
+
+    // Reset validation when values change
+    useEffect(() => {
+        if (watchedUsername) {
+            setUsernameChecked(false);
+            setUsernameValid(null);
+        }
+    }, [watchedUsername]);
+
+    useEffect(() => {
+        if (watchedEmail) {
+            setEmailChecked(false);
+            setEmailValid(null);
+        }
+    }, [watchedEmail]);
+
+    // Check username uniqueness
+    const handleCheckUsername = async () => {
+        if (!watchedUsername || watchedUsername.length < 3) {
+            return;
+        }
+        setIsCheckingUsername(true);
+        setUsernameChecked(true);
+        
+        try {
+            const result = await fetchUniqueUsernameAndEmail(watchedUsername, undefined);
+            setUsernameValid(result.isUniqueUsername);
+        } catch (error) {
+            console.error('Error checking username uniqueness:', error);
+            setUsernameValid(false);
+        } finally {
+            setIsCheckingUsername(false);
+        }
+    };
+
+    // Check email uniqueness
+    const handleCheckEmail = async () => {
+        if (!watchedEmail || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(watchedEmail)) {
+            return;
+        }
+        setIsCheckingEmail(true);
+        setEmailChecked(true);
+        
+        try {
+            const result = await fetchUniqueUsernameAndEmail(undefined, watchedEmail);
+            setEmailValid(result.isUniqueEmail);
+        } catch (error) {
+            console.error('Error checking email uniqueness:', error);
+            setEmailValid(false);
+        } finally {
+            setIsCheckingEmail(false);
+        }
+    };
 
     // Load from cookie if available
     useEffect(() => {
@@ -97,6 +168,17 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
     }, [dialingCode, localPhoneNumber, setValue]);
 
     const onSubmit = (data: SignupFormFields["signup"]) => {
+        // Validate that both username and email have been checked and are valid
+        if (!usernameChecked || !emailChecked) {
+            alert("Please check both username and email availability before proceeding.");
+            return;
+        }
+
+        if (usernameValid === false || emailValid === false) {
+            alert("Please ensure both username and email are available before proceeding.");
+            return;
+        }
+
         // Save to cookie
         const cookie = Cookies.get(COOKIE_KEY);
         let cookieData: CookieData = {};
@@ -226,38 +308,94 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     </div>
                 </div>
 
-                {/* Username */}
+                {/* Username with Check Button */}
                 <div>
                     <label htmlFor="username" className="block mb-1 font-semibold text-text-main text-sm">Username</label>
-                    <input
-                        id="username"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.username ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("username", { required: "Username is required" })}
-                        placeholder="Enter your username"
-                    />
+                    <div className="flex gap-2">
+                        <input
+                            id="username"
+                            className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.username ? "border-red-500" : "border-gray-400"
+                            }`}
+                            {...register("username", { required: "Username is required" })}
+                            placeholder="Enter your username"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleCheckUsername}
+                            disabled={!watchedUsername || watchedUsername.length < 3 || isCheckingUsername}
+                            className="px-3 py-1 bg-primary-light text-white rounded text-sm font-medium hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isCheckingUsername ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                "Check"
+                            )}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        {usernameChecked && usernameValid !== null && (
+                            <>
+                                {usernameValid ? (
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                ) : (
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                )}
+                                <span className={`text-xs ${usernameValid ? 'text-green-600' : 'text-red-600'}`}>
+                                    {usernameValid ? 'Username is available' : 'Username is already taken'}
+                                </span>
+                            </>
+                        )}
+                    </div>
                     {errors.username && <span className="text-red-500 text-xs">{errors.username.message}</span>}
                 </div>
 
-                {/* Email */}
+                {/* Email with Check Button */}
                 <div>
                     <label htmlFor="email" className="block mb-1 font-semibold text-text-main text-sm">Email</label>
-                    <input
-                        id="email"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.email ? "border-red-500" : "border-gray-400"
-                        }`}
-                        type="email"
-                        {...register("email", { 
-                            required: "Email is required",
-                            pattern: {
-                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                message: "Invalid email address"
-                            }
-                        })}
-                        placeholder="Enter your email"
-                    />
+                    <div className="flex gap-2">
+                        <input
+                            id="email"
+                            className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.email ? "border-red-500" : "border-gray-400"
+                            }`}
+                            type="email"
+                            {...register("email", { 
+                                required: "Email is required",
+                                pattern: {
+                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    message: "Invalid email address"
+                                }
+                            })}
+                            placeholder="Enter your email"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleCheckEmail}
+                            disabled={!watchedEmail || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(watchedEmail) || isCheckingEmail}
+                            className="px-3 py-1 bg-primary-light text-white rounded text-sm font-medium hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isCheckingEmail ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                "Check"
+                            )}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        {emailChecked && emailValid !== null && (
+                            <>
+                                {emailValid ? (
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                ) : (
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                )}
+                                <span className={`text-xs ${emailValid ? 'text-green-600' : 'text-red-600'}`}>
+                                    {emailValid ? 'Email is available' : 'Email is already taken'}
+                                </span>
+                            </>
+                        )}
+                    </div>
                     {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
                 </div>
 
@@ -295,46 +433,64 @@ const Signup: React.FC<SignupProps> = ({ onNext }) => {
                     {errors.phone && <span className="text-red-500 text-xs">{errors.phone.message}</span>}
                 </div>
 
-                {/* Password */}
+                {/* Password with Visibility Toggle */}
                 <div>
                     <label htmlFor="password" className="block mb-1 font-semibold text-text-main text-sm">Password</label>
-                    <input
-                        id="password"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.password ? "border-red-500" : "border-gray-400"
-                        }`}
-                        type="password"
-                        {...register("password", { 
-                            required: "Password is required",
-                            minLength: {
-                                value: 8,
-                                message: "Password must be at least 8 characters"
-                            },
-                            pattern: {
-                                value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-                                message: "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
-                            }
-                        })}
-                        placeholder="Enter your password"
-                    />
+                    <div className="relative">
+                        <input
+                            id="password"
+                            className={`w-full border rounded px-2 py-1 pr-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.password ? "border-red-500" : "border-gray-400"
+                            }`}
+                            type={showPassword ? "text" : "password"}
+                            {...register("password", { 
+                                required: "Password is required",
+                                minLength: {
+                                    value: 8,
+                                    message: "Password must be at least 8 characters"
+                                },
+                                pattern: {
+                                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                                    message: "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+                                }
+                            })}
+                            placeholder="Enter your password"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                     {errors.password && <span className="text-red-500 text-xs">{errors.password.message}</span>}
                 </div>
 
-                {/* Confirm Password */}
+                {/* Confirm Password with Visibility Toggle */}
                 <div>
                     <label htmlFor="confirm_password" className="block mb-1 font-semibold text-text-main text-sm">Confirm Password</label>
-                    <input
-                        id="confirm_password"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
-                            errors.confirm_password ? "border-red-500" : "border-gray-400"
-                        }`}
-                        type="password"
-                        {...register("confirm_password", { 
-                            required: "Please confirm your password",
-                            validate: value => value === watch("password") || "Passwords do not match"
-                        })}
-                        placeholder="Confirm your password"
-                    />
+                    <div className="relative">
+                        <input
+                            id="confirm_password"
+                            className={`w-full border rounded px-2 py-1 pr-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
+                                errors.confirm_password ? "border-red-500" : "border-gray-400"
+                            }`}
+                            type={showConfirmPassword ? "text" : "password"}
+                            {...register("confirm_password", { 
+                                required: "Please confirm your password",
+                                validate: value => value === watch("password") || "Passwords do not match"
+                            })}
+                            placeholder="Confirm your password"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                     {errors.confirm_password && <span className="text-red-500 text-xs">{errors.confirm_password.message}</span>}
                 </div>
 

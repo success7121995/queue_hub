@@ -355,7 +355,6 @@ const Account = () => {
         setPasswordChangeSuccess("");
         setPasswordErrors({});
         
-        console.log(passwordData);
         if (validatePassword()) {
             changePassword({
                 old_password: passwordData.currentPassword,
@@ -363,7 +362,6 @@ const Account = () => {
                 confirm_password: passwordData.confirmPassword
             }, {
                 onSuccess: () => {
-                    console.log("Password changed successfully");
                     setPasswordChangeSuccess("Password changed successfully!");
                     setPasswordData({
                         currentPassword: "",
@@ -382,7 +380,6 @@ const Account = () => {
                     }, 5000);
                 },
                 onError: (error) => {
-                    console.error("Password change failed:", error);
                     setPasswordChangeError(error.message || "Password change failed. Please try again.");
                     
                     // Clear error message after 5 seconds
@@ -403,7 +400,6 @@ const Account = () => {
         // Mock API call
         setTimeout(() => {
             setIsResendingVerification(false);
-            console.log("Verification email sent");
         }, 2000);
     };
 
@@ -417,7 +413,6 @@ const Account = () => {
         // Mock API call
         setTimeout(() => {
             setRevokingSession(null);
-            console.log(`Session ${sessionId} revoked`);
         }, 1000);
     };
 
@@ -431,7 +426,6 @@ const Account = () => {
         setTimeout(() => {
             setIsDeleting(false);
             setShowDeleteModal(false);
-            console.log("Account deletion initiated");
         }, 2000);
     };
 

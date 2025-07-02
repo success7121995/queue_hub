@@ -7,6 +7,8 @@ import { AddAdminFormFields } from "@/types/form";
 import Cookies from "js-cookie";
 import { useAuth } from "@/hooks/auth-hooks";
 import { CountryDialingDropdown, useDialingCode } from "@/constant/dialing-code-provider";
+import { fetchUniqueUsernameAndEmail } from "@/hooks/auth-hooks";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 const COOKIE_KEY = "signupForm";
 
@@ -34,12 +36,53 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
         register,
         handleSubmit,
         setValue,
+        watch,
+        setError,
         formState: { errors },
     } = (formMethods as unknown) as UseFormReturn<AddAdminFormFields["userInfo"]>;
 
     // Get current user's role for role-based access control
     const { data: currentUser } = useAuth();
     const currentUserRole = currentUser?.user?.UserMerchant?.role;
+
+    // Validation states
+    const [emailChecked, setEmailChecked] = useState(false);
+    const [emailValid, setEmailValid] = useState<boolean | null>(null);
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+    // Watch form values
+    const watchedEmail = watch("email");
+
+    // Reset validation when values change
+    useEffect(() => {
+        if (watchedEmail) {
+            setEmailChecked(false);
+            setEmailValid(null);
+        }
+    }, [watchedEmail]);
+
+    // Check email uniqueness
+    const handleCheckEmail = async () => {
+        if (!watchedEmail || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(watchedEmail)) {
+            return;
+        }
+        setIsCheckingEmail(true);
+        setEmailChecked(true);
+        
+        try {
+            const result = await fetchUniqueUsernameAndEmail(undefined, watchedEmail);
+            setEmailValid(result.isUniqueEmail);
+            setError("email", {
+                type: "manual",
+                message: result.isUniqueEmail ? "Email is available" : "Email is already taken"
+            });
+        } catch (error) {
+            console.error('Error checking email uniqueness:', error);
+            setEmailValid(false);
+        } finally {
+            setIsCheckingEmail(false);
+        }
+    };
 
     // Filter role options based on current user's role
     const getFilteredRoleOptions = () => {
@@ -111,7 +154,23 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
     }, [setValue]);
 
     const onSubmit = (data: AddAdminFormFields["userInfo"]) => {
-        console.log(data);
+        // Validate that email has been checked and is valid
+        if (!emailChecked) {
+            setError("email", {
+                type: "manual",
+                message: "Please check email availability before proceeding."
+            });
+            return;
+        }
+
+        if (emailValid === false) {
+            setError("email", {
+                type: "manual",
+                message: "Please ensure email is available before proceeding."
+            });
+            return;
+        }
+
         // Save to cookie
         const cookie = Cookies.get(COOKIE_KEY);
         let cookieData = {};
@@ -177,24 +236,52 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                     {errors.staff_id && <span className="text-red-500 text-xs">{errors.staff_id.message}</span>}
                 </div>
 
-                {/* Email */}
+                {/* Email with Check Button */}
                 <div>
                     <label htmlFor="email" className="block mb-1 font-semibold text-text-main text-sm">Email</label>
-                    <input
-                        id="email"
-                        type="email"
-                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.email ? "border-red-500" : "border-gray-400"
-                        }`}
-                        {...register("email", { 
-                            required: "Email is required",
-                            pattern: {
-                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                message: "Invalid email address"
-                            }
-                        })}
-                        placeholder="Enter email"
-                    />
+                    <div className="flex gap-2">
+                        <input
+                            id="email"
+                            type="email"
+                            className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                                errors.email ? "border-red-500" : "border-gray-400"
+                            }`}
+                            {...register("email", { 
+                                required: "Email is required",
+                                pattern: {
+                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    message: "Invalid email address"
+                                }
+                            })}
+                            placeholder="Enter email"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleCheckEmail}
+                            disabled={!watchedEmail || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(watchedEmail) || isCheckingEmail}
+                            className="px-3 py-1 bg-primary-light text-white rounded text-sm font-medium hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isCheckingEmail ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                "Check"
+                            )}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        {emailChecked && emailValid !== null && (
+                            <>
+                                {emailValid ? (
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                ) : (
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                )}
+                                <span className={`text-xs ${emailValid ? 'text-green-600' : 'text-red-600'}`}>
+                                    {emailValid ? 'Email is available' : 'Email is already taken'}
+                                </span>
+                            </>
+                        )}
+                    </div>
                     {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
                 </div>
 

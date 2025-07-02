@@ -15,7 +15,7 @@ model AcceptPayment {
 }
 
 model APILog {
-  log_id      String       @id
+  log_id      String       @id @default(uuid())
   user_id     String?
   method      String
   endpoint    String
@@ -29,7 +29,7 @@ model APILog {
 }
 
 model ActivityLog {
-  log_id      String       @id
+  log_id      String       @id @default(uuid())
   user_id     String?
   action      ActivityType
   action_data Json
@@ -41,7 +41,7 @@ model ActivityLog {
 }
 
 model Address {
-  address_id  String    @id
+  address_id  String    @id @default(uuid())
   merchant_id String?   @unique
   branch_id   String?   @unique
   street      String
@@ -58,7 +58,7 @@ model Address {
 }
 
 model AnalyticsLog {
-  log_id       String        @id
+  log_id       String        @id @default(uuid())
   subject_type AnalyticsType
   subject_id   String
   metric_type  MetricType
@@ -68,16 +68,15 @@ model AnalyticsLog {
 
 
 model Avatar {
-  image_id String @id
-  user_id  String @unique
-  image_url String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  User       User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  image_id        String @id @default(uuid())
+  user_id         String @unique
+  image_url       String
+  created_at      DateTime @default(now())
+  User            User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Branch {
-  branch_id            String                 @id
+  branch_id            String                 @id @default(uuid())
   merchant_id          String
   branch_name          String
   contact_person_id    String                 // Reference to UserMerchant staff_id
@@ -98,7 +97,7 @@ model Branch {
 }
 
 model BranchFeature {
-  feature_id  String   @id
+  feature_id  String   @id @default(uuid())
   branch_id   String
   label       String
   is_positive Boolean  @default(true)
@@ -108,7 +107,7 @@ model BranchFeature {
 }
 
 model BranchImage {
-  image_id    String    @id
+  image_id    String    @id @default(uuid())
   branch_id   String
   image_url   String
   image_type  ImageType
@@ -117,7 +116,7 @@ model BranchImage {
 }
 
 model BranchOpeningHour {
-  id          String    @id
+  id          String    @id @default(uuid())
   branch_id   String
   day_of_week DayOfWeek
   open_time   DateTime
@@ -129,7 +128,7 @@ model BranchOpeningHour {
 }
 
 model EmailLog {
-  email_id        String      @id
+  email_id        String      @id @default(uuid())
   recipient_email String
   sender_id       String?
   subject         String
@@ -143,7 +142,7 @@ model EmailLog {
 }
 
 model EmailTemplate {
-  template_id      String   @id
+  template_id      String   @id @default(uuid())
   template_name    String
   template_content String
   created_at       DateTime @default(now())
@@ -151,7 +150,7 @@ model EmailTemplate {
 }
 
 model FAQ {
-  faq_id       String   @id
+  faq_id       String   @id @default(uuid())
   question     String
   answer       String
   published_at DateTime @default(now())
@@ -159,7 +158,7 @@ model FAQ {
 }
 
 model FavoriteMercahnt {
-  favorite_id             String   @id
+  favorite_id             String   @id @default(uuid())
   user_id                 String
   merchant_id             String
   created_at              DateTime @default(now())
@@ -169,7 +168,7 @@ model FavoriteMercahnt {
 }
 
 model HiddenChat {
-  id      String @id
+  id      String @id @default(uuid())
   user_id String
   other_user_id String
   created_at DateTime @default(now())
@@ -179,7 +178,7 @@ model HiddenChat {
 }
 
 model Invoice {
-  invoice_id           String        @id
+  invoice_id           String        @id @default(uuid())
   merchant_id          String
   invoice_number       String        @unique
   amount               Float
@@ -196,7 +195,7 @@ model Invoice {
 }
 
 model LegalDocuement {
-  document_id   String            @id
+  document_id   String            @id @default(uuid())
   document_type LegalDocumentType
   title         String
   content       String
@@ -208,7 +207,7 @@ model LegalDocuement {
 }
 
 model Logo {
-  logo_id String @id
+  logo_id String @id @default(uuid())   
   merchant_id String @unique
   logo_url String
   created_at DateTime @default(now())
@@ -216,7 +215,7 @@ model Logo {
 }
 
 model Merchant {
-  merchant_id         String             @id
+  merchant_id         String             @id @default(uuid())
   owner_id            String @unique
   approval_status     ApprovalStatus     @default(PENDING)
   business_name       String
@@ -241,7 +240,7 @@ model Merchant {
 }
 
 model Message {
-  message_id                     String   @id
+  message_id                     String   @id @default(uuid())
   sender_id                      String
   receiver_id                    String
   content                        String
@@ -257,7 +256,7 @@ model Message {
 }
 
 model News {
-  news_id     String   @id
+  news_id     String   @id @default(uuid())
   merchant_id String
   title       String
   content     String
@@ -267,7 +266,7 @@ model News {
 }
 
 model Notification {
-  notification_id String @id
+  notification_id String @id @default(uuid())
   user_id String
   title String
   content String
@@ -279,7 +278,7 @@ model Notification {
 }
 
 model OAuthAccount {
-  oauth_id         String    @id
+  oauth_id         String    @id @default(uuid())
   user_id          String
   provider         Provider
   provider_user_id String
@@ -294,7 +293,7 @@ model OAuthAccount {
 }
 
 model PasswordReset {
-  reset_id           String   @id
+  reset_id           String   @id @default(uuid())
   user_id            String
   reset_token        String
   reset_token_expiry DateTime
@@ -305,7 +304,7 @@ model PasswordReset {
 }
 
 model PaymentMethod {
-  payment_method_id   String          @id
+  payment_method_id   String          @id @default(uuid())
   payment_method_name String
   created_at          DateTime        @default(now())
   updated_at          DateTime        @updatedAt
@@ -313,7 +312,7 @@ model PaymentMethod {
 }
 
 model Preference {
-  preference_id String @id
+  preference_id String @id @default(uuid())
   user_id String @unique
   allow_email_notification Boolean  @default(true)
   allow_inbox_notification Boolean  @default(true)
@@ -324,7 +323,7 @@ model Preference {
 }
 
 model Queue {
-  queue_id     String           @id
+  queue_id     String           @id @default(uuid())
   branch_id    String?
   queue_name   String
   queue_status QueueStatus @default(CLOSED)
@@ -335,7 +334,7 @@ model Queue {
 }
 
 model QueueEntry {
-  entry_id     String           @id
+  entry_id     String           @id @default(uuid())
   number       Int
   queue_id     String
   user_id      String
@@ -349,7 +348,7 @@ model QueueEntry {
 }
 
 model Review {
-  review_id   String    @id
+  review_id   String    @id @default(uuid())  
   merchant_id String
   user_id     String
   rating      Int
@@ -362,7 +361,7 @@ model Review {
 }
 
 model Session {
-  id        String   @id
+  id        String   @id @default(uuid())
   data      String
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -372,7 +371,7 @@ model Session {
 }
 
 model SystemHealth {
-  log_id            String             @id
+  log_id            String             @id @default(uuid())
   uptime_percentage Float
   error_count       Int
   source            SystemHealthSource
@@ -382,7 +381,7 @@ model SystemHealth {
 }
 
 model Tag {
-  tag_id             String   @id
+  tag_id             String   @id @default(uuid())
   entity_id          String
   entity_type        TagEntity
   tag_name           String
@@ -391,7 +390,7 @@ model Tag {
 }
 
 model User {
-  user_id                           String                       @id
+  user_id                           String                       @id @default(uuid())
   username                          String                       @unique
   lname                             String
   fname                             String
@@ -439,7 +438,7 @@ model UserAdmin {
 }
 
 model UserDevice {
-  device_id     String     @id
+  device_id     String     @id @default(uuid())
   user_id       String @unique
   device_type   DeviceType
   platform      String
@@ -456,7 +455,7 @@ model UserDevice {
 }
 
 model UserMerchant {
-  staff_id             String                 @id
+  staff_id             String                 @id @default(uuid())
   user_id              String @unique
   merchant_id          String
   position             String
@@ -472,7 +471,7 @@ model UserMerchant {
 }
 
 model UserMerchantOnBranch {
-  staff_id     String
+  staff_id     String @default(uuid())
   branch_id    String
   assigned_at  DateTime     @default(now())
   Branch       Branch       @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)

@@ -1,4 +1,6 @@
 import { User } from "./user";
+import { Plan } from "./form";
+
 
 export interface Merchant {
   merchant_id: string;
@@ -6,7 +8,11 @@ export interface Merchant {
   phone: string;
   email: string;
   description?: string;
-  subscription_status: string;
+  subscription_status: Plan;
+  subscription_start: string;
+  subscription_end: string;
+  auto_renewal: boolean;
+  approved_at: string;
   approval_status: string;
   created_at: string;
   updated_at: string;

@@ -224,7 +224,7 @@ const ManageUsers = () => {
 								alt={name}
 								width={38}
 								height={38}
-								className="rounded-full object-cover"
+								className="rounded-full object-cover w-[38px] h-[38px]"
 								onError={(e) => {
 									const target = e.target as HTMLImageElement;
 									target.style.display = 'none';

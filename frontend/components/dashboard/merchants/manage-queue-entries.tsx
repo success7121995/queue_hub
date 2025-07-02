@@ -35,6 +35,7 @@ const stats = [
 		const queryClient = useQueryClient();
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [selectedQueue, setSelectedQueue] = useState<QueueWithTags | null>(null);
+	const [hasAttemptedAutoSelect, setHasAttemptedAutoSelect] = useState(false);
 	const { formatDate } = useDateTime();
 	const createMutation = useCreateQueue();
 	const updateMutation = useUpdateQueue();
@@ -242,14 +243,15 @@ const stats = [
 		}
 	}, [selectedQueue, editForm]);
 
-	// Show loading indicator for initial data fetch or any pending mutations
-	if (isLoadingQueue || isAnyMutationPending) {
-		return <LoadingIndicator fullScreen={true} text="Loading queues..." />;
-	}
-
 	// Check if user has a selected branch
 	const selectedBranchId = currentUser?.user?.UserMerchant?.selected_branch_id;
 	const availableBranches = currentUser?.user?.UserMerchant?.UserMerchantOnBranch || [];
+
+	// Show loading indicator for initial data fetch or any pending mutations
+	// Only show loading if we have a selected branch and are actually loading queue data
+	if (selectedBranchId && (isLoadingQueue || isAnyMutationPending)) {
+		return <LoadingIndicator fullScreen={true} text="Loading queues..." />;
+	}
 	
 	if (!selectedBranchId) {
 		if (availableBranches.length === 0) {
@@ -263,8 +265,9 @@ const stats = [
 					</div>
 				</div>
 			);
-		} else {
-			// Auto-select the first available branch
+		} else if (!hasAttemptedAutoSelect) {
+			// Auto-select the first available branch only once
+			setHasAttemptedAutoSelect(true);
 			const firstBranchId = availableBranches[0].branch_id;
 			switchBranchMutation.mutate(firstBranchId, {
 				onSuccess: (switchData) => {
@@ -278,6 +281,7 @@ const stats = [
 				},
 				onError: (error) => {
 					console.error('Failed to switch branch:', error);
+					setHasAttemptedAutoSelect(false); // Reset so user can try again
 				}
 			});
 			
@@ -287,6 +291,24 @@ const stats = [
 						<div className="text-center">
 							<LoadingIndicator />
 							<p className="text-gray-600 mt-4">Setting up your branch access...</p>
+						</div>
+					</div>
+				</div>
+			);
+		} else {
+			// If we've already attempted auto-selection but still no branch, show an error
+			return (
+				<div className="font-regular-eng p-8 min-h-screen">
+					<div className="flex justify-center items-center h-64">
+						<div className="text-center">
+							<h2 className="text-2xl font-bold text-gray-700 mb-4">Branch Selection Failed</h2>
+							<p className="text-gray-600 mb-4">Unable to automatically select a branch. Please refresh the page or contact support.</p>
+							<button
+								onClick={() => window.location.reload()}
+								className="px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-light/90 transition-colors"
+							>
+								Refresh Page
+							</button>
 						</div>
 					</div>
 				</div>

@@ -81,11 +81,11 @@ if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     if (!req.session.user) {
       req.session.user = {
-        user_id: "d6ab0d83-3990-4083-9af7-a39de3fd3625",
-        role: "MERCHANT",
-        email: "joechan@gmail.com",
-        merchant_id: "0c8f48b7-d4f3-467e-afd6-f610d9124b31",
-        merchantRole: "OWNER"
+        user_id: "5469ca2a-83ba-4a0d-8265-17d763233975",
+        role: "ADMIN",
+        email: "success7121995@gmail.com",
+        admin_id: "dfffad85-110d-4aba-a306-d3390aadf713",
+        adminRole: "SUPER_ADMIN"
       };
     }
     next();

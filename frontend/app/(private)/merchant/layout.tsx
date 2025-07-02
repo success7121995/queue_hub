@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import DashboardNavbar from "@/components/dashboard/merchants/dashboard-navbar";
 import DashboardSidenav from "@/components/dashboard/merchants/dashboard-sidenav";
 import { prefetchBranches, prefetchMerchant, prefetchQueues } from "@/hooks/merchant-hooks";
-import { prefetchGetMessagePreview } from "@/hooks/user-hooks";
 import { getQueryClient } from "@/lib/query-client";
 import { fetchAuth } from "@/hooks/auth-hooks";
 import { queueKeys } from "@/hooks/merchant-hooks";
@@ -35,9 +34,7 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 			const queuesData = await prefetchQueues(queryClient, selectedBranchId);
 			queryClient.setQueryData(queueKeys.list(selectedBranchId), queuesData);
 		}
-
-		const messagePreviewData = await prefetchGetMessagePreview();
-		queryClient.setQueryData(['messagePreview'], messagePreviewData);
+		
 	} catch (error) {
 		console.error('Error prefetching user data:', error); 
 	}

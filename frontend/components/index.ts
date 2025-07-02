@@ -61,7 +61,6 @@ export { default as Profile } from "./dashboard/profile";
 export { default as Billing } from "./dashboard/billing";
 export { default as Setting } from "./dashboard/setting";
 export { default as Switch } from "./common/switch";
-export { default as MsgDropdown } from "./common/msg-dropdown";
 export { default as Notification } from "./common/notification";
 export { default as Chatbox } from "./common/chat/chatbox";
 export { default as ChatInput } from "./common/chat/chat-input";

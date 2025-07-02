@@ -34,13 +34,6 @@ const AdminDashboard = ({ slug }: AdminDashboardProps) => {
 	const adminRole = userData?.user?.UserAdmin?.role;
 	const router = useRouter();
 
-	console.log('AdminDashboard Debug:', {
-		userData,
-		userRole,
-		adminRole,
-		slug
-	});
-
 	const isRouteAllowed = (): boolean => {
 		// Check if user has admin access - either through main role or UserAdmin relationship
 		const isAdmin = userRole === 'ADMIN' || adminRole;
@@ -49,12 +42,9 @@ const AdminDashboard = ({ slug }: AdminDashboardProps) => {
 		// If user has specific admin role, check access rules
 		if (adminRole) {
 			const hasAccess = hasAdminAccess(adminRole as any, slug);
-			console.log('Route access check:', { adminRole, slug, hasAccess });
 			return hasAccess;
 		}
 		
-		// If user has role "ADMIN", allow access to all admin routes
-		console.log('Route access check: ADMIN role, allowing access');
 		return true;
 	};
 

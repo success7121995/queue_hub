@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, ChevronDown } from "lucide-react";
+import { Bell } from "lucide-react";
+import Link from "next/link";
 import { useDateTime } from "@/constant/datetime-provider";
 
 // Mock data structure following Prisma schema
@@ -25,6 +26,7 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
     const [isOpen, setIsOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const { formatRelativeTime } = useDateTime();
+
     // Mock data for development
     const mockNotifications: Notification[] = [
         {
@@ -129,7 +131,7 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
                         <div className="border-t border-gray-200 mt-3 pt-3">
                             <button className="w-full text-center text-sm text-primary-light hover:text-primary-dark transition-colors">
                                 View all notifications
-                            </button>
+                            </button>   
                         </div>
                     )}
                 </div>

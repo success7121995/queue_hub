@@ -1,6 +1,5 @@
 import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
-import { v4 as uuidv4 } from "uuid";
 
 export const messageService = {
     /**
@@ -117,7 +116,6 @@ export const messageService = {
         const result = await prisma.$transaction(async (tx) => {        
             const message = await tx.message.create({
             data: {
-                message_id: uuidv4(),
                 sender_id: senderId,
                 receiver_id: receiverId,
                 content,
@@ -146,7 +144,6 @@ export const messageService = {
                     updated_at: new Date()
                 },
                 create: {
-                    id: uuidv4(),
                     user_id,
                     other_user_id,
                 },

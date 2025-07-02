@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, ChevronDown, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
-import { Dropdown, MsgDropdown, Notification } from '@/components';
+import { Dropdown, Notification } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
@@ -289,9 +289,6 @@ const DashboardNavbar = () => {
 					/>
 				</span>
 
-				{/* Messages */}
-				<MsgDropdown />
-
 				{/* Notifications */}
 				<Notification 
 					isLoading={isUserDataLoading}
@@ -304,7 +301,7 @@ const DashboardNavbar = () => {
 							{ isUserDataLoading ? <LoadingIndicator size="sm" className="!mt-0" /> : 
 								avatarUrl ? (
 									<div className="w-10 h-10 rounded-full flex items-center justify-center">
-										<Image src={avatarUrl} alt="Avatar" width={38} height={38} className="rounded-full" />
+										<Image src={avatarUrl} alt="Avatar" width={38} height={38} className="rounded-full object-cover w-full h-full" />
 									</div>
 								) : (
 									<div className="w-10 h-10 rounded-full bg-text-light text-primary-light text-lg font-bold flex items-center justify-center">
@@ -390,11 +387,6 @@ const DashboardNavbar = () => {
 
 			{/* Mobile hamburger and menu toggler always on the far right */}
 			<div className="lg:hidden ml-auto flex items-center space-x-2 sm:space-x-3">
-				{/* Messages - Mobile */}
-				<div className="flex items-center">
-					<MsgDropdown className="!relative" />
-				</div>
-				
 				{/* Notifications - Mobile */}
 				<div className="flex items-center">
 					<Notification 

@@ -76,6 +76,22 @@ const employeeSchema = z.object({
 
 export type EmployeeSchema = z.infer<typeof employeeSchema>;
 
+const adminSchema = z.object({
+    fname: z.string().min(1, "First name is required"),
+    lname: z.string().min(1, "Last name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirm_password: z.string().min(8, "Password must be at least 8 characters"),
+    admin_id: z.string().min(1, "Admin ID is required").optional(),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(1, "Phone number is required"),
+    role: z.enum(["SUPER_ADMIN", "OPS_ADMIN", "DEVELOPER", "SUPPORT_AGENT"]),
+    position: z.string().min(1, "Position is required"),
+    image_url: z.string().optional(),
+});
+
+export type AdminSchema = z.infer<typeof adminSchema>;
+
 const changePasswordSchema = z.object({
     old_password: z.string().min(8, "Password must be at least 8 characters"),
     new_password: z.string().min(8, "Password must be at least 8 characters"),
@@ -95,6 +111,68 @@ const customerSchema = z.object({
 export type CustomerSchema = z.infer<typeof customerSchema>;
 
 export const authController = {
+    /**
+     * Add new admin
+     * @param req - The request object
+     * @param res - The response object
+     */
+    addNewAdmin: withActivityLog(
+        async (req: Request, res: Response) => {
+            const validatedData = adminSchema.parse(req.body);
+            
+            // Check if passwords match
+            if (validatedData.password !== validatedData.confirm_password) {
+                throw new AppError("Passwords do not match", 400);
+            }
+
+            const result = await authService.addNewAdmin(validatedData);
+
+            res.status(201).json({
+                success: true,
+                result
+            });
+
+            return result;
+        },
+        {
+            action: ActivityType.CREATE_STAFF_USER,
+            extractUserId: (req, res, result) => result?.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                email: req.body.email,
+                role: req.body.role,
+            }),
+        }
+    ),
+
+    /**
+     * Get unique username
+     * @param req - The request object
+     * @param res - The response object
+     */
+    checkUniqueUsernameAndEmail: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { username, email } = req.query;
+            let result = {
+                isUniqueUsername: false,
+                isUniqueEmail: false,
+            };
+
+            if (username) {
+                const isUniqueUsername = await authService.getUniqueUsername(username as string);
+                console.log(isUniqueUsername);
+                result.isUniqueUsername = isUniqueUsername;
+            }
+
+            if (email) {
+                const isUniqueEmail = await authService.getUniqueEmail(email as string);
+                console.log(isUniqueEmail);
+                result.isUniqueEmail = isUniqueEmail;
+            }
+
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+    ),
 
     /**
      * Login a user (Merchant or admin)

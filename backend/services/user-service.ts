@@ -1,7 +1,6 @@
 import { prisma } from "../lib/prisma";
-import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { User, MerchantRole, Prisma, ImageType } from "@prisma/client";
+import { User, MerchantRole, Prisma } from "@prisma/client";
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -397,7 +396,6 @@ export const userService = {
                 data: {
                     Avatar: {
                         create: {
-                            image_id: uuidv4(),
                             image_url: image_url
                         }
                     }
@@ -463,7 +461,6 @@ export const userService = {
         // Create new queue entry
         const entry = await prisma.queueEntry.create({
             data: {
-                entry_id: uuidv4(),
                 queue_id,
                 user_id,
                 number: nextNumber,

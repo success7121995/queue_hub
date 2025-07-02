@@ -1,11 +1,70 @@
-import { ChangePasswordSchema, CustomerSchema, EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
+import { AdminSchema, ChangePasswordSchema, CustomerSchema, EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
-import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole } from '@prisma/client';
+import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole, AdminRole } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
  
 export const authService = {
+    /**
+     * Add new admin
+     * @param data - The data
+     */
+    async addNewAdmin(data: AdminSchema) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Hash password
+            const password_hash = await bcrypt.hash(data.password, 10);
+
+            const user = await tx.user.create({
+                data: {
+                    user_id: uuidv4(),
+                    username: data.username,
+                    fname: data.fname,
+                    lname: data.lname,
+                    email: data.email,
+                    password_hash,
+                    phone: data.phone,
+                    role: UserRole.ADMIN,
+                    status: UserStatus.ACTIVE,
+                    lang: Lang.EN,
+                    email_verified: false,
+                    verification_token: uuidv4(),
+                    updated_at: new Date()
+                }
+            });
+
+            const userAdmin = await tx.userAdmin.create({ 
+                data: { 
+                    admin_id: data.admin_id ?? uuidv4(),
+                    role: data.role as AdminRole,
+                    position: data.position,
+                    updated_at: new Date(),
+                    User: { connect: { user_id: user.user_id } }
+                } 
+            });
+            return { user, userAdmin };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        return result;
+    },
+
+    /**
+     * Get unique username
+     * @param username - The username
+     */ 
+    async getUniqueUsername(username: string) {
+        const result = await prisma.user.findFirst({ where: { username } });
+        return result == null ? true : false;
+    },
+
+    /**
+     * Get unique email
+     * @param email - The email
+     */
+    async getUniqueEmail(email: string) {
+        const result = await prisma.user.findFirst({ where: { email } });
+        return result == null ? true : false;
+    },
 
     /**
      * Register a merchant
@@ -232,7 +291,6 @@ export const authService = {
 
             const user = await tx.user.create({
                 data: {
-                    user_id: uuidv4(),
                     username: data.username,
                     fname: data.fname,
                     lname: data.lname,
@@ -312,7 +370,6 @@ export const authService = {
         const result = await prisma.$transaction(async (tx) => {
             const user = await tx.user.create({
                 data: {
-                    user_id: uuidv4(),
                     username: data.username,
                     fname: data.fname,
                     lname: data.lname,

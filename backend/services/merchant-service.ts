@@ -122,7 +122,6 @@ export const merchantService = {
                 // Create new address
                 address = await tx.address.create({
                     data: {
-                        address_id: uuidv4(),
                         merchant_id,
                         street: data.street!,
                         city: data.city!,
@@ -155,7 +154,6 @@ export const merchantService = {
         const result = await prisma.$transaction(async (tx) => {
             const newQueue = await tx.queue.create({
                 data: {
-                    queue_id: uuidv4(),
                     queue_name,
                     branch_id,
                     updated_at: new Date(),
@@ -168,7 +166,6 @@ export const merchantService = {
 
             if (tags) {
                 const tagData = tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => ({
-                    tag_id: uuidv4(),
                     entity_id: newQueue.queue_id,
                     entity_type: TagEntity.QUEUE,
                     tag_name: tag,
@@ -387,7 +384,6 @@ export const merchantService = {
             if (data.address) {
                 await tx.address.create({
                     data: {
-                        address_id: uuidv4(),
                         branch_id: branch.branch_id,
                         street: data.address.street,
                         city: data.address.city,
