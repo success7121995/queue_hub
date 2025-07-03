@@ -1,14 +1,24 @@
 import { Router } from "express";
 import { requireAuth, requireAdminRole } from "../middleware/require-auth-middleware";
 import { UserRole, AdminRole } from "@prisma/client";
+import { authController } from "../controllers/auth-controller";
+import { adminController } from "../controllers/admin-controller";
+import { merchantController } from "../controllers/merchant-controller";
 
 const router = Router();
 
-// Create a new admin
-router.post("/create", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});
+// Get all admins
+router.get("/", requireAuth([UserRole.ADMIN]), (req, res) => adminController.getAdmins(req, res)); // Get all admins
+router.post("/", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), (req, res) => authController.addNewAdmin(req, res)); // Create a new admin
+
+// Merchant management (admin only)
+router.get('/merchants', requireAuth([UserRole.ADMIN]), requireAdminRole(), (req, res) => merchantController.getMerchants(req, res));  // Get all merchants (with filters)
+router.put('/merchants/:merchant_id', requireAuth([UserRole.ADMIN]), requireAdminRole(), (req, res) => merchantController.updateMerchant(req, res));  // Update merchant
+router.put('/merchants/:merchant_id/approval', requireAuth([UserRole.ADMIN]), requireAdminRole(), (req, res) => adminController.approveMerchant(req, res));  // Update merchant approval status
+router.delete('/merchants/:merchant_id', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), (req, res) => merchantController.deleteMerchant(req, res));  // Delete merchant
 
 // Get an admin
-router.get("/:id", requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});
+router.get('/:id', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});
 
 // Get all admins
 router.get("/", requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});
@@ -18,14 +28,6 @@ router.put("/:id", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SU
 
 // Delete an admin
 router.delete("/:id", requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});
-
-// Merchant management (admin only)
-router.get('/merchants', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get all merchants
-router.post('/merchants', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Create new merchant account
-router.get('/merchants/:merchantId', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get merchant details
-router.put('/merchants/:merchantId', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Update merchant details
-router.delete('/merchants/:merchantId', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN]), () => {});  // Delete merchant account
-router.put('/merchants/:merchantId/status', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), () => {});  // Update merchant status (active/suspended)
 
 // User management (admin only)
 router.get('/users', requireAuth([UserRole.ADMIN]), requireAdminRole(), () => {});  // Get all users

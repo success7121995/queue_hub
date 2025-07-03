@@ -5,7 +5,7 @@ import { prefetchBranches, prefetchMerchant, prefetchQueues } from "@/hooks/merc
 import { getQueryClient } from "@/lib/query-client";
 import { prefetchAuth, useAuth } from "@/hooks/auth-hooks";
 import { queueKeys } from "@/hooks/merchant-hooks";
-import { Chatbox, LoadingIndicator } from "@/components";
+import { Chatbox } from "@/components";
 
 interface MerchantLayoutProps {
 	children: ReactNode;

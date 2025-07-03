@@ -39,6 +39,7 @@ export const authService = {
                     role: data.role as AdminRole,
                     position: data.position,
                     updated_at: new Date(),
+                    supervisor_id: data.supervisor_id,
                     User: { connect: { user_id: user.user_id } }
                 } 
             });
@@ -74,7 +75,7 @@ export const authService = {
         const { signup, branchInfo, address, branchAddress, payment } = data;
 
         // Hash password
-        const password_hash = await bcrypt.hash(signup.password, 10);
+        const password_hash = await bcrypt.hash(signup.password, 10);  
 
         // Create user and merchant in a transaction
         const result = await prisma.$transaction(async (tx) => {
@@ -107,6 +108,7 @@ export const authService = {
                     email: signup.email,
                     description: branchInfo.description,
                     subscription_status: signup.plan as SubscriptionStatus,
+
                     auto_renewal: payment.auto_renewal,
                     updated_at: new Date()
                 }

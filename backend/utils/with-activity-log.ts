@@ -14,7 +14,6 @@ export const withActivityLog = (
     return async (req: Request, res: Response) => {
         let error: string | null = null;
         let status = 500;
-        let user_id: string | null = null;
         let result: any = null;
 
         const originalJson = res.json.bind(res);
@@ -39,18 +38,18 @@ export const withActivityLog = (
                 console.error(err);
             }
         } finally {
-            // try {
-            //     await adminService.createActivityLog({
-            //         action: config.action,
-            //         action_data: config.extractData?.(req, res, result) ?? {},
-            //         success: !error,
-            //         error,
-            //         status,
-            //         user_id: config.extractUserId?.(req, res, result) ?? null,
-            //     });
-            // } catch (logErr) {
-            //     console.error("Activity log failed:", logErr);
-            // }
+            try {
+                await adminService.createActivityLog({
+                    action: config?.action!,
+                    action_data: config?.extractData?.(req, res, result) ?? {},
+                    success: !error,
+                    error,
+                    status,
+                    user_id: config?.extractUserId?.(req, res, result) ?? null,
+                });
+            } catch (logErr) {
+                console.error("Activity log failed:", logErr);
+            }
         }
     };
 };

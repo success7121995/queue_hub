@@ -8,49 +8,38 @@ import { AppError } from "../utils/app-error";
 // Handles: merchant management, user management, queue oversight, analytics
 export const adminController = {
     /**
+     * Get all admins
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getAdmins: withActivityLog(
+        async (_, res: Response) => {
+
+            const result = await adminService.getAdmins();
+            res.status(200).json({ success: true, result });
+        }
+    ),
+    
+    /**
      * Approve a merchant
      * @param req - The request object
      * @param res - The response object
      */
     approveMerchant: withActivityLog(
-        async (req: Request, res: Response) => {
+        async (req: Request, res: Response) => {            
             const { merchant_id } = req.params;
+            const { approval_status } = req.body;
             
-            const result = await adminService.approveMerchant(merchant_id);
+            const result = await adminService.approveMerchant(merchant_id, approval_status);
+
             res.status(200).json({ success: true, result });
-            return result;
         },
         {
             action: ActivityType.APPROVE_MERCHANT,
-            extractUserId: (req) => req.user?.user_id ?? null,
+            extractUserId: (req) => req.session.user?.user_id!,
             extractData: (req, res, result) => ({
                 merchant_id: req.params.merchant_id,
-                merchant_name: result?.merchant?.business_name,
-            }),
-        }
-    ),
-
-    /**
-     * Reject a merchant
-     * @param req - The request object
-     * @param res - The response object
-     */
-    rejectMerchant: withActivityLog(
-        async (req: Request, res: Response) => {
-            const { merchant_id } = req.params;
-            const { reason } = req.body;
-            
-            const result = await adminService.rejectMerchant(merchant_id, reason);
-            res.status(200).json({ success: true, result });
-            return result;
-        },
-        {
-            action: ActivityType.REJECT_MERCHANT,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: (req, res, result) => ({
-                merchant_id: req.params.merchant_id,
-                merchant_name: result?.merchant?.business_name,
-                reason: req.body.reason,
+                ...(req.body.reason ? { reason: req.body.reason } : {}),
             }),
         }
     ),
@@ -67,7 +56,6 @@ export const adminController = {
             
             const result = await adminService.suspendUser(user_id, reason);
             res.status(200).json({ success: true, result });
-            return result;
         },
         {
             action: ActivityType.SUSPEND_USER,
@@ -92,7 +80,6 @@ export const adminController = {
             
             const result = await adminService.changeUserRole(user_id, role);
             res.status(200).json({ success: true, result });
-            return result;
         },
         {
             action: ActivityType.CHANGE_USER_ROLE,
@@ -119,7 +106,6 @@ export const adminController = {
                 end_date: end_date as string,
             });
             res.status(200).json({ success: true, result });
-            return result;
         }
     ),
 }; 

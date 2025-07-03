@@ -64,11 +64,6 @@ export const userController = {
 
             return userData;
         },
-        {
-            action: ActivityType.VIEW_PROFILE,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: () => ({}),
-        }
     ),
 
     /**

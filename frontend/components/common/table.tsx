@@ -204,6 +204,7 @@ const Table = <T extends Record<string, any>>({
 					<DateTimePicker
 						value={[dateRange.from, dateRange.to]}
 						onChange={([from, to]) => setDateRange({ from, to })}
+						usePortal
 					/>
 				</div>
 				{(dateRange.from || dateRange.to) && (

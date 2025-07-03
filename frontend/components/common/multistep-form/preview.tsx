@@ -8,6 +8,7 @@ import Success from "./success";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { useCreateBranch, useUserMerchants } from "@/hooks/merchant-hooks";
 import { useAuth, useCreateUser, useSignup } from "@/hooks/auth-hooks";
+import { useAddAdmin } from "@/hooks/admin-hooks";
 
 interface PreviewProps {
     form?: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -89,6 +90,19 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev, isSignupForm = false })
         },
         onError: (error) => {
             console.error("Error during signup:", error);
+        }
+    });
+
+    /**
+     * Create admin
+     */
+    const addAdminMutation = useAddAdmin({
+        onSuccess: () => {
+            setShowSuccess(true);
+            Cookies.remove(COOKIE_KEY);
+        },
+        onError: (error) => {
+            console.error("Error creating admin:", error);
         }
     });
 
@@ -212,7 +226,8 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev, isSignupForm = false })
                 lang: formData.accountSetup.lang
             }
         };
-        createUserMutation.mutate(adminData);
+
+        addAdminMutation.mutate(adminData);
     };
 
     const handleSignup = () => {
@@ -239,7 +254,7 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev, isSignupForm = false })
             case "add-employee":
                 return createUserMutation.isPending;
             case "add-admin":
-                return createUserMutation.isPending;
+                return addAdminMutation.isPending;
             case "signup":
                 return signupMutation.isPending;
             default:

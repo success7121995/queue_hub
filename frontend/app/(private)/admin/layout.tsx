@@ -3,6 +3,7 @@ import AdminNavbar from "@/components/dashboard/admin/admin-navbar";
 import AdminSidenav from "@/components/dashboard/admin/admin-sidenav";
 import { getQueryClient } from "@/lib/query-client";
 import { prefetchAuth } from "@/hooks/auth-hooks";
+import { Chatbox } from "@/components";
 
 interface AdminLayoutProps {
 	children: ReactNode;
@@ -37,6 +38,12 @@ const AdminLayout = async ({ children }: AdminLayoutProps) => {
 				<main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 w-full">
 					{children}
 				</main>
+
+
+				{/* Chatbox */}
+				<div className="fixed bottom-2 right-2 z-50">
+					<Chatbox />
+				</div>
 			</div>
 		</div>
 	);

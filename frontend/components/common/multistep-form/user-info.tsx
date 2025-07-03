@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "@/constant/form-provider";
 import type { UseFormReturn } from "react-hook-form";
-import { AddAdminFormFields } from "@/types/form";
+import { UserInfo as UserInfoType } from "@/types/form";
 import Cookies from "js-cookie";
 import { useAuth } from "@/hooks/auth-hooks";
+import { useGetAdmins } from "@/hooks/admin-hooks";
 import { CountryDialingDropdown, useDialingCode } from "@/constant/dialing-code-provider";
 import { fetchUniqueUsernameAndEmail } from "@/hooks/auth-hooks";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -39,11 +40,13 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
         watch,
         setError,
         formState: { errors },
-    } = (formMethods as unknown) as UseFormReturn<AddAdminFormFields["userInfo"]>;
+    } = (formMethods as unknown) as UseFormReturn<UserInfoType & { supervisor_id?: string }>;
 
     // Get current user's role for role-based access control
     const { data: currentUser } = useAuth();
     const currentUserRole = currentUser?.user?.UserMerchant?.role;
+    const { data: adminsData } = useGetAdmins();
+    const admins = adminsData?.result || [];
 
     // Validation states
     const [emailChecked, setEmailChecked] = useState(false);
@@ -72,10 +75,12 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
         try {
             const result = await fetchUniqueUsernameAndEmail(undefined, watchedEmail);
             setEmailValid(result.isUniqueEmail);
-            setError("email", {
-                type: "manual",
-                message: result.isUniqueEmail ? "Email is available" : "Email is already taken"
-            });
+            if (!result.isUniqueEmail) {
+                setError("email", {
+                    type: "manual",
+                    message: "Email is already taken"
+                });
+            }
         } catch (error) {
             console.error('Error checking email uniqueness:', error);
             setEmailValid(false);
@@ -146,14 +151,18 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                 const parsed = JSON.parse(cookie);
                 if (parsed.userInfo) {
                     Object.entries(parsed.userInfo).forEach(([key, value]) => {
-                        setValue(key as keyof AddAdminFormFields["userInfo"], value as string);
+                        setValue(key as keyof UserInfoType, value as string);
                     });
                 }
             } catch {}
         }
     }, [setValue]);
 
-    const onSubmit = (data: AddAdminFormFields["userInfo"]) => {
+    // Supervisor options: only admins with allowed roles
+    const allowedSupervisorRoles = ["OPS_ADMIN", "SUPER_ADMIN", "SUPPORT_AGENT", "DEVELOPER"];
+    const supervisorOptions = admins.filter(a => allowedSupervisorRoles.includes(a.UserAdmin?.role || ""));
+
+    const onSubmit = (data: UserInfoType & { supervisor_id?: string }) => {
         // Validate that email has been checked and is valid
         if (!emailChecked) {
             setError("email", {
@@ -179,7 +188,17 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                 cookieData = JSON.parse(cookie);
             } catch {}
         }
-        Cookies.set(COOKIE_KEY, JSON.stringify({ ...cookieData, userInfo: data }));
+        // Always include supervisor_id for add-admin
+        let submitData = { ...data };
+        if (formType === 'add-admin') {
+            // If supervisor_id is undefined, set to empty string (should not happen due to required validation)
+            if (typeof submitData.supervisor_id === 'undefined') {
+                submitData.supervisor_id = '';
+            }
+        }
+        // Debug: log the data to verify supervisor_id is present
+        console.log('Submitting user info:', submitData);
+        Cookies.set(COOKIE_KEY, JSON.stringify({ ...cookieData, userInfo: submitData }));
 
         // Advance to next step
         if (onNext) onNext();
@@ -235,6 +254,31 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                     />
                     {errors.staff_id && <span className="text-red-500 text-xs">{errors.staff_id.message}</span>}
                 </div>
+
+                {/* Supervisor */}
+                {formType === "add-admin" && (
+                <div>
+                    <label htmlFor="supervisor_id" className="block mb-1 font-semibold text-text-main text-sm">Supervisor <span className="text-red-500">*</span></label>
+                    <select
+                        id="supervisor_id"
+                        className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
+                            errors['supervisor_id'] ? "border-red-500" : "border-gray-400"
+                        }`}
+                        {...register("supervisor_id", { required: "Supervisor is required" })}
+                        defaultValue=""
+                    >
+                        <option value="" disabled>Select Supervisor</option>
+                        {supervisorOptions
+                          .filter(admin => typeof admin.user_id === 'string' && admin.user_id)
+                          .map(admin => (
+                            <option key={admin.user_id as string} value={admin.user_id as unknown as string}>
+                              {admin.fname} {admin.lname} ({admin.UserAdmin?.position})
+                            </option>
+                          ))}
+                    </select>
+                    {errors['supervisor_id'] && <span className="text-red-500 text-xs">{errors['supervisor_id'].message}</span>}
+                </div>
+                )}
 
                 {/* Email with Check Button */}
                 <div>
@@ -323,9 +367,9 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                     <select
                         id="role"
                         className={`w-full border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary ${
-                            errors.role ? "border-red-500" : "border-gray-400"
+                            (errors as any)['role'] ? "border-red-500" : "border-gray-400"
                         }`}
-                        {...register("role", { required: "Role is required" })}
+                        {...register("role" as any, { required: "Role is required" })}
                         defaultValue=""
                     >
                         <option value="" disabled>Select Role</option>
@@ -339,7 +383,7 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
                             </option>
                         ))}
                     </select>
-                    {errors.role && <span className="text-red-500 text-xs">{errors.role.message}</span>}
+                    {(errors as any)['role'] && <span className="text-red-500 text-xs">{(errors as any)['role'].message}</span>}
                     {formType === "add-employee" && filteredRoleOptions.length === 0 && (
                         <span className="text-orange-500 text-xs">
                             You don't have permission to assign roles.
@@ -349,8 +393,6 @@ const UserInfo: React.FC<UserInfoProps> = ({ onNext, formType }) => {
 
                 {/* Navigation Buttons */}
                 <div className="flex justify-between">
-
-                    {/* First Button */}
                     <button
                         type="submit"
                         className="bg-primary-light text-white rounded-[10px] px-8 py-2 text-base font-semibold shadow-sm hover:bg-primary-dark transition-all cursor-pointer"

@@ -82,12 +82,13 @@ const adminSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm_password: z.string().min(8, "Password must be at least 8 characters"),
-    admin_id: z.string().min(1, "Admin ID is required").optional(),
+    admin_id: z.string().optional(),
     email: z.string().email("Invalid email address"),
     phone: z.string().min(1, "Phone number is required"),
     role: z.enum(["SUPER_ADMIN", "OPS_ADMIN", "DEVELOPER", "SUPPORT_AGENT"]),
     position: z.string().min(1, "Position is required"),
     image_url: z.string().optional(),
+    supervisor_id: z.string().min(1, "Supervisor is required"),
 });
 
 export type AdminSchema = z.infer<typeof adminSchema>;
@@ -118,11 +119,12 @@ export const authController = {
      */
     addNewAdmin: withActivityLog(
         async (req: Request, res: Response) => {
+            console.log('req.body: ' + req.body);
             const validatedData = adminSchema.parse(req.body);
+            console.log('validatedData: ' + validatedData);
             
-            // Check if passwords match
-            if (validatedData.password !== validatedData.confirm_password) {
-                throw new AppError("Passwords do not match", 400);
+            if (!validatedData.supervisor_id) {
+                throw new AppError("Supervisor is required", 400);
             }
 
             const result = await authService.addNewAdmin(validatedData);
@@ -159,13 +161,11 @@ export const authController = {
 
             if (username) {
                 const isUniqueUsername = await authService.getUniqueUsername(username as string);
-                console.log(isUniqueUsername);
                 result.isUniqueUsername = isUniqueUsername;
             }
 
             if (email) {
                 const isUniqueEmail = await authService.getUniqueEmail(email as string);
-                console.log(isUniqueEmail);
                 result.isUniqueEmail = isUniqueEmail;
             }
 

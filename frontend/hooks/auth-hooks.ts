@@ -1,9 +1,8 @@
 import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions, QueryClient } from "@tanstack/react-query";
 import Cookies from 'js-cookie';
-import { AddEmployeeFormFields, AddAdminFormFields, SignupFormFields } from "@/types/form";
+import { AddEmployeeFormFields, SignupFormFields, AdminInfo } from "@/types/form";
 import { AuthResponse, ChangePasswordResponse, LogoutResponse } from "@/types/response";
 import { User, UserMerchant } from "@/types/user";
-import { fetchQueues, queueKeys } from "./merchant-hooks";
 
 // Types
 export interface LoginFormInputs {
@@ -75,20 +74,7 @@ export const fetchAuth = async (): Promise<AuthResponse> => {
  * @param data 
  * @returns 
  */
-export const fetchCreateUser = async (data: AddEmployeeFormFields | AddAdminFormFields): Promise<AuthResponse> => {
-    // Determine if this is an admin or employee based on the role
-    const isAdmin = 'userInfo' in data && data.userInfo.role && ['SUPER_ADMIN', 'OPS_ADMIN', 'DEVELOPER', 'SUPPORT_AGENT'].includes(data.userInfo.role);
-    const isEmployee = 'userInfo' in data && data.userInfo.role && ['OWNER', 'MANAGER', 'FRONTLINE'].includes(data.userInfo.role);
-    
-    let endpoint = '';
-    if (isAdmin) {
-        endpoint = '/api/auth/admin/create';
-    } else if (isEmployee) {
-        endpoint = '/api/auth/employee/create';
-    } else {
-        throw new Error('Invalid user role');
-    }
-    
+export const fetchCreateUser = async (data: AddEmployeeFormFields): Promise<AuthResponse> => {
     // Flatten the nested data structure to match backend expectations
     const flattenedData = {
         fname: data.userInfo.fname,
@@ -102,11 +88,9 @@ export const fetchCreateUser = async (data: AddEmployeeFormFields | AddAdminForm
         role: data.userInfo.role,
         position: data.userInfo.position,
         image_url: data.userInfo.image_url,
-        // Add admin_id for admin users
-        ...(isAdmin && { admin_id: data.userInfo.staff_id })
     };
     
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${endpoint}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/employee/create`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -263,7 +247,7 @@ export const useAuth = (options?: Omit<UseQueryOptions<AuthResponse, Error>, 'qu
  * @param options 
  * @returns 
  */
-export const useCreateUser = (options?: Omit<UseMutationOptions<AuthResponse, Error, AddEmployeeFormFields | AddAdminFormFields>, 'mutationFn'>) => {
+export const useCreateUser = (options?: Omit<UseMutationOptions<AuthResponse, Error, AddEmployeeFormFields>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchCreateUser,
         ...options,

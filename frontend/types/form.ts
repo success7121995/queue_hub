@@ -1,7 +1,7 @@
 import { Lang } from "@/constant/lang-provider";
 import { z } from "zod";
 
-export type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH";
+export type Plan = "TRIAL" | "ESSENTIAL" | "GROWTH" | "CANCELLED" | "EXPIRED";
 export type MerchantRole = "OWNER" | "MANAGER" | "FRONTLINE";
 export type AdminRole = "SUPER_ADMIN" | "OPS_ADMIN" | "DEVELOPER" | "SUPPORT_AGENT";
 
@@ -74,6 +74,7 @@ export interface EmployeeInfo extends UserInfo {
 
 export interface AdminInfo extends UserInfo {
   role: AdminRole;
+  supervisor_id: string;
 }
 
 // ========================

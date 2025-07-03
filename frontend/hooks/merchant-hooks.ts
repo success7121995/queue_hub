@@ -14,7 +14,7 @@ import type {
     BranchOpeningHourResponse,
     LogoResponse,
 } from "@/types/response";
-import type { Address, Branch, BranchOpeningHour } from "@/types/merchant";
+import type { Address, Branch, BranchOpeningHour, Merchant } from "@/types/merchant";
 
 // Query Keys
 export const queueKeys = {
@@ -29,6 +29,7 @@ export const merchantKeys = {
     all: ['merchant'] as const,
     details: () => [...merchantKeys.all, 'detail'] as const,
     detail: (id: string) => [...merchantKeys.details(), id] as const,
+    merchants: () => [...merchantKeys.all, 'merchants'] as const,
 } as const;
 
 export const branchKeys = {
@@ -179,6 +180,24 @@ export const fetchMerchant = async (merchantId: string): Promise<MerchantRespons
     const responseData = await res.json();
     return responseData.result;
 };
+
+/**
+ * Fetch get merchants
+ * @returns 
+ */
+export const fetchGetMerchants = async (): Promise<{ success: boolean; result: Merchant[] }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get merchants');
+    }
+    const responseData = await res.json();
+    return responseData;
+};
+
 
 /**
  * Fetch branches
@@ -711,6 +730,17 @@ export const useMerchant = (merchantId: string, options?: Omit<UseQueryOptions<M
         enabled: !!merchantId,
         staleTime: 1000 * 60 * 5, // 5 minutes
         gcTime: 1000 * 60 * 10, // 10 minutes
+        ...options,
+    });
+};
+
+/**
+ * Use get merchants
+ */
+export const useGetMerchants = (options?: Omit<UseQueryOptions<{ success: boolean; result: Merchant[] }, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: merchantKeys.merchants(),
+        queryFn: fetchGetMerchants,
         ...options,
     });
 };

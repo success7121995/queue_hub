@@ -117,3 +117,5 @@ export interface Logo {
   created_at: string;
   updated_at: string;
 }
+
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";

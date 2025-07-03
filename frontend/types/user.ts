@@ -10,14 +10,19 @@ export interface User {
   phone: string;
   role: string;
   status: string;
-  lang: Lang;
-  last_login?: string | Date;
+  lang?: Lang;
+  last_login?: string | Date | null;
   email_verified?: boolean;
   merchant?: Merchant;
   branches?: Branch[];
   branchId?: string;
   merchantRole?: string;
   message_received?: Message[];
+  Avatar?: {
+    image_url: string;
+  } | null;
+  UserMerchant?: UserMerchant;
+  UserAdmin?: UserAdmin;
 }
 
 export interface UserMerchant {

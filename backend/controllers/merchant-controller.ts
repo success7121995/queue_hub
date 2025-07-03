@@ -139,6 +139,43 @@ export const merchantController = {
     ),
 
     /**
+     * Get all merchants
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getMerchants: withActivityLog(
+        async (req: Request, res: Response) => {
+            const user = req.session.user;
+
+            if (!user) {
+                throw new AppError("User not found", 404);
+            }
+
+            const query = req.query;
+            const queryParams: Record<string, any> = {};
+            
+            // Dynamically extract all query parameters
+            Object.keys(query).forEach(key => {
+                if (query[key] !== undefined && query[key] !== '') {
+                    // If the key is approval_status and is an array, keep as array
+                    if (key === 'approval_status') {
+                        if (Array.isArray(query[key])) {
+                            queryParams[key] = query[key];
+                        } else {
+                            queryParams[key] = [query[key]];
+                        }
+                    } else {
+                        queryParams[key] = query[key];
+                    }
+                }
+            });
+            
+            const result = await merchantService.getMerchants(user.role as UserRole, queryParams);
+            res.status(200).json({ success: true, result });
+        }
+    ),
+
+    /**
      * Update merchant profile
      * @param req - The request object
      * @param res - The response object
@@ -157,6 +194,50 @@ export const merchantController = {
             extractData: (req, res, result) => ({
                 merchant_id: req.params.merchant_id,
                 updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
+     * Update merchant
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateMerchant: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { merchant_id } = req.params;
+            const updateData = req.body;
+            
+            const result = await merchantService.updateMerchant(merchant_id, updateData);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.UPDATE_MERCHANT,
+            extractUserId: (req, res, result) => result?.merchant?.owner_id ?? null,
+            extractData: (req, res, result) => ({
+                merchant_id: req.params.merchant_id,
+                updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
+
+    /**
+     * Delete merchant
+     * @param req - The request object
+     * @param res - The response object
+     */
+    deleteMerchant: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { merchant_id } = req.params;
+
+            const result = await merchantService.deleteMerchant(merchant_id);
+            res.status(200).json({ success: true, result });
+        },
+        {
+            action: ActivityType.DELETE_MERCHANT,
+            extractUserId: (req, res, result) => result?.merchant?.owner_id ?? null,
+            extractData: (req, res, result) => ({   
+                merchant_id: req.params.merchant_id,
             }),
         }
     ),

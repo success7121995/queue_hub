@@ -1,7 +1,8 @@
-import { UserProfile } from "@/types/user";
+import { User, UserProfile } from "@/types/user";
 import { QueryClient, useMutation, useQuery, type UseMutationOptions, type UseQueryOptions } from "@tanstack/react-query";
 import { EmployeesResponse, MessagePreviewResponse, MessageResponse } from "@/types/response";
 import { AddAdminFormFields, EditEmployeeFormFields } from "@/types/form";
+
 
 /**
  * Query keys
@@ -484,7 +485,6 @@ export const useUpdateHiddenChat = (user_id: string, other_user_id: string, opti
         ...options,
     });
 }
-
 
 
 

@@ -27,15 +27,17 @@ const DateTimeProvider = ({ children }: { children: React.ReactNode }) => {
      * @param date - The date to format
      * @returns The formatted date
      */
-    const formatDate = (date: Date | string | null | undefined): string => {
+    const formatDate = (date: Date | string | null | undefined, time?: boolean): string => {
         if (!date) return 'N/A';
         
         return new Intl.DateTimeFormat('en-GB', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            ...(time && {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
         }).format(new Date(date));
     };
 

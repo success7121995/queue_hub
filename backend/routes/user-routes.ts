@@ -4,11 +4,12 @@ import { userController } from '../controllers/user-controller';
 import { requireAdminRole, requireAuth, requireMerchantRole } from '../middleware/require-auth-middleware';
 import { AdminRole, MerchantRole, UserRole } from '@prisma/client';
 import { uploadAvatar } from "../lib/multer";
+import { adminController } from '../controllers/admin-controller';
 
 const router = Router();
 
 // Auth routes
-router.post('/admin/create', requireAuth([UserRole.ADMIN]), requireAdminRole([AdminRole.SUPER_ADMIN, AdminRole.OPS_ADMIN]), (req, res) => authController.addNewAdmin(req, res)); // Add new admin
+
 router.get('/unique-username-and-email', (req, res) => authController.checkUniqueUsernameAndEmail(req, res)); // Check unique username and email
 router.post('/login', (req, res) => authController.login(req, res)); // Login
 router.post('/logout', (req, res) => authController.logout(req, res)); // Logout
@@ -18,6 +19,9 @@ router.put('/me', requireAuth(), (req, res) => userController.updateProfile(req,
 // Avatar routes
 router.post('/avatar', requireAuth(), uploadAvatar, (req, res) => userController.uploadAvatar(req, res)); // Upload avatar
 router.delete('/avatar', requireAuth(), (req, res) => userController.deleteAvatar(req, res)); // Delete avatar
+
+// Admin routes
+router.get('/admin', requireAuth([UserRole.ADMIN]), (req, res) => adminController.getAdmins(req, res)); // Get admin
 
 // Employee routes
 router.post('/employee/create', requireAuth([UserRole.MERCHANT]), requireMerchantRole([MerchantRole.OWNER, MerchantRole.MANAGER]), (req, res) => authController.addNewEmployee(req, res)); // Add new employee

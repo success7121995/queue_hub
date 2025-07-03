@@ -1,64 +1,114 @@
 "use client";
 
-import { useState } from "react";
-import { Table } from "@/components";
+import { useState, useEffect } from "react";
+import { Table, LoadingIndicator } from "@/components";
 import { Column } from "@/components/common/table";
-import { Merchant, UserMerchantOnBranch } from "@/types/merchant";
+import { useAdminGetMerchants, useAdminApproveMerchant } from "@/hooks/admin-hooks";
 import Image from "next/image";
 import { useDateTime } from "@/constant/datetime-provider";
 import { X, CheckCircle, XCircle } from "lucide-react";
-
-const merchants: any[] = [
-	{
-		merchant_id: "1",
-		business_name: "Queue Burger",
-		phone: "+852 1234 5678",
-		email: "manager@queueburger.com",
-		description: "Queue Burger is a burger restaurant that serves burgers and fries.",
-		subscription_status: "GROWTH",
-		approval_status: "PENDING",
-		user: {
-			user_id: "1",
-			username: "queue.burger",
-			email: "manager@queueburger.com",
-			UserMerchant: [{
-				staff_id: "1",
-				branch_id: "1",
-				assigned_at: "2023-12-15T12:00:00Z",
-			}] as UserMerchantOnBranch[],
-			created_at: new Date("2023-12-15T12:00:00Z"),
-			updated_at: new Date("2024-06-01T14:30:00Z"),
-		},
-	},
-];	
+import { Merchant } from "@/types/merchant";
 
 const ApproveMerchant = () => {
 	const { formatDate } = useDateTime();
 	const [rejectModalOpen, setRejectModalOpen] = useState(false);
 	const [rejectReason, setRejectReason] = useState("");
-	const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
+	const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
 	const [reasonTouched, setReasonTouched] = useState(false);
+	const [pendingMerchants, setPendingMerchants] = useState<any[]>([]);
+	const [rejectedMerchants, setRejectedMerchants] = useState<any[]>([]);
+	
+	const { data: merchantsData, isLoading: isLoadingMerchants } = useAdminGetMerchants({
+		approval_status: ["PENDING", "REJECTED"],
+	});
 
-	const handleRejectClick = (merchant: Merchant) => {
+	const approveMerchantMutation = useAdminApproveMerchant();
+
+
+	let merchants: any[] = [];
+	if (merchantsData?.result && typeof merchantsData.result === 'object' && 'merchants' in merchantsData.result && Array.isArray(merchantsData.result.merchants)) {
+		merchants = merchantsData.result.merchants;
+	} else if (Array.isArray(merchantsData?.result)) {
+		merchants = merchantsData.result;
+	}
+
+	// Initialize local state arrays when merchants data changes (only on initial load or refetch)
+	useEffect(() => {
+		if (merchants.length > 0) {
+			const pending = merchants.filter(merchant => merchant.merchant.approval_status === "PENDING");
+			const rejected = merchants.filter(merchant => merchant.merchant.approval_status === "REJECTED");
+			
+			setPendingMerchants(pending);
+			setRejectedMerchants(rejected);
+		}
+	}, [merchantsData]); // Only depend on merchantsData, not merchants array
+
+	/**
+	 * Handle approve merchant
+	 * @param merchant - The merchant to approve
+	 */
+	const handleApproveClick = (merchant: any) => {
+		approveMerchantMutation.mutate({
+			merchant_id: merchant.merchant.merchant_id,
+			approval_status: 'APPROVED'
+		}, {
+			onSuccess: () => {
+				// Remove from pending list immediately
+				setPendingMerchants(prev => prev.filter(m => m.merchant.merchant_id !== merchant.merchant.merchant_id));
+			},
+			onError: (error) => {
+				console.error('Error approving merchant:', error);
+			}
+		});
+	};
+
+	/**
+	 * Handle reject merchant
+	 * @param merchant - The merchant to reject
+	 */
+	const handleRejectClick = (merchant: any) => {
 		setSelectedMerchant(merchant);
 		setRejectReason("");
 		setReasonTouched(false);
 		setRejectModalOpen(true);
 	};
 
+	/**
+	 * Handle reject merchant
+	 * @param merchant - The merchant to reject
+	 */
 	const handleRejectConfirm = () => {
 		if (!rejectReason.trim()) {
 			setReasonTouched(true);
 			return;
 		}
-		// TODO: Handle rejection logic here (API call, etc.)
+		
+		if (selectedMerchant) {
+			approveMerchantMutation.mutate({
+				merchant_id: selectedMerchant.merchant.merchant_id,
+				approval_status: 'REJECTED',
+				reason: rejectReason.trim()
+			}, {
+				onSuccess: () => {
+					// Remove from pending list and add to rejected list immediately
+					setPendingMerchants(prev => prev.filter(m => m.merchant.merchant_id !== selectedMerchant.merchant.merchant_id));
+					setRejectedMerchants(prev => [...prev, selectedMerchant]);
+				},
+				onError: (error) => {
+					console.error('Error rejecting merchant:', error);
+				}
+			});
+		}
+		
 		setRejectModalOpen(false);
 		setSelectedMerchant(null);
 		setRejectReason("");
 		setReasonTouched(false);
-		// Optionally show a toast/notification
 	};
 
+	/**
+	 * Handle reject cancel
+	 */
 	const handleRejectCancel = () => {
 		setRejectModalOpen(false);
 		setSelectedMerchant(null);
@@ -66,53 +116,72 @@ const ApproveMerchant = () => {
 		setReasonTouched(false);
 	};
 
-	const columns: Column<Merchant>[] = [
+	/**
+	 * Render the component
+	 */
+	if (isLoadingMerchants) {
+		return (
+			<div className="flex justify-center items-center h-full">
+				<LoadingIndicator text="Loading merchants..." />
+			</div>
+		)
+	}
+
+	/**
+	 * Render the columns
+	 */
+	const columns: Column<any>[] = [
 		{
 			header: "Logo",
-			accessor: (row) => row.logo ? <Image src={row.logo} alt="Logo" width={50} height={50} /> : "No logo",
+			accessor: (row) => row.merchant?.Logo?.logo_url
+				? <Image src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${row.merchant.Logo.logo_url}`} alt="Logo" width={50} height={50} />
+				: "No logo",
 		},
 		{
 			header: "Name",
-			accessor: "business_name", // Corrected to match the Merchant type
+			accessor: (row) => row.merchant?.business_name || '',
 		},
 		{
 			header: "Manager",
-			accessor: (row) => row.user?.UserMerchant[0] ? `${row.user.UserMerchant[0].staff_id}` : 'N/A', // Accessing UserMerchant
+			accessor: (row) => row.contactPerson ? `${row.contactPerson.fname} ${row.contactPerson.lname}` : 'N/A',
 		},
 		{
 			header: "Email",
-			accessor: (row) => row.user?.email || 'N/A',
+			accessor: (row) => row.contactPerson?.email || 'N/A',
 		},
 		{
 			header: "Phone",
-			accessor: (row) => row.phone || 'N/A', // Accessing phone directly from Merchant
+			accessor: (row) => row.merchant?.phone || 'N/A',
 		},
 		{
 			header: "Address",
-			accessor: (row) => row.Address ? `${row.Address.street}, ${row.Address.city}` : 'N/A', // Assuming Address is part of Merchant
+			accessor: (row) => row.merchant?.Address ? `${row.merchant.Address.street}, ${row.merchant.Address.city}` : 'N/A',
 		},
 		{
 			header: "Subscription",
-			accessor: (row) => row.subscription_status, // Corrected to match the Merchant type
+			accessor: (row) => row.merchant?.subscription_status,
 		},
 		{
 			header: "Created At",
-			accessor: (row) => formatDate(row.created_at), // Corrected to match the Merchant type
+			accessor: (row) => row.merchant?.created_at ? formatDate(row.merchant.created_at) : '',
 		},
 		{
 			header: "Actions",
 			accessor: (row) => (
 				<div className="flex gap-2">
 					<button
-						className="flex items-center gap-1 bg-primary-light hover:bg-primary-dark text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50"
+						className={`flex items-center gap-1 bg-primary-light hover:bg-primary-dark text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50 ${approveMerchantMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
 						title="Approve"
+						onClick={() => handleApproveClick(row)}
+						disabled={approveMerchantMutation.isPending}
 					>
-						<CheckCircle className="w-4 h-4" /> Approve
+						<CheckCircle className="w-4 h-4" /> {approveMerchantMutation.isPending ? 'Approving...' : 'Approve'}
 					</button>
 					<button
-						className="flex items-center gap-1 bg-white border border-primary-light text-primary-light hover:bg-primary-light hover:text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50"
+						className={`flex items-center gap-1 bg-white border border-primary-light text-primary-light hover:bg-primary-light hover:text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50 ${approveMerchantMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
 						title="Reject"
 						onClick={() => handleRejectClick(row)}
+						disabled={approveMerchantMutation.isPending}
 					>
 						<XCircle className="w-4 h-4" /> Reject
 					</button>
@@ -121,14 +190,35 @@ const ApproveMerchant = () => {
 		},
 	];
 
+	/**
+	 * Render the component
+	 */
 	return (
 		<div className="min-h-screen font-regular-eng p-8">
 			{/* Header Section */}
 			<h1 className="text-3xl mb-8 text-primary-light font-bold">Approve Merchants</h1>
 
-			{/* Table */}
+			{/* Pending Table */}
 			<div className="w-full overflow-x-auto">
-				<Table columns={columns} data={merchants} />
+				<h2 className="text-2xl font-bold text-primary-light mb-4">Pending Merchants ({pendingMerchants.length})</h2>
+				{pendingMerchants.length > 0 ? (
+					<Table columns={columns} data={pendingMerchants} />
+				) : (
+					<div className="text-center py-8 text-gray-500">No pending merchants to approve</div>
+				)}
+			</div>
+
+			{/* Rejected Table */}
+			<div className="w-full overflow-x-auto mt-20">
+				<h2 className="text-2xl font-bold text-primary-light mb-4">Rejected Merchants ({rejectedMerchants.length})</h2>
+				{rejectedMerchants.length > 0 ? (
+					<Table
+						columns={columns}
+						data={rejectedMerchants}
+					/>
+				) : (
+					<div className="text-center py-8 text-gray-500">No rejected merchants</div>
+				)}
 			</div>
 
 			{/* Reject Modal */}
@@ -161,15 +251,16 @@ const ApproveMerchant = () => {
 								<button
 									className="flex items-center gap-1 bg-white border border-primary-light text-primary-light hover:bg-primary-light hover:text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50"
 									onClick={handleRejectCancel}
+									disabled={approveMerchantMutation.isPending}
 								>
 									Cancel
 								</button>
 								<button
-									className={`flex items-center gap-1 bg-primary-light hover:bg-primary-dark text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50 ${!rejectReason.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+									className={`flex items-center gap-1 bg-primary-light hover:bg-primary-dark text-white px-4 py-2 rounded-full text-sm font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary-light/50 ${(!rejectReason.trim() || approveMerchantMutation.isPending) ? 'opacity-50 cursor-not-allowed' : ''}`}
 									onClick={handleRejectConfirm}
-									disabled={!rejectReason.trim()}
+									disabled={!rejectReason.trim() || approveMerchantMutation.isPending}
 								>
-									<XCircle className="w-4 h-4" /> Confirm Reject
+									<XCircle className="w-4 h-4" /> {approveMerchantMutation.isPending ? 'Rejecting...' : 'Confirm Reject'}
 								</button>
 							</div>
 						</div>

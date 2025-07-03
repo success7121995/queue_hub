@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { Branch, Prisma, Tag, TagEntity, ImageType, BranchOpeningHour } from "@prisma/client";
+import { Branch, Prisma, Tag, TagEntity, ImageType, BranchOpeningHour, ApprovalStatus, UserRole, UserMerchant } from "@prisma/client";
 import { BranchSchema, AddressSchema } from "../controllers/merchant-controller";
 import fs from "fs";
 import path from "path";
@@ -39,6 +39,161 @@ export const merchantService = {
 
         if (!result) {
             throw new AppError("Failed to get merchant", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Get all merchants (with dynamic filters for admin)
+     * @param query - The filter object
+     */
+    async getMerchants(user_role: UserRole, queries: Record<string, any>) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Extract approval_status if present
+            let approvalStatus = queries.approval_status;
+            const queriesCopy = { ...queries };
+            delete queriesCopy.approval_status;
+
+            const where: any = {
+                ...queriesCopy,
+            };
+            if (approvalStatus) {
+                if (Array.isArray(approvalStatus)) {
+                    where.approval_status = { in: approvalStatus };
+                } else {
+                    where.approval_status = approvalStatus;
+                }
+            }
+
+            const merchants = await tx.merchant.findMany({
+                where,
+                select: {
+                    merchant_id: true,
+                    business_name: true,
+                    created_at: true,
+                    updated_at: true,
+                    description: true,
+                    phone: true,
+                    email: true,
+                    ...(user_role === UserRole.ADMIN && {
+                        subscription_status: true,
+                        subscription_start: true,
+                        subscription_end: true,
+                        approval_status: true,
+                        auto_renewal: true,
+                        approved_at: true,
+                        owner_id: true,
+                    }),
+                    Address: {
+                        select: {
+                            street: true,
+                            city: true,
+                            state: true,
+                            country: true,
+                            zip: true,
+                            unit: true,
+                            floor: true,
+                        }
+                    },
+                    Logo: {
+                        select: {
+                            logo_url: true,
+                        }
+                    },
+                    owner_id: true,
+                },
+                orderBy: {
+                    created_at: 'desc',
+                },
+            });
+
+            if (!merchants) {
+                throw new AppError("Merchants not found", 404);
+            }
+
+            // For each merchant, fetch contactPerson, userMerchants, and branchCount
+            const detailedMerchants = await Promise.all(merchants.map(async (merchant) => {
+                const contactPerson = merchant.owner_id
+                    ? await tx.user.findUnique({
+                        where: { user_id: merchant.owner_id },
+                        include: { Avatar: true }
+                    })
+                    : null;
+
+                const userMerchants = await tx.userMerchant.findMany({
+                    where: { merchant_id: merchant.merchant_id },
+                });
+
+                const branchCount = await tx.branch.count({
+                    where: { merchant_id: merchant.merchant_id },
+                });
+
+                return {
+                    merchant,
+                    contactPerson,
+                    userMerchants,
+                    branchCount,
+                };
+            }));
+
+            return { merchants: detailedMerchants };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        if (!result) {
+            throw new AppError("Failed to get merchants", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Update merchant
+     * @param merchant_id - The merchant ID
+     * @param updateData - The data to update
+     * @returns The updated merchant
+     */
+    async updateMerchant(merchant_id: string, updateData: any) {
+        const result = await prisma.$transaction(async (tx) => {
+            const merchant = await tx.merchant.update({
+                where: { merchant_id },
+                data: updateData,
+            });
+
+            return { merchant };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to update merchant", 500);
+        }
+
+        return result;
+    },
+
+    /**
+     * Delete merchant
+     * @param merchant_id - The merchant ID
+     * @returns The deleted merchant
+     */
+    async deleteMerchant(merchant_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            const merchant = await tx.merchant.delete({
+                where: { merchant_id },
+            });
+
+            const users = await tx.user.deleteMany({
+                where: {
+                    Merchant: {
+                        merchant_id,
+                    },
+                },
+            });
+
+            return { merchant };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!result) {
+            throw new AppError("Failed to delete merchant", 500);
         }
 
         return result;

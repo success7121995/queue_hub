@@ -76,35 +76,26 @@ export const adminService = {
     },
 
     /**
-     * Approve a merchant
+     * Approve or reject a merchant
      * @param merchant_id - The merchant ID
+     * @param approval_status - The approval status (APPROVED or REJECTED)
      */
-    async approveMerchant(merchant_id: string) {
+    async approveMerchant(merchant_id: string, approval_status: ApprovalStatus) {
+        const updateData: any = {
+            approval_status,
+            updated_at: new Date(),
+        };
+        
+        // Only set approved_at if approving
+        if (approval_status === ApprovalStatus.APPROVED) {
+            updateData.approved_at = new Date();
+        }
+        
         const merchant = await prisma.merchant.update({
             where: { merchant_id },
-            data: {
-                approval_status: ApprovalStatus.APPROVED,
-                approved_at: new Date(),
-                updated_at: new Date(),
-            },
+            data: updateData,
         });
         return { merchant };
-    },
-
-    /**
-     * Reject a merchant
-     * @param merchant_id - The merchant ID
-     * @param reason - The rejection reason
-     */
-    async rejectMerchant(merchant_id: string, reason: string) {
-        const merchant = await prisma.merchant.update({
-            where: { merchant_id },
-            data: {
-                approval_status: ApprovalStatus.REJECTED,
-                updated_at: new Date(),
-            },
-        });
-        return { merchant, reason };
     },
 
     /**
@@ -224,5 +215,44 @@ export const adminService = {
         };
 
         return { metrics };
+    },
+
+    /**
+     * Get all admins
+     */
+    async getAdmins() {
+        const result = await prisma.$transaction(async (tx) => {
+            const admins = await tx.user.findMany({
+                where: { role: UserRole.ADMIN },
+                select: {
+                    user_id: true,
+                    username: true,
+                    fname: true,
+                    lname: true,
+                    email: true,
+                    phone: true,
+                    role: true,
+                    status: true,
+                    last_login: true,
+                    Avatar: {
+                        select: {
+                            image_url: true,
+                        },
+                    },
+                    UserAdmin: {
+                        select: {
+                            admin_id: true,
+                            role: true,
+                            position: true,
+                            supervisor_id: true,
+                        },
+                    },
+                },
+            });
+
+            return admins;
+        });
+
+        return result;
     },
 }; 

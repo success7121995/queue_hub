@@ -431,6 +431,7 @@ model UserAdmin {
   user_id  String @unique
   role     AdminRole
   position String
+  supervisor_id String?
   join_at DateTime @default(now())
   updated_at DateTime
   User     User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)

@@ -65,3 +65,4 @@ export { default as Notification } from "./common/notification";
 export { default as Chatbox } from "./common/chat/chatbox";
 export { default as ChatInput } from "./common/chat/chat-input";
 export { default as ChatMessage } from "./common/chat/chat-message";
+export { default as DateTimePicker } from "./common/datetime-picker";

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths,format, isSameDay } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ReactDOM from "react-dom";
 
 interface Preset {
     label: string;
@@ -16,6 +17,7 @@ interface DateTimePickerProps {
     minDate?: Date;
     maxDate?: Date;
     displayMonths?: number;
+    usePortal?: boolean;
 }
 
 const PRESETS: Preset[] = [
@@ -54,11 +56,13 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     presets = PRESETS,
     minDate,
     maxDate,
+    usePortal = false,
 }) => {
     const [open, setOpen] = useState(false);
     const [range, setRange] = useState<[Date | null, Date | null]>(value || [null, null]);
     const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
     const pickerRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Sync internal state with value prop
     useEffect(() => {
@@ -93,8 +97,17 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
     // Click outside to dismiss date picker
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-                setOpen(false);
+            const target = event.target as Node;
+            const clickedOutsidePicker = pickerRef.current && !pickerRef.current.contains(target);
+            const clickedOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(target);
+            if (usePortal) {
+                if (clickedOutsidePicker && clickedOutsideDropdown) {
+                    setOpen(false);
+                }
+            } else {
+                if (clickedOutsidePicker) {
+                    setOpen(false);
+                }
             }
         };
         if (open) {
@@ -105,7 +118,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [open]);
+    }, [open, usePortal]);
 
     /**
      * Handle day click
@@ -236,55 +249,123 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 <span className="text-gray-500 text-sm">{displayValue}</span>
             </button>
 
-            {/* Calendar */}
+            {/* Calendar Dropdown or Portal */}
             {open && (
-                <div className="absolute z-50 mt-2 bg-white border rounded-xl shadow-xl p-4 flex flex-col md:flex-row gap-8" role="dialog">
-
-                    {/* Presets */}
-                    <div className="flex flex-col gap-2 min-w-[140px]">
-                        {presets.map((preset) => (
-                            <button
-                                key={preset.label}
-                                className="text-left px-3 py-2 rounded-lg hover:bg-primary-light/10 text-gray-700 text-sm cursor-pointer"
-                                onClick={() => handlePreset(preset)}
-                                type="button"
-                            >
-                            {preset.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Calendars */}
-                    <div className="flex flex-col gap-8">
-
-                        <div className="flex flex-col md:flex-row gap-8 ">
-                            {/* Left calendar */}
-                            {renderCalendar(leftMonth.year, leftMonth.month, 0, true)}
-
-                            {/* Right calendar */}
-                            {renderCalendar(rightMonth.year, rightMonth.month, 1, false)}
-                        </div>
-                        
-                        {/* Date range display */}
-                        <div className="flex flex-col justify-end gap-2 ml-4 text-xs">
-                            <div className="flex gap-2">
-                            <input
-                                type="text"
-                                className="border rounded px-2 py-1 w-28 text-sm"
-                                value={range[0] ? format(range[0], "MMM d, yyyy") : ""}
-                                readOnly
-                            />
-                            <span className="self-center">-</span>
-                            <input
-                                type="text"
-                                className="border rounded px-2 py-1 w-28 text-sm"
-                                value={range[1] ? format(range[1], "MMM d, yyyy") : ""}
-                                readOnly
-                            />
+                usePortal
+                    ? (typeof window !== 'undefined' && document.body
+                        ? ReactDOM.createPortal(
+                            <div ref={dropdownRef} className="fixed z-[9999] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border rounded-xl shadow-xl p-4 flex flex-col gap-4 w-max min-w-[350px] max-w-[95vw]" role="dialog">
+                                <div className="flex md:flex-row flex-col gap-8 max-h-[60vh] overflow-y-auto">
+                                    {/* Presets */}
+                                    <div className="flex flex-col gap-2 min-w-[140px]">
+                                        {presets.map((preset) => (
+                                            <button
+                                                key={preset.label}
+                                                className="text-left px-3 py-2 rounded-lg hover:bg-primary-light/10 text-gray-700 text-sm cursor-pointer"
+                                                onClick={() => handlePreset(preset)}
+                                                type="button"
+                                            >
+                                            {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {/* Calendars */}
+                                    <div className="flex flex-col gap-8">
+                                        <div className="flex flex-col md:flex-row gap-8 ">
+                                            {/* Left calendar */}
+                                            {renderCalendar(leftMonth.year, leftMonth.month, 0, true)}
+                                            {/* Right calendar */}
+                                            {renderCalendar(rightMonth.year, rightMonth.month, 1, false)}
+                                        </div>
+                                        {/* Date range display */}
+                                        <div className="flex flex-col justify-end gap-2 ml-4 text-xs">
+                                            <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                className="border rounded px-2 py-1 w-28 text-sm"
+                                                value={range[0] ? format(range[0], "MMM d, yyyy") : ""}
+                                                readOnly
+                                            />
+                                            <span className="self-center">-</span>
+                                            <input
+                                                type="text"
+                                                className="border rounded px-2 py-1 w-28 text-sm"
+                                                value={range[1] ? format(range[1], "MMM d, yyyy") : ""}
+                                                readOnly
+                                            />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Buttons always visible at the bottom */}
+                                <div className="flex gap-2 mt-4 justify-end">
+                                    <button
+                                        className="px-3 py-1 rounded-md border border-gray-300 bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 cursor-pointer"
+                                        onClick={handleCancel}
+                                        type="button"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="px-3 py-1 rounded-md bg-orange-500 text-white text-sm hover:bg-orange-600 cursor-pointer"
+                                        onClick={handleApply}
+                                        type="button"
+                                        disabled={!range[0] || !range[1]}
+                                    >
+                                        Apply
+                                    </button>
+                                </div>
+                            </div>,
+                            document.body
+                        )
+                        : null
+                    )
+                    : (
+                        <div ref={dropdownRef} className="absolute z-50 mt-2 bg-white border rounded-xl shadow-xl p-4 flex flex-col gap-4 w-max min-w-[350px]" role="dialog">
+                            <div className="flex md:flex-row flex-col gap-8 max-h-[60vh] overflow-y-auto">
+                                {/* Presets */}
+                                <div className="flex flex-col gap-2 min-w-[140px]">
+                                    {presets.map((preset) => (
+                                        <button
+                                            key={preset.label}
+                                            className="text-left px-3 py-2 rounded-lg hover:bg-primary-light/10 text-gray-700 text-sm cursor-pointer"
+                                            onClick={() => handlePreset(preset)}
+                                            type="button"
+                                        >
+                                        {preset.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {/* Calendars */}
+                                <div className="flex flex-col gap-8">
+                                    <div className="flex flex-col md:flex-row gap-8 ">
+                                        {/* Left calendar */}
+                                        {renderCalendar(leftMonth.year, leftMonth.month, 0, true)}
+                                        {/* Right calendar */}
+                                        {renderCalendar(rightMonth.year, rightMonth.month, 1, false)}
+                                    </div>
+                                    {/* Date range display */}
+                                    <div className="flex flex-col justify-end gap-2 ml-4 text-xs">
+                                        <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="border rounded px-2 py-1 w-28 text-sm"
+                                            value={range[0] ? format(range[0], "MMM d, yyyy") : ""}
+                                            readOnly
+                                        />
+                                        <span className="self-center">-</span>
+                                        <input
+                                            type="text"
+                                            className="border rounded px-2 py-1 w-28 text-sm"
+                                            value={range[1] ? format(range[1], "MMM d, yyyy") : ""}
+                                            readOnly
+                                        />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-
-                            {/* Buttons */}
-                            <div className="flex gap-2 mt-2">
+                            {/* Buttons always visible at the bottom */}
+                            <div className="flex gap-2 mt-4 justify-end">
                                 <button
                                     className="px-3 py-1 rounded-md border border-gray-300 bg-gray-100 text-gray-700 text-sm hover:bg-gray-200 cursor-pointer"
                                     onClick={handleCancel}
@@ -302,8 +383,7 @@ const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    )
             )}
         </div>
     );
