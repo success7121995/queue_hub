@@ -233,7 +233,7 @@ export const authController = {
                 result,
                 sessionId: req.session.id 
             });
-            
+
             return result;
         },
         {
@@ -241,6 +241,7 @@ export const authController = {
             extractUserId: (req, res, result) => result?.user?.user_id ?? null,
             extractData: (req, res, result) => ({
                 email: req.body.email,
+                user_id: result?.user?.user_id ?? null,
                 role: result?.user?.role ?? null,
             }),
         }
@@ -253,6 +254,12 @@ export const authController = {
      */
     logout: withActivityLog(
         async (req: Request, res: Response) => {
+            const user = req.session.user;
+
+            if (!user?.user_id) {
+                throw new AppError("User ID not found", 404);
+            }
+
             // Clear session
             await new Promise<void>((resolve) => {
                 req.session.destroy(() => {
@@ -263,13 +270,14 @@ export const authController = {
             // Clear cookies
             res.clearCookie('session_id');
 
-            res.status(200).json({ success: true });
-            return null;
+            res.status(200).json({ success: true, user });
+            return user;
         },
         {
             action: ActivityType.LOGOUT_USER,
-            extractUserId: (req) => req.user?.user_id ?? null,
-            extractData: () => ({}),
+            extractUserId: (req, res, result) => {                
+                return result?.user_id ?? null;
+            },
         }
     ),
 

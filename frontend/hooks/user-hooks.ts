@@ -1,7 +1,7 @@
 import { User, UserProfile } from "@/types/user";
 import { QueryClient, useMutation, useQuery, type UseMutationOptions, type UseQueryOptions } from "@tanstack/react-query";
 import { EmployeesResponse, MessagePreviewResponse, MessageResponse } from "@/types/response";
-import { AddAdminFormFields, EditEmployeeFormFields } from "@/types/form";
+import { AddAdminFormFields, CreateTicketFormFields, EditEmployeeFormFields } from "@/types/form";
 
 
 /**
@@ -14,6 +14,7 @@ export const userKeys = {
     messages: () => [...userKeys.all, 'messages'] as const,
     lastMessages: () => [...userKeys.all, 'lastMessages'] as const,
     conversation: (other_user_id: string) => [...userKeys.all, 'conversation', other_user_id] as const,
+    tickets: () => [...userKeys.all, 'tickets'] as const,
 } as const;
 
 /**
@@ -194,6 +195,34 @@ export const fetchSendMessage = async ({ receiverId, content }: { receiverId: st
 }
 
 /**
+ * Fetch send message with attachment
+ * @param receiverId - The receiver's user ID
+ * @param content - The message content
+ * @param file - The file to attach
+ * @returns 
+ */
+export const fetchSendMessageWithAttachment = async ({ receiverId, content, file }: { receiverId: string; content: string; file: File }): Promise<MessageResponse> => {
+    const formData = new FormData();
+    formData.append('receiverId', receiverId);
+    formData.append('content', content);
+    formData.append('ATTACHMENT', file);
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/send-with-attachment`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to send message with attachment');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
  * Get all last messages (previews)
  * @returns 
  */
@@ -304,6 +333,80 @@ export const fetchUpdateHiddenChat = async (user_id: string, other_user_id: stri
     const responseData = await res.json();
     return responseData;
 }
+
+/**
+ * Fetch create ticket
+ * @param data
+ * @returns
+ */
+export const fetchCreateTicket = async (data: CreateTicketFormFields): Promise<{ success: boolean }> => {
+    const formData = new FormData();
+    formData.append('subject', data.subject);
+    formData.append('category', data.category);
+    formData.append('message', data.message);
+    
+    // Append files if they exist
+    if (data.files && data.files.length > 0) {
+        data.files.forEach((file) => {
+            formData.append('FILES', file);
+        });
+    }
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create ticket');
+    }   
+    
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch get tickets
+ * @returns
+ */
+export const fetchGetTickets = async (): Promise<{ success: boolean; result: { tickets: any[] } }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get tickets');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch get ticket
+ * @param ticket_id
+ * @returns
+ */
+export const fetchGetTicket = async (ticket_id: string): Promise<{ success: boolean; result: { ticket: any } }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket/${ticket_id}`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get ticket');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+
 
 
 
@@ -423,6 +526,18 @@ export const useSendMessage = (options?: Omit<UseMutationOptions<MessageResponse
 }
 
 /**
+ * Use send message with attachment
+ * @param options 
+ * @returns 
+ */
+export const useSendMessageWithAttachment = (options?: Omit<UseMutationOptions<MessageResponse, Error, { receiverId: string; content: string; file: File }>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchSendMessageWithAttachment,
+        ...options,
+    });
+}
+
+/**
  * Use get all last messages
  * @param options 
  * @returns 
@@ -486,8 +601,42 @@ export const useUpdateHiddenChat = (user_id: string, other_user_id: string, opti
     });
 }
 
+/**
+ * Use create ticket
+ * @param options
+ * @returns
+ */
+export const useCreateTicket = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, CreateTicketFormFields>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchCreateTicket,
+        ...options,
+    });
+}
 
+/**
+ * Use get tickets
+ * @param options
+ * @returns
+ */
+export const useGetTickets = (options?: Omit<UseQueryOptions<{ success: boolean; result: { tickets: any[] } }, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: userKeys.tickets(),
+        queryFn: fetchGetTickets,
+        ...options,
+    });
+}
 
-
-
-
+/**
+ * Use get ticket
+ * @param ticket_id
+ * @param options
+ * @returns
+ */
+export const useGetTicket = (ticket_id: string, options?: Omit<UseQueryOptions<{ success: boolean; result: { ticket: any } }, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: [...userKeys.tickets(), ticket_id],
+        queryFn: () => fetchGetTicket(ticket_id),
+        enabled: !!ticket_id,
+        ...options,
+    });
+}

@@ -39,14 +39,17 @@ export const withActivityLog = (
             }
         } finally {
             try {
+                // Only create activity log if action is provided
+                if (config?.action) {
                 await adminService.createActivityLog({
-                    action: config?.action!,
+                        action: config.action,
                     action_data: config?.extractData?.(req, res, result) ?? {},
                     success: !error,
                     error,
                     status,
                     user_id: config?.extractUserId?.(req, res, result) ?? null,
                 });
+                }
             } catch (logErr) {
                 console.error("Activity log failed:", logErr);
             }

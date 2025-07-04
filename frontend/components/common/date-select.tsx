@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useMemo } from "react"
+import { ArrowDown } from "lucide-react"
 
 export const MONTHS = [
 	'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -31,7 +32,7 @@ const Select = <T extends string>({
 		<select
 			value={value}
 			onChange={handleChange}
-			className="border rounded px-2 py-1 text-xs outline-none border-primary-light text-primary-light cursor-pointer"
+			className="border rounded px-2 py-1 text-xs outline-none border-primary-light text-primary-light cursor-pointer flex items-center min-w-[75px]"
 		>
 			{options.map((option) => (
 				<option key={option} value={option}>

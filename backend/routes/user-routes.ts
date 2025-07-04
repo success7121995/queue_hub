@@ -3,7 +3,7 @@ import { authController } from '../controllers/auth-controller';
 import { userController } from '../controllers/user-controller';
 import { requireAdminRole, requireAuth, requireMerchantRole } from '../middleware/require-auth-middleware';
 import { AdminRole, MerchantRole, UserRole } from '@prisma/client';
-import { uploadAvatar } from "../lib/multer";
+import { uploadAvatar, uploadTicketFiles } from "../lib/multer";
 import { adminController } from '../controllers/admin-controller';
 
 const router = Router();
@@ -32,6 +32,11 @@ router.delete('/employee/:user_id', requireAuth([UserRole.MERCHANT]), requireMer
 
 // User profile routes
 router.put('/change-password', requireAuth(), (req, res) => authController.changePassword(req, res));  // Change user password 
+
+// User ticket routes
+router.post('/ticket', requireAuth(), uploadTicketFiles, (req, res) => userController.createTicket(req, res)); // Create a ticket
+router.get('/ticket', requireAuth(), (req, res) => userController.getTickets(req, res)); // Get tickets
+router.get('/ticket/:ticket_id', requireAuth(), (req, res) => userController.getTicket(req, res)); // Get a ticket
 
 // User queue management (protected)
 router.get('/queues', requireAuth(), () => {});  // Get user's active queues

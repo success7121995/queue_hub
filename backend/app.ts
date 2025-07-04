@@ -97,11 +97,11 @@ if (process.env.NODE_ENV === 'development') {
 //     app.use((req, res, next) => {
 //       if (!req.session.user) {
 //         req.session.user = {
-//           user_id: "a4f9af6d-5d49-4aec-b267-1b5f3fffbac8",
+//           user_id: "6f697422-5f78-43fb-a5c9-46531af26b45",
 //           role: "MERCHANT",
-//           email: "tonytam@gmail.com",
-//           merchant_id: "841d5921-64be-49df-907a-fb2f4c450218",
-//           merchantRole: "MANAGER"
+//           email: "joechan@gmail.com",
+//           merchant_id: "dd327159-7921-43d5-bf4d-8e80ef13a501",
+//           merchantRole: "OWNER"
 //         };
 //       }
 //       next();

@@ -4,6 +4,7 @@ import { Address, MerchantRole, Plan } from "./form";
 import { QueueWithTags, Tag } from "./queue";
 import { Avatar, Message, User, UserAdmin, UserMerchant } from "./user";
 import { MessagePreview } from "./message";
+import { Ticket } from "@/components/dashboard/admin/tickets";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
@@ -129,4 +130,9 @@ export interface MessageResponse {
 export interface MessagePreviewResponse {
     success: boolean;
     messagePreviews: MessagePreview[];
+}
+
+export interface CreateTicketResponse {
+    success: boolean;
+    ticket: Ticket;
 }

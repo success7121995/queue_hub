@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, ChevronDown, UserCircle, Settings, CreditCard, LogOut } from "lucide-react";
+import { Menu, X, ChevronDown, UserCircle, Settings, CreditCard, LogOut, HelpCircle } from "lucide-react";
 import { Dropdown, Notification } from '@/components';
 import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
@@ -294,6 +294,13 @@ const DashboardNavbar = () => {
 					isLoading={isUserDataLoading}
 				/>
 
+				{/* Help Center */}
+				<Link href="/merchant/help-center" legacyBehavior>
+					<a className="flex items-center justify-center w-10 h-10 rounded-full text-text-light hover:bg-gray-100 transition-colors hover:text-primary-light" title="Help Center" aria-label="Help Center">
+						<HelpCircle size={22} />
+					</a>
+				</Link>
+
 				{/* Profile */}
 				<div ref={profileRef}>
 					<button className="flex items-center space-x-2" onClick={() => setProfileOpen((v) => !v)}>
@@ -394,6 +401,13 @@ const DashboardNavbar = () => {
 						className="!relative"
 					/>
 				</div>
+				
+				{/* Help Center - Mobile */}
+				<Link href="/help-center" legacyBehavior>
+					<a className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors" title="Help Center" aria-label="Help Center">
+						<HelpCircle size={22} className="text-primary-light" />
+					</a>
+				</Link>
 				
 				{/* Hamburger Menu */}
 				<button

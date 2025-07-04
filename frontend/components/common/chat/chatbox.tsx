@@ -4,8 +4,9 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from "re
 import { cn } from "@/lib/utils";
 import ChatMessage from "./chat-message";
 import ChatInput from "./chat-input";
-import { connectSocket, onMessagePreviews, onReceiveMessage, onMessageSent, sendMessage, getLastMessages, joinRoom, markMessageAsRead, onMessageRead, hideChat } from "@/lib/socket";
+import { connectSocket, onMessagePreviews, onReceiveMessage, onMessageSent, sendMessage, getLastMessages, joinRoom, markMessageAsRead, onMessageRead, hideChat, sendMessageWithAttachment } from "@/lib/socket";
 import { useGetEmployees, fetchHideChat, fetchGetConversation } from "@/hooks/user-hooks";
+import { useGetAdmins } from "@/hooks/admin-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
 import Image from "next/image";
 
@@ -40,32 +41,62 @@ const Chatbox = () => {
 	const userRole = authData?.user?.role;
 	const merchantId = authData?.user?.UserMerchant?.merchant_id;
 
-	// Get members who are at the same merchant
+	// Get members who are at the same merchant (for merchants)
 	const { data: membersData, isLoading: membersLoading, isError: membersError } = useGetEmployees({
-		enabled: open && (view === "search" || view === "inbox"),
+		enabled: open && (view === "search" || view === "inbox") && userRole === "MERCHANT",
+	});
+
+	// Get all admin users (for admins)
+	const { data: adminsData, isLoading: adminsLoading, isError: adminsError } = useGetAdmins({
+		enabled: open && (view === "search" || view === "inbox") && userRole === "ADMIN",
 	});
 
 	// Get messages from conversation data
 	const messages = messagesState || [];
 
+	// Utility to clean file name (reuse from chat-message.tsx)
+	function cleanFileName(fileName: string) {
+		return fileName.replace(/^\d+-\d+-/, '');
+	}
+
 	/**
 	 * Filter searchable users based on role-based rules
 	 */
 	const searchableUsers = useMemo(() => {
-		if (!membersData?.result || !userId) return [];
+		if (!userId) return [];
 
-		const users = membersData.result;
-		
-		// Filter out the current user (can't message self)
-		const filteredUsers = users.filter(user => user.user_id !== userId);
+		// For merchants: filter users from the same merchant
+		if (userRole === "MERCHANT") {
+			if (!membersData?.result) return [];
 
-		// All members in the same company (same merchant) can search each other
-		// Filter to only include users from the same merchant
-		return filteredUsers.filter(user => 
-			user.merchant_id === merchantId && 
-			user.User?.status === 'ACTIVE'
-		);
-	}, [membersData?.result, userId, merchantId]);
+			const users = membersData.result;
+			
+			// Filter out the current user (can't message self)
+			const filteredUsers = users.filter(user => user.user_id !== userId);
+
+			// All members in the same company (same merchant) can search each other
+			// Filter to only include users from the same merchant
+			return filteredUsers.filter(user => 
+				user.merchant_id === merchantId && 
+				user.User?.status === 'ACTIVE'
+			);
+		}
+
+		// For admins: filter all admin users
+		if (userRole === "ADMIN") {
+			if (!adminsData?.result) return [];
+
+			const users = adminsData.result;
+			
+			// Filter out the current user (can't message self)
+			const filteredUsers = users.filter(user => user.user_id !== userId);
+
+			// All admins can search each other
+			return filteredUsers.filter(user => user.status === 'ACTIVE');
+		}
+
+		return [];
+	}, [membersData?.result, adminsData?.result, userId, merchantId, userRole]);
 
 	/**
 	 * Filter users based on search term
@@ -73,13 +104,32 @@ const Chatbox = () => {
 	const filteredSearchUsers = useMemo(() => {
 		if (!search.trim()) return searchableUsers;
 		
-		return searchableUsers.filter(user => 
-			user.User?.username?.toLowerCase().includes(search.toLowerCase()) ||
-			user.User?.fname?.toLowerCase().includes(search.toLowerCase()) ||
-			user.User?.lname?.toLowerCase().includes(search.toLowerCase()) ||
-			user.position?.toLowerCase().includes(search.toLowerCase())
-		);
-	}, [searchableUsers, search]);
+		return searchableUsers.filter(user => {
+			// For merchants: UserMerchant objects with nested User
+			if (userRole === "MERCHANT") {
+				const merchantUser = user as any; // UserMerchant type
+				return (
+					merchantUser.User?.username?.toLowerCase().includes(search.toLowerCase()) ||
+					merchantUser.User?.fname?.toLowerCase().includes(search.toLowerCase()) ||
+					merchantUser.User?.lname?.toLowerCase().includes(search.toLowerCase()) ||
+					merchantUser.position?.toLowerCase().includes(search.toLowerCase())
+				);
+			}
+			
+			// For admins: User objects directly
+			if (userRole === "ADMIN") {
+				const adminUser = user as any; // User type
+				return (
+					adminUser.username?.toLowerCase().includes(search.toLowerCase()) ||
+					adminUser.fname?.toLowerCase().includes(search.toLowerCase()) ||
+					adminUser.lname?.toLowerCase().includes(search.toLowerCase()) ||
+					adminUser.UserAdmin?.position?.toLowerCase().includes(search.toLowerCase())
+				);
+			}
+			
+			return false;
+		});
+	}, [searchableUsers, search, userRole]);
 
 	/**
 	 * Get selected user information
@@ -100,15 +150,29 @@ const Chatbox = () => {
 		// Then check if it's in the searchable users (new conversation)
 		const searchUser = searchableUsers.find(user => user.user_id === selectedChat);
 		if (searchUser) {
-			return {
-				user_id: selectedChat,
-				username: searchUser.User?.username || `${searchUser.User?.fname} ${searchUser.User?.lname}`.trim(),
-				avatar_url: searchUser.User?.Avatar?.image_url
-			};
+			// For merchants: UserMerchant objects with nested User
+			if (userRole === "MERCHANT") {
+				const merchantUser = searchUser as any; // UserMerchant type
+				return {
+					user_id: selectedChat,
+					username: merchantUser.User?.username || `${merchantUser.User?.fname} ${merchantUser.User?.lname}`.trim(),
+					avatar_url: merchantUser.User?.Avatar?.image_url
+				};
+			}
+			
+			// For admins: User objects directly
+			if (userRole === "ADMIN") {
+				const adminUser = searchUser as any; // User type
+				return {
+					user_id: selectedChat,
+					username: adminUser.username || `${adminUser.fname} ${adminUser.lname}`.trim(),
+					avatar_url: adminUser.Avatar?.image_url
+				};
+			}
 		}
 		
 		return null;
-	}, [selectedChat, inbox, searchableUsers]);
+	}, [selectedChat, inbox, searchableUsers, userRole]);
 
 	/**
 	 * Scroll to bottom immediately without animation
@@ -127,81 +191,6 @@ const Chatbox = () => {
 			bottomAnchorRef.current.scrollIntoView({ behavior: 'smooth' });
 		}
 	};
-
-	/**
-	 * Check if user is near bottom of messages
-	 */
-	const isNearBottom = () => {
-		if (!messagesContainerRef.current) return true;
-		const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-		const threshold = 50; // pixels from bottom
-		return scrollTop + clientHeight >= scrollHeight - threshold;
-	};
-
-	/**
-	 * Handle scroll events to detect user interaction
-	 */
-	const handleScroll = () => {
-		if (view === "chat") {
-			const nearBottom = isNearBottom();
-			setShouldAutoScroll(nearBottom);
-		}
-	};
-
-	/**
-	 * Use useLayoutEffect for immediate positioning on first paint
-	 */
-	useLayoutEffect(() => {
-		if (view === "chat" && messagesContainerRef.current) {
-			setShouldAutoScroll(true);
-			// Set scroll position immediately before paint
-			scrollToBottom();
-		}
-	}, [view, selectedChat, messages.length]);
-
-	/**
-	 * Scroll to bottom when new messages are added (only if auto-scroll is enabled)
-	 */
-	useEffect(() => {
-		if (view === "chat" && messages.length > 0 && shouldAutoScroll) {
-			// Use requestAnimationFrame to ensure DOM is updated
-			requestAnimationFrame(() => {
-				scrollToBottomSmooth();
-			});
-		}
-	}, [messages, shouldAutoScroll]);
-
-	/**
-	 * Clean up confirmed pending messages when conversation data updates
-	 */
-	useEffect(() => {
-		if (messages.length > 0 && pendingMessages.length > 0) {
-			setPendingMessages(prev => prev.filter(pm => {
-				// Check if this pending message has been confirmed
-				const isConfirmed = messages.some(msg => 
-					msg.content === pm.content && 
-					msg.sender_id === userId &&
-					msg.receiver_id === selectedChat
-				);
-				return !isConfirmed;
-			}));
-		}
-	}, [messages, pendingMessages.length, userId, selectedChat]);
-
-	/**
-	 * Clean up old pending messages (older than 30 seconds) to prevent stuck messages
-	 */
-	useEffect(() => {
-		const cleanupInterval = setInterval(() => {
-			const now = Date.now();
-			setPendingMessages(prev => prev.filter(pm => {
-				const messageTime = parseInt(pm.id.replace('pending-', ''));
-				return now - messageTime < 30000; // 30 seconds
-			}));
-		}, 5000); // Check every 5 seconds
-
-		return () => clearInterval(cleanupInterval);
-	}, []);
 
 	/**
 	 * Socket.io setup and real-time handlers
@@ -228,17 +217,18 @@ const Chatbox = () => {
 		 * Listen for new/received messages
 		 * @param msg 
 		 */
-		const unregisterMessages = onReceiveMessage((msg: any) => {
+		const unregister = onReceiveMessage((msg: any) => {
 			if (view === "chat" && selectedChat && (msg.sender_id === selectedChat || msg.receiver_id === selectedChat)) {
-				// Force refetch the conversation to ensure we have the latest data
-				fetchGetConversation(selectedChat, '', 10).then(res => {
-					if (res.success) {
-						setMessagesState(res.messages);
-						setHasMore('hasMore' in res && typeof (res as any).hasMore === 'boolean' ? (res as any).hasMore : true);
-					}
+				setMessagesState(prev => {
+					// Prevent duplicate messages
+					if (prev.some(m => m.message_id === msg.message_id)) return prev;
+					return [...prev, msg];
 				});
+				// Scroll to bottom when a new message is received
+				setTimeout(() => {
+					scrollToBottomSmooth();
+				}, 100);
 			}
-			// Refresh previews when a new message is received
 			getLastMessages(userId);
 		});
 
@@ -270,7 +260,7 @@ const Chatbox = () => {
 		
 		return () => {
 			unregisterPreviews();
-			unregisterMessages();
+			unregister();
 			unregisterMessageSent();
 			unregisterMessageRead();
 		};
@@ -387,21 +377,50 @@ const Chatbox = () => {
 	/**
 	 * Handle sending a message with optimistic updates
 	 * @param content 
+	 * @param file 
 	 */
-	const handleSendMessage = (content: string) => {
-		if (!selectedChat || !userId || !content.trim() || isSending) return;
+	const handleSendMessage = (content: string, file?: File) => {
+		if (!selectedChat || !userId || (!content.trim() && !file) || isSending) return;
 
 		const pendingId = `pending-${Date.now()}`;
 		const timestamp = new Date().toISOString().slice(11, 16);
-		
-		// Add optimistic message immediately
-		setPendingMessages(prev => [...prev, { id: pendingId, content, timestamp }]);
+
+		// Only add pending message for text messages (not attachments)
+		if (!file && content.trim()) {
+			setPendingMessages(prev => [...prev, { id: pendingId, content: content, timestamp }]);
+		}
 		setIsSending(true);
-		
-		// Send via socket
-		sendMessage(userId, selectedChat, content);
-		
-		// Auto-clear sending state after a timeout as fallback
+
+		if (file) {
+			// Use fetch to upload, then emit socket event to notify
+			const formData = new FormData();
+			formData.append('receiverId', selectedChat);
+			formData.append('ATTACHMENT', file);
+			formData.append('content', content); // Only send content if provided
+			sendMessageWithAttachment(formData, userId, selectedChat, content, file, Date.now());
+			fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/send-with-attachment`, {
+				method: 'POST',
+				credentials: 'include',
+				body: formData,
+			})
+			.then(res => res.json())
+			.then(res => {
+				setIsSending(false);
+				if (res.success) {
+					setMessagesState(prev => [...prev, res.message]);
+					if ((window as any).socket) {
+						(window as any).socket.emit('sendMessageWithAttachment', { message: res.message });
+					}
+					// No pending bubble to remove for attachments
+				}
+			})
+			.catch(error => {
+				setIsSending(false);
+			});
+		} else {
+			sendMessage(userId, selectedChat, content);
+		}
+
 		setTimeout(() => {
 			setIsSending(false);
 		}, 10000); // 10 second timeout
@@ -486,7 +505,8 @@ const Chatbox = () => {
 				rm.sender_id === userId &&
 				rm.receiver_id === selectedChat
 			);
-			return !isConfirmed;
+			// Only show pending bubble for text messages (not attachments)
+			return !isConfirmed && pm.content && !pm.content.startsWith('📎 ');
 		});
 		
 		// Combine real messages with unconfirmed pending messages
@@ -536,16 +556,22 @@ const Chatbox = () => {
 			>
 				<div className="flex-shrink-0">
 					{avatarUrl ? (
-						<Image
-							src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${avatarUrl}`}
-							alt={username}
-							width={40}
-							height={40}
-							className="rounded-full object-cover w-12 h-12"
-						/>
+						avatarUrl.startsWith("/") || avatarUrl.startsWith("http") ? (
+							<Image
+								src={avatarUrl.startsWith("http") ? avatarUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL}${avatarUrl}`}
+								alt={username}
+								width={40}
+								height={40}
+								className="rounded-full object-cover w-12 h-12"
+							/>
+						) : (
+							<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
+								{username.charAt(0).toUpperCase()}
+							</div>
+						)
 					) : (
 						<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
-							{username ? username.charAt(0).toUpperCase() : "?"}
+							{username.charAt(0).toUpperCase()}
 						</div>
 					)}
 				</div>
@@ -555,7 +581,7 @@ const Chatbox = () => {
 						<span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{timestamp}</span>
 					</div>
 					<div className="text-xs text-gray-600 truncate max-w-full">
-						{lastMessage}
+						{lastMessage.trim() ? lastMessage : "📎 Attachment"}
 					</div>
 				</div>
 				{unread && <span className="ml-2 w-2 h-2 bg-blue-500 rounded-full" />}
@@ -600,9 +626,27 @@ const Chatbox = () => {
 		user: any;
 		onClick?: () => void;
 	}) => {
-		const username = user.User?.username || `${user.User?.fname} ${user.User?.lname}`.trim() || "Unknown User";
-		const avatarUrl = user.User?.Avatar?.image_url;
-		const position = user.position || "Staff";
+		let username: string;
+		let avatarUrl: string | undefined;
+		let position: string;
+
+		// For merchants: UserMerchant objects with nested User
+		if (userRole === "MERCHANT") {
+			username = user.User?.username || `${user.User?.fname} ${user.User?.lname}`.trim() || "Unknown User";
+			avatarUrl = user.User?.Avatar?.image_url;
+			position = user.position || "Staff";
+		}
+		// For admins: User objects directly
+		else if (userRole === "ADMIN") {
+			username = user.username || `${user.fname} ${user.lname}`.trim() || "Unknown User";
+			avatarUrl = user.Avatar?.image_url;
+			position = user.UserAdmin?.position || "Admin";
+		}
+		else {
+			username = "Unknown User";
+			avatarUrl = undefined;
+			position = "User";
+		}
 		
 		return (
 			<button
@@ -612,13 +656,19 @@ const Chatbox = () => {
 			>
 				<div className="flex-shrink-0">
 					{avatarUrl ? (
-						<Image
-							src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${avatarUrl}`}
-							alt={username}
-							width={40}
-							height={40}
-							className="rounded-full object-cover w-12 h-12"
-						/>
+						avatarUrl.startsWith("/") || avatarUrl.startsWith("http") ? (
+							<Image
+								src={avatarUrl.startsWith("http") ? avatarUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL}${avatarUrl}`}
+								alt={username}
+								width={40}
+								height={40}
+								className="rounded-full object-cover w-12 h-12"
+							/>
+						) : (
+							<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
+								{username.charAt(0).toUpperCase()}
+							</div>
+						)
 					) : (
 						<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
 							{username.charAt(0).toUpperCase()}
@@ -699,7 +749,14 @@ const Chatbox = () => {
 								key={preview.message_id}
 								avatarUrl={preview.other_avatar_url}
 								username={preview.other_username}
-								lastMessage={preview.content}
+								lastMessage={(() => {
+									// If the content starts with '📎 ', treat the rest as the file name
+									if (preview.content && preview.content.startsWith('📎 ')) {
+										return preview.content;
+									}
+									// Otherwise, show the text content
+									return preview.content;
+								})()}
 								timestamp={typeof preview.created_at === 'string' ? preview.created_at.slice(11, 16) : ''}
 								unread={!preview.is_read}
 								onClick={() => handleSelectChat(preview.other_user_id)}
@@ -749,19 +806,19 @@ const Chatbox = () => {
 				/>
 			</div>
 			<div className="flex-1 overflow-y-auto">
-				{membersLoading ? (
+				{(userRole === "MERCHANT" && membersLoading) || (userRole === "ADMIN" && adminsLoading) ? (
 					<div className="text-center text-gray-400 py-8 text-sm">Loading users...</div>
-				) : membersError ? (
+				) : (userRole === "MERCHANT" && membersError) || (userRole === "ADMIN" && adminsError) ? (
 					<div className="text-center text-red-400 py-8 text-sm">Error loading users</div>
 				) : filteredSearchUsers.length === 0 ? (
 					<div className="text-center text-gray-400 py-8 text-sm">
-						{search.trim() ? "No users found" : "No members available"}
+						{search.trim() ? "No users found" : `No ${userRole === "MERCHANT" ? "members" : "admins"} available`}
 					</div>
 				) : (
 					<>
 						{search.trim() && (
 							<div className="px-4 py-2 text-xs text-gray-500 border-b border-border">
-								{filteredSearchUsers.length} user{filteredSearchUsers.length !== 1 ? 's' : ''} found
+								{filteredSearchUsers.length} {userRole === "MERCHANT" ? "member" : "admin"}{filteredSearchUsers.length !== 1 ? 's' : ''} found
 							</div>
 						)}
 						{filteredSearchUsers.map(user => (
@@ -793,15 +850,25 @@ const Chatbox = () => {
 						&#8592;
 					</button>
 					<div className="flex items-center gap-2">
-						{
-							<Image
-								src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${selectedUser?.avatar_url}`}
-								alt={selectedUser?.username || "Unknown User"}
-								width={20}
-								height={20}
-								className="rounded-full object-cover w-10 h-10"
-							/>
-						}
+						{selectedUser?.avatar_url ? (
+							selectedUser.avatar_url.startsWith("/") || selectedUser.avatar_url.startsWith("http") ? (
+								<Image
+									src={selectedUser.avatar_url.startsWith("http") ? selectedUser.avatar_url : `${process.env.NEXT_PUBLIC_BACKEND_URL}${selectedUser.avatar_url}`}
+									alt={selectedUser.username || "Unknown User"}
+									width={20}
+									height={20}
+									className="rounded-full object-cover w-10 h-10"
+								/>
+							) : (
+								<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
+									{selectedUser.username?.charAt(0).toUpperCase()}
+								</div>
+							)
+						) : (
+							<div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
+								{selectedUser?.username?.charAt(0).toUpperCase()}
+							</div>
+						)}
 						<span className="font-semibold text-base flex-1 text-center">
 							{selectedUser?.username || "Unknown User"}
 						</span>
@@ -818,7 +885,6 @@ const Chatbox = () => {
 			<div 
 				ref={messagesContainerRef}
 				className="flex-1 overflow-y-auto px-2 py-4 bg-surface"
-				onScroll={handleScroll}
 			>
 				{/* Loading indicator for infinite scroll */}
 				{isLoadingMore && (
@@ -846,6 +912,7 @@ const Chatbox = () => {
 								timestamp={typeof msg.created_at === 'string' ? msg.created_at.slice(11, 16) : ''}
 								content={msg.content}
 								isPending={msg.isPending}
+								attachments={msg.Attachment || []}
 							/>
 						))}
 						{/* Invisible anchor element for scrolling */}
@@ -1013,6 +1080,30 @@ const Chatbox = () => {
 		container.addEventListener('scroll', handleScroll);
 		return () => container.removeEventListener('scroll', handleScroll);
 	}, [hasMore, isLoadingMore, messagesState, selectedChat]);
+
+	// 1. When entering a chat, scroll instantly to the bottom (no smooth)
+	useLayoutEffect(() => {
+		if (open && view === "chat" && messagesState.length > 0) {
+			scrollToBottom(); // instant scroll
+		}
+		// Only run this effect when selectedChat changes (i.e., entering a new chat)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedChat, open, view, messagesState.length]);
+
+	// 2. When messages update (new message sent/received), use smooth scroll
+	useEffect(() => {
+		if (open && view === "chat" && messagesState.length > 0) {
+			const container = messagesContainerRef.current;
+			if (container) {
+				const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+				if (isAtBottom) {
+					scrollToBottomSmooth();
+				}
+			}
+		}
+		// Only run this effect when messages actually change, not on initial entry
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [messagesState.length]);
 
 	return (
 		<>

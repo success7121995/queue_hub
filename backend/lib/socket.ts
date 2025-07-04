@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { merchantService } from "../services/merchant-service";
 import { messageService } from "../services/message-service";
+import { userService } from "../services/user-service";
 
 
 const registerSocketHandlers = (io: Server) => {
@@ -79,6 +80,9 @@ const registerSocketHandlers = (io: Server) => {
 
         /**
          * Handle send message
+         * @param senderId - The sender's user ID
+         * @param receiverId - The receiver's user ID
+         * @param content - The message content
          */
         socket.on("sendMessage", async ({ senderId, receiverId, content }) => {
             try {
@@ -108,7 +112,28 @@ const registerSocketHandlers = (io: Server) => {
         });
 
         /**
+         * Handle send message with attachment (notification after HTTP upload)
+         * @param message - The message object (already saved in DB)
+         */
+        socket.on("sendMessageWithAttachment", async ({ message }) => {
+            if (message && message.sender_id && message.receiver_id) {
+                io.to(message.sender_id).emit("receiveMessage", message);
+                io.to(message.receiver_id).emit("receiveMessage", message);
+                // Optionally, update previews for both users
+                const [senderPreviews, receiverPreviews] = await Promise.all([
+                    messageService.getLastMessages(message.sender_id),
+                    messageService.getLastMessages(message.receiver_id)
+                ]);
+                io.to(message.sender_id).emit("messagePreviews", senderPreviews);
+                io.to(message.receiver_id).emit("messagePreviews", receiverPreviews);
+            }
+        });
+
+        /**
          * Handle mark message as read
+         * @param message_id - The message ID to mark as read
+         * @param user_id - The user ID
+         * @param other_user_id - The other user's ID
          */
         socket.on("markMessageAsRead", async ({ message_id, user_id, other_user_id }) => {
             try {
@@ -135,6 +160,7 @@ const registerSocketHandlers = (io: Server) => {
 
         /**
          * Handle get last messages (previews)
+         * @param user_id - The user ID
          */
         socket.on("getLastMessages", async ({ user_id }) => {
             try {
@@ -148,6 +174,8 @@ const registerSocketHandlers = (io: Server) => {
 
         /**
          * Handle hidden chat
+         * @param user_id - The user ID
+         * @param other_user_id - The other user's ID
          */
         socket.on("hideChat", async ({ user_id, other_user_id }) => {
             try {
@@ -166,6 +194,8 @@ const registerSocketHandlers = (io: Server) => {
 
         /**
          * Handle update hidden chat
+         * @param user_id - The user ID
+         * @param other_user_id - The other user's ID
          */
         socket.on("updateHiddenChat", async ({ user_id, other_user_id }) => {
             try {
@@ -173,6 +203,30 @@ const registerSocketHandlers = (io: Server) => {
             } catch (error) {
                 console.error("Error updating hidden chat:", error);
                 socket.emit("error", { message: "Failed to update hidden chat" });
+            }
+        });
+
+        /**
+         * Create a new ticket 
+         */
+        socket.on("createTicket", async ({ user_id, ticket_id }) => {
+            try {
+                // Since the ticket is already created via HTTP, we just need to acknowledge it
+                // The ticket_id parameter is used to identify the ticket that was created
+                socket.emit("ticketCreated", { success: true, ticket_id });
+            } catch (error) {
+                console.error("Error creating ticket:", error);
+                socket.emit("error", { message: "Failed to create ticket" });
+            }
+        });
+
+        socket.on("getTickets", async ({ user_id }) => {
+            try {
+                const tickets = await userService.getTickets(user_id);
+                socket.emit("tickets", tickets.tickets);
+            } catch (error) {
+                console.error("Error getting tickets:", error);
+                socket.emit("error", { message: "Failed to get tickets" });
             }
         });
 

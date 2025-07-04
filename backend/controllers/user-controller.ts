@@ -14,6 +14,17 @@ const updateEmployeeSchema = z.object({
     staff_id: z.string().min(1, "Staff ID is required").optional(),
 });
 
+export type UpdateEmployeeData = z.infer<typeof updateEmployeeSchema>;
+
+const createTicketSchema = z.object({
+    subject: z.string().min(1, "Subject is required"),
+    category: z.string().min(1, "Category is required"),
+    message: z.string().min(1, "Message is required"),
+});
+export type CreateTicketData = z.infer<typeof createTicketSchema> & {
+    files?: Express.Multer.File[];
+};
+
 export const userController = {
     /**
      * Update user profile
@@ -274,6 +285,73 @@ export const userController = {
             });
             res.status(200).json({ success: true, result });
             return result;
+        }
+    ),
+
+    /**
+     * Create a ticket
+     * @param req - The request object
+     * @param res - The response object
+     */
+    createTicket: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { user_id } = req.session.user!;
+            const validatedData = createTicketSchema.parse(req.body);
+            const files = (req as any).files || [];
+
+            const result = await userService.createTicket(user_id, {
+                ...validatedData,
+                files: files
+            });
+            res.status(201).json({ success: true, result });
+        },
+        {
+            action: ActivityType.CREATE_TICKET,
+            extractUserId: (req) => req.session.user?.user_id ?? null,
+            extractData: (req, res, result) => ({
+                subject: req.body.subject,
+                category: req.body.category,
+            }),
+        }
+    ),
+
+    /**
+     * Get user's tickets
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getTickets: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { user_id } = req.session.user!;
+            const result = await userService.getTickets(user_id);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.VIEW_PROFILE,
+            extractUserId: (req) => req.session.user?.user_id ?? null,
+        }
+    ),
+
+    /**
+     * Get a specific ticket
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getTicket: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { user_id } = req.session.user!;
+            const { ticket_id } = req.params;
+            const result = await userService.getTicket(user_id, ticket_id);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.VIEW_PROFILE,
+            extractUserId: (req) => req.session.user?.user_id ?? null,
+            extractData: (req) => ({
+                ticket_id: req.params.ticket_id,
+            }),
         }
     ),
 }; 

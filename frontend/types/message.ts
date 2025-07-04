@@ -6,6 +6,7 @@ export type Message = {
     created_at: string | Date;
     sender: MessageUser;
     receiver: MessageUser;
+    Attachment?: MessageAttachment[];
 };
   
 export type MessageUser = {
@@ -14,6 +15,12 @@ username: string;
 fname: string;
 lname: string;
 Avatar?: { image_url: string };
+};
+
+export type MessageAttachment = {
+    attachment_id: string;
+    file_url: string;
+    created_at: string | Date;
 };
 
 export type MessagePreview = {

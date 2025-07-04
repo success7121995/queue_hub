@@ -35,9 +35,9 @@ export const ADMIN_SLUGS = [
 
 // Merchant role access rules
 export const MERCHANT_ACCESS_RULES = {
-    OWNER: ['view-live-queues', 'manage-queue-entries', 'add-branch', 'branch-info', 'view-queue-history', 'feedback', 'register-new-employee', 'manage-employees', 'analytics', 'system-health', 'profile', 'account', 'billing', 'settings'],
-    MANAGER: ['view-live-queues', 'manage-queue-entries', 'branch-info', 'view-queue-history', 'feedback', 'register-new-employee', 'manage-employees', 'analytics', 'profile', 'account', 'settings'],
-    FRONTLINE: ['view-live-queues', 'manage-queue-entries', 'view-queue-history', 'feedback', 'profile', 'account', 'settings']
+    OWNER: ['view-live-queues', 'manage-queue-entries', 'add-branch', 'branch-info', 'view-queue-history', 'feedback', 'register-new-employee', 'manage-employees', 'analytics', 'system-health', 'profile', 'account', 'billing', 'settings', 'help-center'],
+    MANAGER: ['view-live-queues', 'manage-queue-entries', 'branch-info', 'view-queue-history', 'feedback', 'register-new-employee', 'manage-employees', 'analytics', 'profile', 'account', 'settings', 'help-center'],
+    FRONTLINE: ['view-live-queues', 'manage-queue-entries', 'view-queue-history', 'feedback', 'profile', 'account', 'settings', 'help-center']
 } as const;
 
 export const ADMIN_ACCESS_RULES = {

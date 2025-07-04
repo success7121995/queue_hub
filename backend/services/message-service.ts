@@ -96,6 +96,15 @@ export const messageService = {
                 where: whereClause,
                 orderBy: { created_at: "desc" },
                 take,
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true
+                        }
+                    }
+                }
             });
 
             // Reverse to ascending order for frontend
@@ -115,14 +124,56 @@ export const messageService = {
     async sendMessage(senderId: string, receiverId: string, content: string) {
         const result = await prisma.$transaction(async (tx) => {        
             const message = await tx.message.create({
-            data: {
-                sender_id: senderId,
-                receiver_id: receiverId,
-                content,
-            },
-        });
+                data: {
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    content,
+                },
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true
+                        }
+                    }
+                }
+            });
 
-        return message;
+            return message;
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
+
+    /**
+     * Send a message with attachment from user_id to receiverId
+     */
+    async sendMessageWithAttachment(senderId: string, receiverId: string, content: string, file: Express.Multer.File) {
+        const result = await prisma.$transaction(async (tx) => {        
+            const message = await tx.message.create({
+                data: {
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    content,
+                    Attachment: {
+                        create: {
+                            file_url: `/uploads/${file.filename}`
+                        }
+                    }
+                },
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true
+                        }
+                    }
+                }
+            });
+
+            return message;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;

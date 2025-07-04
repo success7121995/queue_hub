@@ -1,20 +1,13 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/app-error";
-import { User, MerchantRole, Prisma } from "@prisma/client";
+import { User, Prisma, Attachment } from "@prisma/client";
+import { type CreateTicketData, type UpdateEmployeeData } from "../controllers/user-controller";
 import * as fs from 'fs';
 import * as path from 'path';
 
 interface QueueHistoryParams {
     start_date?: string;
     end_date?: string;
-}
-
-interface UpdateEmployeeData {
-    fname?: string;
-    lname?: string;
-    phone?: string;
-    position?: string;
-    role?: MerchantRole;
 }
 
 // User service
@@ -536,5 +529,114 @@ export const userService = {
         });
 
         return { entries };
+    },
+
+    /**
+     * Create a ticket
+     * @param user_id - The user ID
+     * @param subject - The ticket subject
+     * @param category - The ticket category
+     * @param message - The ticket message
+     * @param files - The ticket files
+     */
+    async createTicket(user_id: string, data: CreateTicketData) {
+        // NOTE: Ensure the route/controller uses uploadTicketFiles multer middleware so req.files is populated
+        let uploadedFilePaths: string[] = [];
+        try {
+            const result = await prisma.$transaction(async (tx) => {
+                const ticket = await tx.ticket.create({
+                    data: {
+                        user_id,
+                        subject: data.subject,
+                        category: data.category,
+                        message: data.message,
+                        status: "OPEN",
+                    },
+                });
+
+                // Create attachments
+                if (data.files && data.files.length > 0) {
+                    for (const file of data.files) {
+                        // Ensure file is Express.Multer.File
+                        const multerFile = file as unknown as Express.Multer.File;
+                        const fileUrl = `/uploads/${multerFile.filename}`;
+                        uploadedFilePaths.push(path.join(process.cwd(), 'public', 'uploads', multerFile.filename));
+                        await tx.attachment.create({
+                            data: {
+                                ticket_id: ticket.ticket_id,
+                                file_url: fileUrl,
+                            },
+                        });
+                    }
+                }
+
+                return ticket;
+            }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+            return result;
+        } catch (err) {
+            // On error, remove uploaded files
+            for (const filePath of uploadedFilePaths) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error(`Failed to delete attachment file: ${err.message}`);
+                    }
+                });
+            }
+            throw err;
+        }
+    },
+
+    /**
+     * Get user's tickets
+     * @param user_id - The user ID
+     */
+    async getTickets(user_id: string) {
+        const tickets = await prisma.ticket.findMany({
+            where: { user_id },
+            include: {
+                Attachment: {
+                    select: {
+                        attachment_id: true,
+                        file_url: true,
+                        created_at: true,
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+
+        return { tickets };
+    },
+
+    /**
+     * Get a specific ticket
+     * @param user_id - The user ID
+     * @param ticket_id - The ticket ID
+     */
+    async getTicket(user_id: string, ticket_id: string) {
+        const ticket = await prisma.ticket.findFirst({
+            where: { 
+                ticket_id,
+                user_id, // Ensure user can only access their own tickets
+            },
+            include: {
+                Attachment: {
+                    select: {
+                        attachment_id: true,
+                        file_url: true,
+                        created_at: true,
+                    }
+                }
+            },
+        });
+
+        if (!ticket) {
+            throw new AppError("Ticket not found", 404);
+        }
+
+        return { ticket };
     },
 }; 

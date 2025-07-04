@@ -3,6 +3,42 @@
 import { prisma } from "../lib/prisma";
 import { ActivityType, ApprovalStatus, UserRole, UserStatus } from "@prisma/client";
 
+/**
+ * Helper function to add days to a date, handling month variations correctly
+ * @param date - The base date
+ * @param days - Number of days to add
+ * @returns New date with days added
+ */
+const addDays = (date: Date, days: number): Date => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+/**
+ * Helper function to add months to a date, handling month variations correctly
+ * @param date - The base date
+ * @param months - Number of months to add
+ * @returns New date with months added
+ */
+const addMonths = (date: Date, months: number): Date =>  {
+    const result = new Date(date);
+    result.setMonth(result.getMonth() + months);
+    return result;
+}
+
+/**
+ * Helper function to add years to a date, handling leap years correctly
+ * @param date - The base date
+ * @param years - Number of years to add
+ * @returns New date with years added
+ */
+const addYears = (date: Date, years: number): Date => {
+    const result = new Date(date);
+    result.setFullYear(result.getFullYear() + years);
+    return result;
+}
+
 interface ActivityLogData {
     action: ActivityType;
     action_data: any;
@@ -88,13 +124,38 @@ export const adminService = {
         
         // Only set approved_at if approving
         if (approval_status === ApprovalStatus.APPROVED) {
+
+            const merchant = await prisma.merchant.findUnique({
+                where: { merchant_id },
+                select: { subscription_status: true }
+            })
+
             updateData.approved_at = new Date();
+            updateData.subscription_start = new Date();
+
+            switch (merchant?.subscription_status) {
+                case "TRIAL":
+                    updateData.subscription_end = addDays(new Date(), 30); // 30 days from now
+                    break;
+                case "ESSENTIAL":
+                    updateData.subscription_end = addYears(new Date(), 1); // 1 year from now
+                    break;
+                case "GROWTH":
+                    updateData.subscription_end = addYears(new Date(), 1); // 1 year from now
+                    break;
+                default:
+                    updateData.subscription_start = null;
+                    updateData.subscription_end = null;
+                    break;
+            }
+                
         }
         
         const merchant = await prisma.merchant.update({
             where: { merchant_id },
             data: updateData,
         });
+
         return { merchant };
     },
 
@@ -138,7 +199,7 @@ export const adminService = {
         const { start_date, end_date } = params;
         
         // Get date range
-        const start = start_date ? new Date(start_date) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Default to last 30 days
+        const start = start_date ? new Date(start_date) : addDays(new Date(), -30); // Default to last 30 days
         const end = end_date ? new Date(end_date) : new Date();
 
         // Get various metrics

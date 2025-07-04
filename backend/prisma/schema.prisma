@@ -66,6 +66,15 @@ model AnalyticsLog {
   record_at    DateTime      @default(now())
 }
 
+model Attachment {
+  attachment_id String @id @default(uuid())
+  ticket_id String?
+  message_id String?
+  file_url String
+  created_at DateTime @default(now())
+  Ticket Ticket? @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
+  Message Message? @relation(fields: [message_id], references: [message_id], onDelete: Cascade)
+}
 
 model Avatar {
   image_id        String @id @default(uuid())
@@ -248,7 +257,8 @@ model Message {
   created_at                     DateTime  @default(now())
   User_Message_receiver_idToUser User     @relation("Message_receiver_idToUser", fields: [receiver_id], references: [user_id], onDelete: Cascade)
   User_Message_sender_idToUser   User     @relation("Message_sender_idToUser", fields: [sender_id], references: [user_id], onDelete: Cascade)
-
+  Attachment Attachment[]
+  
   @@index([sender_id, created_at])
   @@index([receiver_id, created_at])
   @@index([sender_id, receiver_id, created_at])
@@ -389,6 +399,18 @@ model Tag {
   updated_at         DateTime @updatedAt
 }
 
+model Ticket {
+  ticket_id String @id @default(uuid())
+  user_id String
+  subject String
+  category String
+  status TicketStatus
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  Attachment Attachment[]
+}
+
 model User {
   user_id                           String                       @id @default(uuid())
   username                          String                       @unique
@@ -424,6 +446,7 @@ model User {
   Avatar                            Avatar?
   Preference                        Preference?
   HiddenChat                        HiddenChat[]
+  Ticket                            Ticket[]
 }
 
 model UserAdmin {
@@ -712,4 +735,12 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum TicketStatus {
+  OPEN
+  CLOSED
+  PENDING
+  RESOLVED
+  IN_PROGRESS
 }

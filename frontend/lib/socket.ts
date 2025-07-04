@@ -10,6 +10,8 @@ let receiveMessageCallbacks: ((data: any) => void)[] = [];
 let messageSentCallbacks: ((data: { success: boolean; message?: any; error?: string }) => void)[] = [];
 let newMessageCallbacks: ((data: any) => void)[] = [];
 let messageReadCallbacks: ((data: { message_id: string; is_read: boolean }) => void)[] = [];
+let ticketCreatedCallbacks: ((data: { success: boolean; ticket_id?: string }) => void)[] = [];
+let ticketsReceivedCallbacks: ((data: any[]) => void)[] = [];
 
 /**
  * Connect to the socket
@@ -119,6 +121,22 @@ export const connectSocket = () => {
     });
 
     /**
+     * Handle ticket creation confirmation
+     * @param data - The data containing success status and ticket ID
+     */
+    socket.on("ticketCreated", (data) => {
+        ticketCreatedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle tickets data received
+     * @param data - The data containing tickets array
+     */
+    socket.on("tickets", (data) => {
+        ticketsReceivedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
      * Handle socket errors
      * @param error - The error object
      */
@@ -148,6 +166,8 @@ export const disconnectSocket = () => {
         messageSentCallbacks = [];
         newMessageCallbacks = [];
         messageReadCallbacks = [];
+        ticketCreatedCallbacks = [];
+        ticketsReceivedCallbacks = [];
     }
 };
 
@@ -260,6 +280,30 @@ export const onMessageRead = (callback: (data: { message_id: string; is_read: bo
 };
 
 /**
+ * Register a callback for ticket creation confirmation
+ * @param callback - The callback function to be called when a ticket is created
+ * @returns A function to unregister the callback
+ */
+export const onTicketCreated = (callback: (data: { success: boolean; ticket_id?: string }) => void) => {
+    ticketCreatedCallbacks.push(callback);
+    return () => {
+        ticketCreatedCallbacks = ticketCreatedCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for tickets data received
+ * @param callback - The callback function to be called when tickets data is received
+ * @returns A function to unregister the callback
+ */
+export const onTicketsReceived = (callback: (data: any[]) => void) => {
+    ticketsReceivedCallbacks.push(callback);
+    return () => {
+        ticketsReceivedCallbacks = ticketsReceivedCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
  * Open or close a queue
  * @param queueId - The queue ID
  * @param status - The status to set
@@ -279,6 +323,21 @@ export const openOrCloseQueue = (queueId: string, status: "OPEN" | "CLOSED") => 
 export const sendMessage = (senderId: string, receiverId: string, content: string) => {
     if (socket) {
         socket.emit("sendMessage", { senderId, receiverId, content });
+    }
+};
+
+/**
+ * Send a message with attachment via socket
+ * @param senderId - The sender's user ID
+ * @param receiverId - The receiver's user ID
+ * @param content - The message content
+ * @param fileName - The name of the file
+ * @param fileType - The type of the file
+ * @param fileBuffer - The file buffer
+ */
+export const sendMessageWithAttachment = (formData: FormData, userId: string, selectedChat: string, content: string, file: File, timestamp: number) => {
+    if (socket) {
+        socket.emit("sendMessageWithAttachment", { formData, userId, selectedChat, content, file, timestamp });
     }
 };
 
@@ -339,5 +398,22 @@ export const getSocket = () => socket;
 export const updateHiddenChat = (userId: string, otherUserId: string) => {
     if (socket) {
         socket.emit("updateHiddenChat", { user_id: userId, other_user_id: otherUserId });
+    }
+};
+
+/**
+ * Create a new ticket
+ * @param userId - The user ID
+ * @param ticketId - The ticket ID
+ */
+export const createTicket = (userId: string, ticketId: string) => {
+    if (socket) {
+        socket.emit("createTicket", { user_id: userId, ticket_id: ticketId });
+    }
+};
+
+export const getTickets = (userId: string) => {
+    if (socket) {
+        socket.emit("getTickets", { user_id: userId });
     }
 };

@@ -149,6 +149,13 @@ export interface AddEmployeeFormFields {
   accountSetup: AccountSetup;
 }
 
+export interface CreateTicketFormFields {
+  subject: string;
+  category: string;
+  message: string;
+  files: File[];
+}
+
 export const EditEmployeeSchema = z.object({
   fname: z.string().min(1, "First name is required"),
   lname: z.string().min(1, "Last name is required"),

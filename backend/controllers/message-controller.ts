@@ -61,6 +61,28 @@ export const messageController = {
     ),
 
     /**
+     * Send message with attachment
+     */
+    sendMessageWithAttachment: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { user_id } = req.session.user!;
+            const { receiverId, content } = req.body;
+            const file = (req as any).file;
+            
+            if (!user_id || !receiverId || (!content && !file)) {
+                throw new AppError("Missing required fields", 400);
+            }
+            
+            if (!file) {
+                throw new AppError("No file uploaded", 400);
+            }
+            
+            const message = await messageService.sendMessageWithAttachment(user_id, receiverId, content || '', file);
+            res.json({ success: true, message });
+        }
+    ),
+
+    /**
      * Hide chat
      */
     hideChat: withActivityLog(
