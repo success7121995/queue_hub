@@ -4,53 +4,38 @@ import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useDateTime } from "@/constant/datetime-provider";
-
-// Mock data structure following Prisma schema
-interface Notification {
-  notification_id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  is_read: boolean;
-  redirect_url?: string;
-  created_at: Date;
-}
+import { useGetNotifications } from "@/hooks/user-hooks";
+import { Notification } from "@/types/notification";
+import { onNotificationUpdate, getNotifications, deleteNotification, joinRoom, connectSocket, enterChatRoom } from "@/lib/socket";
+import { useAuth } from "@/hooks/auth-hooks";
+import { useChat } from "@/contexts/chat-context";
 
 interface NotificationProps {
-  notifications?: Notification[];
-  isLoading?: boolean;
   className?: string;
+  isLoading?: boolean;
 }
 
-const Notification = ({ notifications = [], isLoading = false, className = "" }: NotificationProps) => {
+const NotificationComponent = ({ className = "", isLoading: externalLoading }: NotificationProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const { formatRelativeTime } = useDateTime();
+    const { data: authData } = useAuth();
+    const userId = authData?.user?.user_id;
+    const { openChat } = useChat();
+    
+    // Fetch notifications using the hook
+    const { data: notificationData, isLoading: hookLoading } = useGetNotifications();
+    const isLoading = externalLoading !== undefined ? externalLoading : hookLoading;
+    const [notifications, setNotifications] = useState<Notification[]>(notificationData?.notifications || []);
+    const [unreadCount, setUnreadCount] = useState(notificationData?.notifications?.filter(n => !n.is_read).length || 0);
 
-    // Mock data for development
-    const mockNotifications: Notification[] = [
-        {
-            notification_id: 'notif123',
-            user_id: 'user2',
-            title: 'New Booking Alert',
-            content: 'Your booking for table #5 has been confirmed.',
-            is_read: false,
-            redirect_url: '/merchant/bookings/456',
-            created_at: new Date()
-        },
-        {
-            notification_id: 'notif124',
-            user_id: 'user2',
-            title: 'Queue Update',
-            content: 'Your position in the queue has changed.',
-            is_read: false,
-            redirect_url: '/merchant/queues/789',
-            created_at: new Date(Date.now() - 1800000)
+    // Update local state when hook data changes
+    useEffect(() => {
+        if (notificationData?.notifications) {
+            setNotifications(notificationData.notifications);
+            setUnreadCount(notificationData.notifications.filter(n => !n.is_read).length);
         }
-    ];
-
-    const displayNotifications = notifications.length > 0 ? notifications : mockNotifications;
-    const unreadCount = displayNotifications.filter(n => !n.is_read).length;
+    }, [notificationData]);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -63,12 +48,60 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Socket event listener for real-time notification updates
+    useEffect(() => {
+        if (!userId) return;
+
+        // Connect to socket and join user room
+        connectSocket();
+        joinRoom(userId);
+
+        const handleNotificationUpdate = (data: { notifications: Notification[]; unreadCount: number }) => {
+            setNotifications(data.notifications);
+            setUnreadCount(data.unreadCount);
+        };
+
+        // Register socket event listener
+        const unregister = onNotificationUpdate(handleNotificationUpdate);
+
+        // Request initial notifications
+        getNotifications(userId);
+
+        // Cleanup
+        return () => {
+            unregister();
+        };
+    }, [userId]);
+
+    // Handle notification click
+    const handleNotificationClick = (notification: Notification) => {
+        if (!notification.redirect_url || !userId) return;
+
+        // Extract user_id from redirect_url (e.g., /messages/:user_id)
+        const urlParts = notification.redirect_url.split('/');
+        const targetUserId = urlParts[urlParts.length - 1];
+
+        if (targetUserId && notification.notification_id) {
+            // Open the chat with the target user
+            openChat(targetUserId);
+            
+            // Join the chat room for the target user
+            joinRoom(targetUserId);
+            
+            // Enter chat room and delete notifications for this sender
+            enterChatRoom(userId, targetUserId);
+            
+            // Close the notification dropdown
+            setIsOpen(false);
+        }
+    };
+
     return (
         <div ref={ref} className={`relative ${className}`}>
             <button 
                 className="flex items-center relative" 
                 onClick={() => setIsOpen(!isOpen)}
-                title={displayNotifications.length === 0 ? "No notifications" : ""}
+                title={notifications.length === 0 ? "No notifications" : ""}
             >
                 <Bell size={22} className="text-text-light" />
                 {unreadCount > 0 && (
@@ -92,14 +125,15 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
                             <div className="flex items-center justify-center py-4">
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-light"></div>
                             </div>
-                        ) : displayNotifications.length > 0 ? (
+                        ) : notifications.length > 0 ? (
                             <ul className="space-y-2">
-                                {displayNotifications.map((notification) => (
+                                {notifications.map((notification) => (
                                     <li 
                                         key={notification.notification_id} 
                                         className={`cursor-pointer p-3 hover:bg-gray-50 rounded-md transition-colors ${
                                             !notification.is_read ? 'bg-blue-50 border-l-2 border-blue-500' : ''
                                         }`}
+                                        onClick={() => handleNotificationClick(notification)}
                                     >
                                         <div className="flex flex-col">
                                             <div className="flex items-start justify-between">
@@ -114,7 +148,7 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
                                                 {notification.content}
                                             </div>
                                             <div className="text-xs text-gray-500 mt-2">
-                                                {formatRelativeTime(notification.created_at)}
+                                                {formatRelativeTime(new Date(notification.created_at))}
                                             </div>
                                         </div>
                                     </li>
@@ -127,7 +161,7 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
                         )}
                     </div>
                     
-                    {displayNotifications.length > 0 && (
+                    {notifications.length > 0 && (
                         <div className="border-t border-gray-200 mt-3 pt-3">
                             <button className="w-full text-center text-sm text-primary-light hover:text-primary-dark transition-colors">
                                 View all notifications
@@ -140,4 +174,4 @@ const Notification = ({ notifications = [], isLoading = false, className = "" }:
     );
 };
 
-export default Notification;
+export default NotificationComponent;

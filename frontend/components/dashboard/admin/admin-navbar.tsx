@@ -172,7 +172,7 @@ const AdminNavbar = () => {
 					</button>
 
 					{profileOpen && (
-						<div className="absolute right-6 top-12 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 z-10 min-w-[220px]">
+						<div className="absolute right-6 top-[70px] bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 z-10 min-w-[220px]">
 							<div className="flex flex-col gap-1">
 								<Link 
 									href="/admin/profile" 

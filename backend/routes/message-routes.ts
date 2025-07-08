@@ -14,4 +14,9 @@ router.put('/:message_id/read', requireAuth(), messageController.markMessageAsRe
 router.post('/conversation/:other_user_id/delete', requireAuth(), messageController.hideChat); // Hide chat
 router.patch('/conversation/:other_user_id/update', requireAuth(), messageController.updateHiddenChat); // Update hidden chat
 
+// Notification routes
+router.get('/notifications', requireAuth(), messageController.getNotifications); // Get notifications
+router.put('/notifications/:notification_id/read', requireAuth(), messageController.markNotificationAsRead); // Mark notification as read
+router.delete('/notifications/:notification_id', requireAuth(), messageController.deleteNotification); // Delete notification
+
 export default router;

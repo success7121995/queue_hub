@@ -1,10 +1,10 @@
-
 import { Branch, BranchFeature, BranchImage, BranchOpeningHour, Logo, Merchant } from "./merchant";
 import { Address, MerchantRole, Plan } from "./form";
 import { QueueWithTags, Tag } from "./queue";
 import { Avatar, Message, User, UserAdmin, UserMerchant } from "./user";
 import { MessagePreview } from "./message";
 import { Ticket } from "@/components/dashboard/admin/tickets";
+import { Notification } from "./notification";
 
 // Types
 export type QueuesResponse = QueueWithTags[];
@@ -135,4 +135,9 @@ export interface MessagePreviewResponse {
 export interface CreateTicketResponse {
     success: boolean;
     ticket: Ticket;
+}
+
+export interface NotificationResponse {
+    success: boolean;
+    notifications: Notification[];
 }

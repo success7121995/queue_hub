@@ -1,6 +1,6 @@
 import { User, UserProfile } from "@/types/user";
 import { QueryClient, useMutation, useQuery, type UseMutationOptions, type UseQueryOptions } from "@tanstack/react-query";
-import { EmployeesResponse, MessagePreviewResponse, MessageResponse } from "@/types/response";
+import { EmployeesResponse, MessagePreviewResponse, MessageResponse, NotificationResponse } from "@/types/response";
 import { AddAdminFormFields, CreateTicketFormFields, EditEmployeeFormFields } from "@/types/form";
 
 
@@ -15,6 +15,7 @@ export const userKeys = {
     lastMessages: () => [...userKeys.all, 'lastMessages'] as const,
     conversation: (other_user_id: string) => [...userKeys.all, 'conversation', other_user_id] as const,
     tickets: () => [...userKeys.all, 'tickets'] as const,
+    notifications: () => [...userKeys.all, 'notifications'] as const,
 } as const;
 
 /**
@@ -406,6 +407,65 @@ export const fetchGetTicket = async (ticket_id: string): Promise<{ success: bool
     return responseData;
 }
 
+/**
+ * Fetch get notifications
+ * @returns 
+ */
+export const fetchGetNotifications = async (): Promise<NotificationResponse> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/notifications`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get notifications');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch mark notification as read
+ * @param notification_id - The notification ID
+ * @returns 
+ */
+export const fetchMarkNotificationAsRead = async (notification_id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/notifications/${notification_id}/read`, {
+        method: 'PUT',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to mark notification as read');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch delete notification
+ * @param notification_id - The notification ID
+ * @returns 
+ */
+export const fetchDeleteNotification = async (notification_id: string): Promise<{ success: boolean }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/notifications/${notification_id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to delete notification');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
 
 
 
@@ -640,3 +700,76 @@ export const useGetTicket = (ticket_id: string, options?: Omit<UseQueryOptions<{
         ...options,
     });
 }
+
+/**
+ * Use get notifications
+ * @param options 
+ * @returns 
+ */
+export const useGetNotifications = (options?: Omit<UseQueryOptions<NotificationResponse, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: userKeys.notifications(),
+        queryFn: fetchGetNotifications,
+        ...options,
+    });
+}
+
+/**
+ * Use mark notification as read
+ * @param options 
+ * @returns 
+ */
+export const useMarkNotificationAsRead = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, string>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchMarkNotificationAsRead,
+        ...options,
+    });
+};
+
+/**
+ * Use delete notification
+ * @param options 
+ * @returns 
+ */
+export const useDeleteNotification = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, string>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: fetchDeleteNotification,
+        ...options,
+    });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*** PREFETCH ***********/
+
+/**
+ * Prefetch notifications
+ * @param queryClient 
+ * @returns 
+ */
+export const prefetchNotifications = async (queryClient: any) => {
+    await queryClient.prefetchQuery({
+        queryKey: userKeys.notifications(),
+        queryFn: fetchGetNotifications,
+        staleTime: 1000 * 60, // 1 minute
+        gcTime: 1000 * 60 * 5, // 5 minutes
+    });
+
+    return queryClient.getQueryData(userKeys.notifications());
+};

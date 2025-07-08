@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
-import { cn } from "@/lib/utils";
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import { cn, cleanFileName } from "@/lib/utils";
 import ChatMessage from "./chat-message";
 import ChatInput from "./chat-input";
-import { connectSocket, onMessagePreviews, onReceiveMessage, onMessageSent, sendMessage, getLastMessages, joinRoom, markMessageAsRead, onMessageRead, hideChat, sendMessageWithAttachment } from "@/lib/socket";
+import { connectSocket, onMessagePreviews, onReceiveMessage, onMessageSent, sendMessage, getLastMessages, joinRoom, markMessageAsRead, onMessageRead, hideChat, sendMessageWithAttachment, onNotificationUpdate, getNotifications, onNotificationDeleted, enterChatRoom, onChatRoomEntered } from "@/lib/socket";
 import { useGetEmployees, fetchHideChat, fetchGetConversation } from "@/hooks/user-hooks";
 import { useGetAdmins } from "@/hooks/admin-hooks";
 import { useAuth } from "@/hooks/auth-hooks";
+import { useChat } from "@/contexts/chat-context";
 import Image from "next/image";
+import { LoadingIndicator } from "@/components";
 
 const Chatbox = () => {
-	const [open, setOpen] = useState(false); // Open state
+	const { isOpen: open, selectedChat, openChat, closeChat, setSelectedChat } = useChat();
 	const [view, setView] = useState<"inbox" | "chat" | "search">("inbox"); // View state
-	const [selectedChat, setSelectedChat] = useState<string | null>(null); // Selected chat state
 	const [search, setSearch] = useState(""); // Search term
 	const [showOverlay, setShowOverlay] = useState(false); // Show overlay when chatbox is open
 	const [inbox, setInbox] = useState<any[]>([]); // Inbox data
@@ -25,9 +26,10 @@ const Chatbox = () => {
 	const [chatToDelete, setChatToDelete] = useState<string | null>(null); // Chat to delete state
 	const [showChatOptions, setShowChatOptions] = useState<string | null>(null); // Show chat options state
 	const [isDeleting, setIsDeleting] = useState(false); // Deleting state
-	const [messagesState, setMessagesState] = useState<any[]>([]);
+	const [messages, setMessages] = useState<any[]>([]);
 	const [hasMore, setHasMore] = useState(true);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
+	const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 	const chatContainerRef = useRef<HTMLDivElement>(null);
 	
 	// References
@@ -52,12 +54,7 @@ const Chatbox = () => {
 	});
 
 	// Get messages from conversation data
-	const messages = messagesState || [];
-
-	// Utility to clean file name (reuse from chat-message.tsx)
-	function cleanFileName(fileName: string) {
-		return fileName.replace(/^\d+-\d+-/, '');
-	}
+	const messagesState = messages || [];
 
 	/**
 	 * Filter searchable users based on role-based rules
@@ -177,23 +174,82 @@ const Chatbox = () => {
 	/**
 	 * Scroll to bottom immediately without animation
 	 */
-	const scrollToBottom = () => {
+	const scrollToBottom = useCallback(() => {
 		if (messagesContainerRef.current) {
 			messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
 		}
-	};
+	}, []);
 
 	/**
 	 * Scroll to bottom with smooth animation
 	 */
-	const scrollToBottomSmooth = () => {
+	const scrollToBottomSmooth = useCallback(() => {
 		if (bottomAnchorRef.current) {
 			bottomAnchorRef.current.scrollIntoView({ behavior: 'smooth' });
 		}
-	};
+	}, []);
 
 	/**
-	 * Socket.io setup and real-time handlers
+	 * Consolidated socket event handlers
+	 */
+	const handleMessagePreviews = useCallback((previews: any[]) => {
+		setInbox(previews || []);
+	}, []);
+
+	const handleReceiveMessage = useCallback((msg: any) => {
+		if (view === "chat" && selectedChat && (msg.sender_id === selectedChat || msg.receiver_id === selectedChat)) {
+			setMessages(prev => {
+				// Prevent duplicate messages
+				if (prev.some(m => m.message_id === msg.message_id)) return prev;
+				return [...prev, msg];
+			});
+			// Scroll to bottom when a new message is received
+			setTimeout(() => {
+				scrollToBottomSmooth();
+			}, 100);
+		}
+		if (userId) {
+			getLastMessages(userId);
+		}
+	}, [view, selectedChat, userId, scrollToBottomSmooth]);
+
+	const handleMessageSent = useCallback((data: { success: boolean; message?: any; error?: string }) => {
+		if (data.success) {
+			// Clear sending state - the pending message will be handled by the displayMessages logic
+			setIsSending(false);
+		} else {
+			// Handle error - could show a toast notification here
+			console.error("Failed to send message:", data.error);
+			setIsSending(false);
+			// Remove the last pending message on error
+			setPendingMessages(prev => prev.slice(0, -1));
+		}
+	}, []);
+
+	const handleMessageRead = useCallback((data: { message_id: string; is_read: boolean }) => {
+		// Refresh previews when a message is marked as read
+		if (userId) {
+			getLastMessages(userId);
+		}
+	}, [userId]);
+
+	const handleNotificationUpdate = useCallback((data: { notifications: any[]; unreadCount: number }) => {
+		// Handle notification updates if needed
+		// This could be used to update global notification state
+	}, []);
+
+	const handleNotificationDeleted = useCallback((data: { success: boolean; notification_id: string }) => {
+		// Handle notification deletion confirmation if needed
+		// This could be used to update global notification state
+	}, []);
+
+	const handleChatRoomEntered = useCallback((data: { success: boolean; sender_id: string }) => {
+		// Handle chat room entered confirmation if needed
+		// This could be used to update global notification state
+	}, []);
+
+	/**
+	 * Socket.io setup and real-time handlers - CONSOLIDATED
 	 */
 	useEffect(() => {
 		if (!open || !userId) return;
@@ -207,70 +263,34 @@ const Chatbox = () => {
 		getLastMessages(userId);
 		
 		/**
-		 * Listen for preview updates
+		 * Register all socket event listeners
 		 */
-		const unregisterPreviews = onMessagePreviews((previews: any[]) => {
-			setInbox(previews || []);
-		});
+		const unregisterPreviews = onMessagePreviews(handleMessagePreviews);
+		const unregisterReceive = onReceiveMessage(handleReceiveMessage);
+		const unregisterMessageSent = onMessageSent(handleMessageSent);
+		const unregisterMessageRead = onMessageRead(handleMessageRead);
+		const unregisterNotificationUpdate = onNotificationUpdate(handleNotificationUpdate);
+		const unregisterNotificationDeleted = onNotificationDeleted(handleNotificationDeleted);
+		const unregisterChatRoomEntered = onChatRoomEntered(handleChatRoomEntered);
 		
 		/**
-		 * Listen for new/received messages
-		 * @param msg 
+		 * Cleanup function - properly unregister all listeners
 		 */
-		const unregister = onReceiveMessage((msg: any) => {
-			if (view === "chat" && selectedChat && (msg.sender_id === selectedChat || msg.receiver_id === selectedChat)) {
-				setMessagesState(prev => {
-					// Prevent duplicate messages
-					if (prev.some(m => m.message_id === msg.message_id)) return prev;
-					return [...prev, msg];
-				});
-				// Scroll to bottom when a new message is received
-				setTimeout(() => {
-					scrollToBottomSmooth();
-				}, 100);
-			}
-			getLastMessages(userId);
-		});
-
-		/**
-		 * Listen for message sent confirmation
-		 * @param data 
-		 */
-		const unregisterMessageSent = onMessageSent((data: { success: boolean; message?: any; error?: string }) => {
-			if (data.success) {
-				// Clear sending state - the pending message will be handled by the displayMessages logic
-				setIsSending(false);
-			} else {
-				// Handle error - could show a toast notification here
-				console.error("Failed to send message:", data.error);
-				setIsSending(false);
-				// Remove the last pending message on error
-				setPendingMessages(prev => prev.slice(0, -1));
-			}
-		});
-
-		/**
-		 * Listen for message read status updates
-		 * @param data 
-		 */
-		const unregisterMessageRead = onMessageRead((data: { message_id: string; is_read: boolean }) => {
-			// Refresh previews when a message is marked as read
-			getLastMessages(userId);
-		});
-		
 		return () => {
 			unregisterPreviews();
-			unregister();
+			unregisterReceive();
 			unregisterMessageSent();
 			unregisterMessageRead();
+			unregisterNotificationUpdate();
+			unregisterNotificationDeleted();
+			unregisterChatRoomEntered();
 		};
-	}, [open, userId, selectedChat, view]);
+	}, [open, userId, handleMessagePreviews, handleReceiveMessage, handleMessageSent, handleMessageRead, handleNotificationUpdate, handleNotificationDeleted, handleChatRoomEntered]);
 
 	/**
 	 * Handle selecting a chat
-	 * @param other_user_id		 
 	 */
-	const handleSelectChat = (other_user_id: string) => {
+	const handleSelectChat = useCallback((other_user_id: string) => {
 		// Clear pending messages when switching conversations
 		setPendingMessages([]);
 		// Clear marked as read tracking when switching conversations
@@ -283,13 +303,17 @@ const Chatbox = () => {
 		if (userId && other_user_id) {
 			markUnreadMessagesAsRead(other_user_id);
 		}
-	};
+
+		// Delete notifications for this sender when entering chat
+		if (userId && other_user_id) {
+			enterChatRoom(userId, other_user_id);
+		}
+	}, [userId]);
 
 	/**
 	 * Function to mark unread messages as read
-	 * @param other_user_id 
 	 */
-	const markUnreadMessagesAsRead = (other_user_id: string) => {
+	const markUnreadMessagesAsRead = useCallback((other_user_id: string) => {
 		if (!userId || !other_user_id || !messages.length) return;
 		const unreadMessages = messages.filter(msg =>
 			msg.sender_id === other_user_id &&
@@ -301,7 +325,7 @@ const Chatbox = () => {
 			markMessageAsRead(msg.message_id, userId, other_user_id);
 			setMarkedAsRead(prev => new Set([...prev, msg.message_id]));
 		});
-	};
+	}, [userId, messages, markedAsRead]);
 
 	/**
 	 * Mark messages as read when conversation data updates and user is actively viewing
@@ -311,12 +335,12 @@ const Chatbox = () => {
 			// Mark unread messages as read when actively viewing a conversation
 			markUnreadMessagesAsRead(selectedChat);
 		}
-	}, [messages, view, selectedChat, userId]);
+	}, [messages, view, selectedChat, userId, markUnreadMessagesAsRead]);
 
 	/**
 	 * Handle starting a new conversation
 	 */
-	const handleStartNewConversation = () => {
+	const handleStartNewConversation = useCallback(() => {
 		// Check if there are any searchable users
 		if (searchableUsers.length === 0) {
 			// Could show a toast notification here	
@@ -328,58 +352,50 @@ const Chatbox = () => {
 		setSelectedChat(null);
 		// Clear marked as read tracking when starting new conversation
 		setMarkedAsRead(new Set());
-	};
+	}, [searchableUsers.length, setSelectedChat]);
 
 	/**
-	 * Click outside to close
+	 * Consolidated click outside handler
+	 */
+	const handleClickOutside = useCallback((e: MouseEvent) => {
+		// Don't dismiss if the delete modal is open
+		if (showDeleteModal) return;
+		
+		// Handle chatbox close
+		if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+			closeChat();
+			setShowOverlay(false);
+			setView("inbox");
+			// Clear pending messages when closing
+			setPendingMessages([]);
+			// Clear marked as read tracking when closing
+			setMarkedAsRead(new Set());
+			setIsSending(false);
+			// Close options dropdown
+			setShowChatOptions(null);
+		}
+		
+		// Handle chat options close
+		if (showChatOptions && !(e.target as Element).closest('.chat-options')) {
+			setShowChatOptions(null);
+		}
+	}, [showDeleteModal, showChatOptions, closeChat]);
+
+	/**
+	 * Single click outside listener
 	 */
 	useEffect(() => {
 		if (!open) return;
 		setShowOverlay(true);
-		const handler = (e: MouseEvent) => {
-			// Don't dismiss if the delete modal is open
-			if (showDeleteModal) return;
-			
-			if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
-				setOpen(false);
-				setShowOverlay(false);
-				setView("inbox");
-				setSelectedChat(null);
-				// Clear pending messages when closing
-				setPendingMessages([]);
-				// Clear marked as read tracking when closing
-				setMarkedAsRead(new Set());
-				setIsSending(false);
-				// Close options dropdown
-				setShowChatOptions(null);
-			}
-		};
-		document.addEventListener("mousedown", handler);
-		return () => document.removeEventListener("mousedown", handler);
-	}, [open, showDeleteModal]);
-
-	/**
-	 * Close options dropdown when clicking outside
-	 */
-	useEffect(() => {
-		const handler = (e: MouseEvent) => {
-			// Don't close options if the delete modal is open
-			if (showDeleteModal) return;
-			
-			if (showChatOptions && !(e.target as Element).closest('.chat-options')) {
-				setShowChatOptions(null);
-			}
-		};
-		document.addEventListener("mousedown", handler);
-		return () => document.removeEventListener("mousedown", handler);
-	}, [showChatOptions, showDeleteModal]);
+		
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, [open, handleClickOutside]);
 
 	/**
 	 * Handle sending a message with optimistic updates
-	 * @param content 
-	 * @param file 
 	 */
-	const handleSendMessage = (content: string, file?: File) => {
+	const handleSendMessage = useCallback((content: string, file?: File) => {
 		if (!selectedChat || !userId || (!content.trim() && !file) || isSending) return;
 
 		const pendingId = `pending-${Date.now()}`;
@@ -397,6 +413,7 @@ const Chatbox = () => {
 			formData.append('receiverId', selectedChat);
 			formData.append('ATTACHMENT', file);
 			formData.append('content', content); // Only send content if provided
+
 			sendMessageWithAttachment(formData, userId, selectedChat, content, file, Date.now());
 			fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/message/send-with-attachment`, {
 				method: 'POST',
@@ -407,7 +424,7 @@ const Chatbox = () => {
 			.then(res => {
 				setIsSending(false);
 				if (res.success) {
-					setMessagesState(prev => [...prev, res.message]);
+					setMessages(prev => [...prev, res.message]);
 					if ((window as any).socket) {
 						(window as any).socket.emit('sendMessageWithAttachment', { message: res.message });
 					}
@@ -424,32 +441,29 @@ const Chatbox = () => {
 		setTimeout(() => {
 			setIsSending(false);
 		}, 10000); // 10 second timeout
-	};
+	}, [selectedChat, userId, isSending]);
 
 	/**
 	 * Handle showing chat options
-	 * @param other_user_id 
-	 * @param e 
 	 */
-	const handleShowChatOptions = (other_user_id: string, e: React.MouseEvent) => {
+	const handleShowChatOptions = useCallback((other_user_id: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		setShowChatOptions(showChatOptions === other_user_id ? null : other_user_id);
-	};
+	}, [showChatOptions]);
 
 	/**
 	 * Handle delete chat
-	 * @param other_user_id 
 	 */
-	const handleDeleteChat = (other_user_id: string) => {
+	const handleDeleteChat = useCallback((other_user_id: string) => {
 		setChatToDelete(other_user_id);
 		setShowDeleteModal(true);
 		setShowChatOptions(null);
-	};
+	}, []);
 
 	/**
 	 * Handle confirm delete
 	 */
-	const handleConfirmDelete = () => {
+	const handleConfirmDelete = useCallback(() => {
 		if (chatToDelete && userId) {
 			setIsDeleting(true);
 			// Call the API directly since the hook parameters are fixed
@@ -479,19 +493,18 @@ const Chatbox = () => {
 			// Also emit socket event for real-time sync
 			hideChat(userId, chatToDelete);
 		}
-	};
+	}, [chatToDelete, userId, selectedChat, setSelectedChat]);
 
 	/**
 	 * Handle cancel delete
 	 */
-	const handleCancelDelete = () => {
+	const handleCancelDelete = useCallback(() => {
 		setShowDeleteModal(false);
 		setChatToDelete(null);
-	};
+	}, []);
 
 	/**
 	 * Combine real messages with pending messages for display
-	 * @returns 
 	 */
 	const displayMessages = useMemo(() => {
 		// Get real messages from the conversation
@@ -693,7 +706,12 @@ const Chatbox = () => {
 	const Toggler = (
 		<button
 			className="fixed bottom-6 right-6 z-40 bg-primary-light text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary-hover transition-colors focus:outline-none"
-			onClick={() => setOpen(true)}
+			onClick={() => {
+				if (!open) {
+					openChat("");
+					setView("inbox");
+				}
+			}}
 			aria-label="Open chat"
 		>
 			<svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -719,7 +737,7 @@ const Chatbox = () => {
 				<span className="font-semibold text-base">Chat</span>
 				<button
 					className="text-white text-xl p-1 hover:bg-white/10 rounded-full"
-					onClick={() => { setOpen(false); setShowOverlay(false); setView("inbox"); setSelectedChat(null); }}
+					onClick={() => { closeChat(); setShowOverlay(false); setView("inbox"); }}
 					aria-label="Close chat"
 				>
 					&times;
@@ -740,7 +758,9 @@ const Chatbox = () => {
 			</div>
 			<div className="flex-1 overflow-y-auto">
 				{inbox.length === 0 ? (
-					<div className="text-center text-gray-400 py-8 text-sm">No messages</div>
+					<div className="flex items-center justify-center py-8">
+						<LoadingIndicator size="sm" />
+					</div>
 				) : (
 					inbox
 						.filter(preview => (preview.other_username || "").toLowerCase().includes(search.toLowerCase()))
@@ -791,7 +811,7 @@ const Chatbox = () => {
 				<span className="font-semibold text-base flex-1 text-center">New Conversation</span>
 				<button
 					className="text-white text-xl p-1 hover:bg-white/10 rounded-full"
-					onClick={() => { setOpen(false); setShowOverlay(false); setView("inbox"); setSelectedChat(null); }}
+					onClick={() => { closeChat(); setShowOverlay(false); setView("inbox"); }}
 					aria-label="Close chat"
 				>
 					&times;
@@ -807,7 +827,9 @@ const Chatbox = () => {
 			</div>
 			<div className="flex-1 overflow-y-auto">
 				{(userRole === "MERCHANT" && membersLoading) || (userRole === "ADMIN" && adminsLoading) ? (
-					<div className="text-center text-gray-400 py-8 text-sm">Loading users...</div>
+					<div className="flex items-center justify-center py-8">
+						<LoadingIndicator size="sm" />
+					</div>
 				) : (userRole === "MERCHANT" && membersError) || (userRole === "ADMIN" && adminsError) ? (
 					<div className="text-center text-red-400 py-8 text-sm">Error loading users</div>
 				) : filteredSearchUsers.length === 0 ? (
@@ -876,7 +898,7 @@ const Chatbox = () => {
 				</div>
 				<button
 					className="text-white text-xl p-1 hover:bg-white/10 rounded-full"
-					onClick={() => { setOpen(false); setShowOverlay(false); setView("inbox"); setSelectedChat(null); }}
+					onClick={() => { closeChat(); setShowOverlay(false); setView("inbox"); }}
 					aria-label="Close chat"
 				>
 					&times;
@@ -899,7 +921,11 @@ const Chatbox = () => {
 					</div>
 				)}
 				
-				{messages.length === 0 ? (
+				{isLoadingMessages ? (
+					<div className="flex items-center justify-center py-8">
+						<LoadingIndicator size="sm" />
+					</div>
+				) : messages.length === 0 ? (
 					<div className="text-center text-gray-400 py-8 text-sm">No messages in this conversation.</div>
 				) : (
 					<>
@@ -996,54 +1022,65 @@ const Chatbox = () => {
 		</div>
 	) : null;
 
+	// Handle opening chat with a specific user
+	useEffect(() => {
+		if (open && selectedChat) {
+			// Set view to chat when a specific chat is selected
+			setView("chat");
+		}
+	}, [open, selectedChat]);
+
 	// Load initial messages when selectedChat changes
 	useEffect(() => {
 		if (!selectedChat) {
-			setMessagesState([]);
+			setMessages([]);
 			setHasMore(false);
 			setIsLoadingMore(false);
+			setIsLoadingMessages(false);
 			return;
 		}
 		
-		setMessagesState([]);
+		setMessages([]);
 		setHasMore(true);
 		setIsLoadingMore(true);
+		setIsLoadingMessages(true);
 		
 		fetchGetConversation(selectedChat, '', 10)
 			.then(res => {
 				if (res.success && Array.isArray(res.messages)) {
-					setMessagesState(res.messages);
+					setMessages(res.messages);
 					setHasMore(res.hasMore);
 				} else {
-					setMessagesState([]);
+					setMessages([]);
 					setHasMore(false);
 				}
 			})
 			.catch((error) => {
 				console.error('Failed to load initial messages:', error);
-				setMessagesState([]);
+				setMessages([]);
 				setHasMore(false);
 			})
 			.finally(() => {
 				setIsLoadingMore(false);
+				setIsLoadingMessages(false);
 			});
 	}, [selectedChat]);
 
 	// Load more messages (infinite scroll)
 	const loadMoreMessages = async () => {
-		if (isLoadingMore || !hasMore || messagesState.length === 0) return;
+		if (isLoadingMore || !hasMore || messages.length === 0) return;
 		setIsLoadingMore(true);
 		
 		try {
 			const container = messagesContainerRef.current;
 			const prevHeight = container ? container.scrollHeight : 0;
-			const oldest = messagesState[0];
+			const oldest = messages[0];
 			
 			const res = await fetchGetConversation(selectedChat!, oldest.created_at || '', 10);
 			
 			if (res.success && Array.isArray(res.messages)) {
 				// Prepend new messages to the beginning
-				setMessagesState(prev => [...res.messages, ...prev]);
+				setMessages(prev => [...res.messages, ...prev]);
 				setHasMore(res.hasMore);
 				
 				// Maintain scroll position after prepending
@@ -1079,20 +1116,20 @@ const Chatbox = () => {
 		
 		container.addEventListener('scroll', handleScroll);
 		return () => container.removeEventListener('scroll', handleScroll);
-	}, [hasMore, isLoadingMore, messagesState, selectedChat]);
+	}, [hasMore, isLoadingMore, messages, selectedChat]);
 
 	// 1. When entering a chat, scroll instantly to the bottom (no smooth)
 	useLayoutEffect(() => {
-		if (open && view === "chat" && messagesState.length > 0) {
+		if (open && view === "chat" && messages.length > 0) {
 			scrollToBottom(); // instant scroll
 		}
 		// Only run this effect when selectedChat changes (i.e., entering a new chat)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedChat, open, view, messagesState.length]);
+	}, [selectedChat, open, view, messages.length]);
 
 	// 2. When messages update (new message sent/received), use smooth scroll
 	useEffect(() => {
-		if (open && view === "chat" && messagesState.length > 0) {
+		if (open && view === "chat" && messages.length > 0) {
 			const container = messagesContainerRef.current;
 			if (container) {
 				const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
@@ -1103,7 +1140,7 @@ const Chatbox = () => {
 		}
 		// Only run this effect when messages actually change, not on initial entry
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [messagesState.length]);
+	}, [messages.length]);
 
 	return (
 		<>

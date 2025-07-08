@@ -107,7 +107,7 @@ export const getAllowedAdminRoutes = (adminRole: AdminRole | null | undefined): 
  */
 export const cn = (...inputs: ClassValue[]) => {
     return twMerge(clsx(inputs));
-} 
+}
 
 /**
  * Get the first merchant slug
@@ -119,4 +119,24 @@ export const getFirstMerchantSlug = (): string => {
 
 export const getFirstAdminSlug = (): string => {
     return ADMIN_SLUGS[0];
+}
+
+/**
+ * Clean file name by removing timestamp prefixes
+ * @param fileName - The file name to clean
+ * @returns The cleaned file name
+ */
+export function cleanFileName(fileName: string): string {
+    // Remove first two sets of numbers and dashes (e.g., 1751616157107-649198748-)
+    return fileName.replace(/^\d+-\d+-/, '');
+}
+
+/**
+ * Determine if a file is an image based on its extension
+ * @param fileUrl - The file URL or name
+ * @returns True if the file is an image
+ */
+export function isImageFile(fileUrl: string): boolean {
+    const extension = fileUrl.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '');
 }

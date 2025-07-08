@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import { merchantService } from "../services/merchant-service";
 import { messageService } from "../services/message-service";
 import { userService } from "../services/user-service";
+import { prisma } from "./prisma";
+import { notificationUtils } from "../utils/notification-utils";
 
 
 const registerSocketHandlers = (io: Server) => {
@@ -103,6 +105,42 @@ const registerSocketHandlers = (io: Server) => {
                 io.to(senderId).emit("messagePreviews", senderPreviews);
                 io.to(receiverId).emit("messagePreviews", receiverPreviews);
                 
+                // Create notification for the receiver
+                try {
+                    // Get sender's username for notification
+                    const sender = await prisma.user.findUnique({
+                        where: { user_id: senderId },
+                        select: { username: true, fname: true, lname: true }
+                    });
+                    
+                    if (sender) {
+                        const senderUsername = sender.username || `${sender.fname} ${sender.lname}`.trim();
+                        
+                        // Update notification for receiver
+                        await messageService.updateMessageNotification(
+                            receiverId,
+                            senderUsername,
+                            content,
+                            senderId
+                        );
+                        
+                        // Get updated notifications and unread count for receiver
+                        const [notifications, unreadCount] = await Promise.all([
+                            messageService.getNotifications(receiverId),
+                            notificationUtils.getUnreadCount(receiverId)
+                        ]);
+                        
+                        // Emit notification update to receiver
+                        io.to(receiverId).emit("notificationUpdate", {
+                            notifications,
+                            unreadCount
+                        });
+                    }
+                } catch (notificationError) {
+                    console.error("Error creating notification:", notificationError);
+                    // Don't fail the message send if notification fails
+                }
+                
                 // Send success confirmation to sender
                 socket.emit("messageSent", { success: true, message });
             } catch (error) {
@@ -119,13 +157,51 @@ const registerSocketHandlers = (io: Server) => {
             if (message && message.sender_id && message.receiver_id) {
                 io.to(message.sender_id).emit("receiveMessage", message);
                 io.to(message.receiver_id).emit("receiveMessage", message);
-                // Optionally, update previews for both users
+                
+                // Get updated previews for both users
                 const [senderPreviews, receiverPreviews] = await Promise.all([
                     messageService.getLastMessages(message.sender_id),
                     messageService.getLastMessages(message.receiver_id)
                 ]);
                 io.to(message.sender_id).emit("messagePreviews", senderPreviews);
                 io.to(message.receiver_id).emit("messagePreviews", receiverPreviews);
+                
+                // Create notification for the receiver
+                try {
+                    // Get sender's username for notification
+                    const sender = await prisma.user.findUnique({
+                        where: { user_id: message.sender_id },
+                        select: { username: true, fname: true, lname: true }
+                    });
+                    
+                    if (sender) {
+                        const senderUsername = sender.username || `${sender.fname} ${sender.lname}`.trim();
+                        const content = message.content || "📎 Attachment";
+                        
+                        // Update notification for receiver
+                        await messageService.updateMessageNotification(
+                            message.receiver_id,
+                            senderUsername,
+                            content,
+                            message.sender_id
+                        );
+                        
+                        // Get updated notifications and unread count for receiver
+                        const [notifications, unreadCount] = await Promise.all([
+                            messageService.getNotifications(message.receiver_id),
+                            notificationUtils.getUnreadCount(message.receiver_id)
+                        ]);
+                        
+                        // Emit notification update to receiver
+                        io.to(message.receiver_id).emit("notificationUpdate", {
+                            notifications,
+                            unreadCount
+                        });
+                    }
+                } catch (notificationError) {
+                    console.error("Error creating notification:", notificationError);
+                    // Don't fail the message send if notification fails
+                }
             }
         });
 
@@ -227,6 +303,77 @@ const registerSocketHandlers = (io: Server) => {
             } catch (error) {
                 console.error("Error getting tickets:", error);
                 socket.emit("error", { message: "Failed to get tickets" });
+            }
+        });
+
+        /**
+         * Handle get notifications
+         * @param user_id - The user ID
+         */
+        socket.on("getNotifications", async ({ user_id }) => {
+            try {
+                const [notifications, unreadCount] = await Promise.all([
+                    messageService.getNotifications(user_id),
+                    notificationUtils.getUnreadCount(user_id)
+                ]);
+                socket.emit("notificationUpdate", { notifications, unreadCount });
+            } catch (error) {
+                console.error("Error getting notifications:", error);
+                socket.emit("error", { message: "Failed to get notifications" });
+            }
+        });
+
+        /**
+         * Handle delete notification
+         * @param notification_id - The notification ID
+         * @param user_id - The user ID
+         */
+        socket.on("deleteNotification", async ({ notification_id, user_id }) => {
+            try {
+                // Delete the notification
+                await messageService.deleteNotification(notification_id, user_id);
+                
+                // Get updated notifications and unread count
+                const [notifications, unreadCount] = await Promise.all([
+                    messageService.getNotifications(user_id),
+                    notificationUtils.getUnreadCount(user_id)
+                ]);
+                
+                // Emit updated notifications to the user
+                io.to(user_id).emit("notificationUpdate", { notifications, unreadCount });
+                
+                // Send success confirmation
+                socket.emit("notificationDeleted", { success: true, notification_id });
+            } catch (error) {
+                console.error("Error deleting notification:", error);
+                socket.emit("error", { message: "Failed to delete notification" });
+            }
+        });
+
+        /**
+         * Handle enter chat room (delete notifications for sender)
+         * @param user_id - The user ID (receiver)
+         * @param sender_id - The sender's user ID
+         */
+        socket.on("enterChatRoom", async ({ user_id, sender_id }) => {
+            try {
+                // Delete notifications for this sender
+                await messageService.deleteNotificationsBySender(user_id, sender_id);
+                
+                // Get updated notifications and unread count
+                const [notifications, unreadCount] = await Promise.all([
+                    messageService.getNotifications(user_id),
+                    notificationUtils.getUnreadCount(user_id)
+                ]);
+                
+                // Emit updated notifications to the user
+                io.to(user_id).emit("notificationUpdate", { notifications, unreadCount });
+                
+                // Send success confirmation
+                socket.emit("chatRoomEntered", { success: true, sender_id });
+            } catch (error) {
+                console.error("Error entering chat room:", error);
+                socket.emit("error", { message: "Failed to enter chat room" });
             }
         });
 

@@ -5,6 +5,7 @@ import DateTimeProvider from "@/constant/datetime-provider";
 import QueryProvider from "@/constant/query-provider";
 import LangProvider from "@/constant/lang-provider";
 import DialingCodeProvider from "@/constant/dialing-code-provider";
+import { ChatProvider } from "@/contexts/chat-context";
 import React from "react";
 
 const urbanistItalic = localFont({
@@ -45,7 +46,9 @@ const RootLayout = async ({
                     <LangProvider>
                         <DateTimeProvider>
                             <DialingCodeProvider>
-                                {children}
+                                <ChatProvider>
+                                    {children}
+                                </ChatProvider>
                             </DialingCodeProvider>
                         </DateTimeProvider>
                     </LangProvider>

@@ -333,7 +333,7 @@ const DashboardNavbar = () => {
 					</button>
 
 					{profileOpen && (
-						<div className="absolute right-6 top-12 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 z-10 min-w-[220px]">
+						<div className="absolute right-6 top-[70px] bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-3 z-10 min-w-[220px]">
 							<div className="flex flex-col gap-1">
 								<Link 
 									href="/merchant/profile" 
@@ -403,7 +403,7 @@ const DashboardNavbar = () => {
 				</div>
 				
 				{/* Help Center - Mobile */}
-				<Link href="/help-center" legacyBehavior>
+				<Link href="/merchant/help-center" legacyBehavior>
 					<a className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors" title="Help Center" aria-label="Help Center">
 						<HelpCircle size={22} className="text-primary-light" />
 					</a>

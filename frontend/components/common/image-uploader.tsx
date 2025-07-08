@@ -210,6 +210,13 @@ const ImageUploader = ({
 										fill
 										sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
 										className="object-cover rounded-lg shadow-md"
+										unoptimized={img.preview.startsWith('blob:')}
+										onError={(e) => {
+											console.error('Image loading error:', e);
+											// Fallback to a placeholder or hide the image
+											const target = e.target as HTMLImageElement;
+											target.style.display = 'none';
+										}}
 									/>
 								</div>
 								{canRemove && (
@@ -254,6 +261,13 @@ const ImageUploader = ({
 								fill
 								sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
 								className="object-contain rounded-lg"
+								unoptimized={previewImages[0].preview.startsWith('blob:')}
+								onError={(e) => {
+									console.error('Image loading error:', e);
+									// Fallback to a placeholder or hide the image
+									const target = e.target as HTMLImageElement;
+									target.style.display = 'none';
+								}}
 							/>
 						</div>
 

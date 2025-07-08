@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, cleanFileName, isImageFile } from "@/lib/utils";
 import { Download, FileText } from "lucide-react";
 
 interface ChatMessageProps {
@@ -35,17 +35,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 		document.body.removeChild(link);
 	};
 
-	// Helper function to determine if file is an image based on extension
-	const isImageFile = (fileUrl: string) => {
-		const extension = fileUrl.split('.').pop()?.toLowerCase();
-		return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '');
-	};
 
-	// Utility to clean file name
-	function cleanFileName(fileName: string) {
-		// Remove first two sets of numbers and dashes (e.g., 1751616157107-649198748-)
-		return fileName.replace(/^\d+-\d+-/, '');
-	}
 
 	return (
 	<div

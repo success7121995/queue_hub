@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Paperclip, X } from "lucide-react";
 import Image from "next/image";
+import { validateFile, createImagePreview, revokeImagePreview } from "@/lib/file-helpers";
 
 interface ChatInputProps {
   onSend?: (message: string, file?: File) => void;
@@ -13,6 +14,7 @@ interface ChatInputProps {
 const ChatInput: React.FC<ChatInputProps> = ({ onSend, isSending = false }) => {
   const [value, setValue] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
@@ -29,27 +31,43 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isSending = false }) => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Only images (JPEG, PNG, WebP, SVG) and PDF files are allowed.');
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        alert(validation.error);
         return;
       }
-      // Check file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB.');
-        return;
-      }
+      
       setSelectedFile(file);
+      
+      // Create preview URL for images
+      if (file.type.startsWith('image/')) {
+        const url = createImagePreview(file);
+        setPreviewUrl(url);
+      }
     }
   };
 
   const removeFile = () => {
+    // Clean up preview URL to prevent memory leaks
+    if (previewUrl) {
+      revokeImagePreview(previewUrl);
+      setPreviewUrl(null);
+    }
+    
     setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        revokeImagePreview(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   return (
     <div className="w-full bg-white border-t border-border px-4 py-3">
@@ -61,7 +79,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isSending = false }) => {
               {selectedFile.type.startsWith('image/') ? (
                 <div className="w-8 h-8 relative">
                   <Image
-                    src={URL.createObjectURL(selectedFile)}
+                    src={previewUrl || ''}
                     alt="Preview"
                     fill
                     className="object-cover rounded"

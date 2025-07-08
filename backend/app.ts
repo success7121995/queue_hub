@@ -77,20 +77,20 @@ app.use((req, res, next) => {
 });
 
 // Development-only: always set a session user if not present (Owner)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    if (!req.session.user) {
-      req.session.user = {
-        user_id: "5469ca2a-83ba-4a0d-8265-17d763233975",
-        role: "ADMIN",
-        email: "success7121995@gmail.com",
-        admin_id: "dfffad85-110d-4aba-a306-d3390aadf713",
-        adminRole: "SUPER_ADMIN"
-      };
-    }
-    next();
-  });
-}
+// if (process.env.NODE_ENV === 'development') {
+//   app.use((req, res, next) => {
+//     if (!req.session.user) {
+//       req.session.user = {
+//         user_id: "5469ca2a-83ba-4a0d-8265-17d763233975",
+//         role: "ADMIN",
+//         email: "success7121995@gmail.com",
+//         admin_id: "dfffad85-110d-4aba-a306-d3390aadf713",
+//         adminRole: "SUPER_ADMIN"
+//       };
+//     }
+//     next();
+//   });
+// }
 
 // Development-only: always set a session user if not present (Manager)
 // if (process.env.NODE_ENV === 'development') {
@@ -109,20 +109,20 @@ if (process.env.NODE_ENV === 'development') {
 //   }
 
 // Development-only: always set a session user if not present (SUPER_ADMIN)
-// if (process.env.NODE_ENV === 'development') {
-//     app.use((req, res, next) => {
-//       if (!req.session.user) {
-//         req.session.user = {
-//           user_id: "be0d2494-9566-4659-a6e0-96697518cd32",
-//           role: "ADMIN",
-//           email: "success7121995@gmail.com",
-//           admin_id: "55a3842b-90a2-4926-8dc2-abc4cd815dc8",
-//           adminRole: "SUPER_ADMIN"
-//         };
-//       }
-//       next();
-//     });
-//   }
+if (process.env.NODE_ENV === 'development') {
+    app.use((req, res, next) => {
+      if (!req.session.user) {
+        req.session.user = {
+          user_id: "147a2b6a-8563-4360-a6e8-618358b09325",
+          role: "ADMIN",
+          email: "may@gmail.com",
+          admin_id: "1",
+          adminRole: "OPS_ADMIN"
+        };
+      }
+      next();
+    });
+  }
 
 
 

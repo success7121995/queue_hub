@@ -4,6 +4,7 @@ import { messageService } from "../services/message-service";
 import { z } from "zod";
 import { AppError } from "../utils/app-error";
 import { ActivityType } from "@prisma/client";
+import { notificationUtils } from "../utils/notification-utils";
 
 export const messageController = {
     /**
@@ -112,6 +113,51 @@ export const messageController = {
             }
 
             await messageService.updateHiddenChat(user_id, other_user_id);
+            res.json({ success: true });
+        }
+    ),
+
+    /**
+     * Get notifications
+     */
+    getNotifications: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { user_id } = req.session.user!;
+            const notifications = await messageService.getNotifications(user_id);
+            res.json({ success: true, notifications });
+        }
+    ),
+
+    /**
+     * Mark notification as read
+     */
+    markNotificationAsRead: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { notification_id } = req.params;
+            const { user_id } = req.session.user!;
+            
+            if (!notification_id) {
+                throw new AppError("Notification ID is required", 400);
+            }
+
+            await notificationUtils.markNotificationAsRead(notification_id);
+            res.json({ success: true });
+        }
+    ),
+
+    /**
+     * Delete notification
+     */
+    deleteNotification: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { notification_id } = req.params;
+            const { user_id } = req.session.user!;
+            
+            if (!notification_id) {
+                throw new AppError("Notification ID is required", 400);
+            }
+
+            await messageService.deleteNotification(notification_id, user_id);
             res.json({ success: true });
         }
     ),

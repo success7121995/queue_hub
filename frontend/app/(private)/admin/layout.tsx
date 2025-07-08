@@ -3,6 +3,7 @@ import AdminNavbar from "@/components/dashboard/admin/admin-navbar";
 import AdminSidenav from "@/components/dashboard/admin/admin-sidenav";
 import { getQueryClient } from "@/lib/query-client";
 import { prefetchAuth } from "@/hooks/auth-hooks";
+import { prefetchNotifications } from "@/hooks/user-hooks";
 import { Chatbox } from "@/components";
 
 interface AdminLayoutProps {
@@ -17,6 +18,9 @@ const AdminLayout = async ({ children }: AdminLayoutProps) => {
 		queryClient.setQueryData(['auth'], userData);
 
 		if (!userData?.user?.UserAdmin) throw Error("User admin not found");
+
+		// Prefetch notifications
+		await prefetchNotifications(queryClient);
 
 	} catch (error) {
 		console.error('Error prefetching user data:', error);

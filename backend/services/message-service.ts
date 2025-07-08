@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { Prisma } from "@prisma/client";
+import { notificationUtils } from "../utils/notification-utils";
 
 export const messageService = {
     /**
@@ -219,5 +220,88 @@ export const messageService = {
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;
+    },
+
+    /**
+     * Get notifications for a user
+     * @param user_id - The user ID
+     * @returns The notifications
+     */
+    async getNotifications(user_id: string) {
+        return await notificationUtils.getNotifications(user_id);
+    },
+
+    /**
+     * Update notification for message
+     * @param receiver_id - The receiver's user ID
+     * @param sender_username - The sender's username
+     * @param message_content - The message content
+     * @param sender_id - The sender's user ID
+     * @returns The notification
+     */
+    async updateMessageNotification(
+        receiver_id: string, 
+        sender_username: string, 
+        message_content: string, 
+        sender_id: string
+    ) {
+        // Determine title based on whether this is the first message or a follow-up
+        const title = `${sender_username} sent you a message`;
+        
+        // Determine content - if it's a file attachment, show 📎 Attachment
+        const content = message_content.startsWith('📎 ') ? message_content : message_content;
+        
+        // Create redirect URL to the chat
+        const redirect_url = `/messages/${sender_id}`;
+        
+        return await notificationUtils.updateOrCreateNotification(
+            receiver_id,
+            title,
+            content,
+            redirect_url
+        );
+    },
+
+    /**
+     * Delete notification
+     * @param notification_id - The notification ID
+     * @param user_id - The user ID (for validation)
+     * @returns Success response
+     */
+    async deleteNotification(notification_id: string, user_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            // First, verify the notification belongs to the user
+            const notification = await tx.notification.findFirst({
+                where: {
+                    notification_id,
+                    user_id,
+                },
+            });
+
+            if (!notification) {
+                throw new Error("Notification not found or access denied");
+            }
+
+            // Delete the notification
+            await tx.notification.delete({
+                where: {
+                    notification_id,
+                },
+            });
+
+            return { success: true };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
+
+    /**
+     * Delete notifications for a specific sender when user enters chat
+     * @param user_id - The user ID (receiver)
+     * @param sender_id - The sender's user ID
+     * @returns Success response
+     */
+    async deleteNotificationsBySender(user_id: string, sender_id: string) {
+        return await notificationUtils.deleteNotificationsBySender(user_id, sender_id);
     },
 }

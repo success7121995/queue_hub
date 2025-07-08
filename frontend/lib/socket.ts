@@ -1,6 +1,7 @@
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
+let isConnecting = false;
 let statusChangeCallbacks: ((data: { queueId: string; status: "OPEN" | "CLOSED" }) => void)[] = [];
 let queueCreatedCallbacks: ((data: { message: string }) => void)[] = [];
 let queueUpdatedCallbacks: ((data: { queueId: string; message: string }) => void)[] = [];
@@ -10,6 +11,9 @@ let receiveMessageCallbacks: ((data: any) => void)[] = [];
 let messageSentCallbacks: ((data: { success: boolean; message?: any; error?: string }) => void)[] = [];
 let newMessageCallbacks: ((data: any) => void)[] = [];
 let messageReadCallbacks: ((data: { message_id: string; is_read: boolean }) => void)[] = [];
+let notificationUpdateCallbacks: ((data: { notifications: any[]; unreadCount: number }) => void)[] = [];
+let notificationDeletedCallbacks: ((data: { success: boolean; notification_id: string }) => void)[] = [];
+let chatRoomEnteredCallbacks: ((data: { success: boolean; sender_id: string }) => void)[] = [];
 let ticketCreatedCallbacks: ((data: { success: boolean; ticket_id?: string }) => void)[] = [];
 let ticketsReceivedCallbacks: ((data: any[]) => void)[] = [];
 
@@ -17,8 +21,9 @@ let ticketsReceivedCallbacks: ((data: any[]) => void)[] = [];
  * Connect to the socket
  */
 export const connectSocket = () => {
-    if (socket) return;
+    if (socket || isConnecting) return;
 
+    isConnecting = true;
     const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5500';
     
     socket = io(SOCKET_URL, {
@@ -38,6 +43,7 @@ export const connectSocket = () => {
      */
     socket.on("connect", () => {
         console.log("Socket connected successfully");
+        isConnecting = false;
     });
 
     /**
@@ -46,6 +52,7 @@ export const connectSocket = () => {
      */
     socket.on("connect_error", (error) => {
         console.error("Socket connection error:", error);
+        isConnecting = false;
     });
 
     /**
@@ -121,6 +128,30 @@ export const connectSocket = () => {
     });
 
     /**
+     * Handle notification updates
+     * @param data - The data containing notifications and unread count
+     */
+    socket.on("notificationUpdate", (data) => {
+        notificationUpdateCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle notification deletion confirmation
+     * @param data - The data containing success status and notification ID
+     */
+    socket.on("notificationDeleted", (data) => {
+        notificationDeletedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle chat room entered confirmation
+     * @param data - The data containing success status and sender ID
+     */
+    socket.on("chatRoomEntered", (data) => {
+        chatRoomEnteredCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
      * Handle ticket creation confirmation
      * @param data - The data containing success status and ticket ID
      */
@@ -150,6 +181,7 @@ export const connectSocket = () => {
      */
     socket.on("disconnect", (reason) => {
         console.log("Socket disconnected:", reason);
+        isConnecting = false;
     });
 };
 
@@ -160,12 +192,20 @@ export const disconnectSocket = () => {
     if (socket) {
         socket.disconnect();
         socket = null;
+        isConnecting = false;
+        // Clear all callback arrays to prevent memory leaks
         statusChangeCallbacks = [];
+        queueCreatedCallbacks = [];
+        queueUpdatedCallbacks = [];
+        queueDeletedCallbacks = [];
         messagePreviewsCallbacks = [];
         receiveMessageCallbacks = [];
         messageSentCallbacks = [];
         newMessageCallbacks = [];
         messageReadCallbacks = [];
+        notificationUpdateCallbacks = [];
+        notificationDeletedCallbacks = [];
+        chatRoomEnteredCallbacks = [];
         ticketCreatedCallbacks = [];
         ticketsReceivedCallbacks = [];
     }
@@ -276,6 +316,42 @@ export const onMessageRead = (callback: (data: { message_id: string; is_read: bo
     messageReadCallbacks.push(callback);
     return () => {
         messageReadCallbacks = messageReadCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for notification updates
+ * @param callback - The callback function to be called when notifications are updated
+ * @returns A function to unregister the callback
+ */
+export const onNotificationUpdate = (callback: (data: { notifications: any[]; unreadCount: number }) => void) => {
+    notificationUpdateCallbacks.push(callback);
+    return () => {
+        notificationUpdateCallbacks = notificationUpdateCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for notification deletion confirmation
+ * @param callback - The callback function to be called when a notification is deleted
+ * @returns A function to unregister the callback
+ */
+export const onNotificationDeleted = (callback: (data: { success: boolean; notification_id: string }) => void) => {
+    notificationDeletedCallbacks.push(callback);
+    return () => {
+        notificationDeletedCallbacks = notificationDeletedCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for chat room entered confirmation
+ * @param callback - The callback function to be called when a chat room is entered
+ * @returns A function to unregister the callback
+ */
+export const onChatRoomEntered = (callback: (data: { success: boolean; sender_id: string }) => void) => {
+    chatRoomEnteredCallbacks.push(callback);
+    return () => {
+        chatRoomEnteredCallbacks = chatRoomEnteredCallbacks.filter(cb => cb !== callback);
     };
 };
 
@@ -415,5 +491,37 @@ export const createTicket = (userId: string, ticketId: string) => {
 export const getTickets = (userId: string) => {
     if (socket) {
         socket.emit("getTickets", { user_id: userId });
+    }
+};
+
+/**
+ * Get notifications via socket
+ * @param userId - The user ID
+ */
+export const getNotifications = (userId: string) => {
+    if (socket) {
+        socket.emit("getNotifications", { user_id: userId });
+    }
+};
+
+/**
+ * Delete notification via socket
+ * @param notificationId - The notification ID
+ * @param userId - The user ID
+ */
+export const deleteNotification = (notificationId: string, userId: string) => {
+    if (socket) {
+        socket.emit("deleteNotification", { notification_id: notificationId, user_id: userId });
+    }
+};
+
+/**
+ * Enter chat room and delete notifications for sender via socket
+ * @param userId - The user ID (receiver)
+ * @param senderId - The sender's user ID
+ */
+export const enterChatRoom = (userId: string, senderId: string) => {
+    if (socket) {
+        socket.emit("enterChatRoom", { user_id: userId, sender_id: senderId });
     }
 };
