@@ -19,7 +19,7 @@ export type UpdateEmployeeData = z.infer<typeof updateEmployeeSchema>;
 const createTicketSchema = z.object({
     subject: z.string().min(1, "Subject is required"),
     category: z.string().min(1, "Category is required"),
-    message: z.string().min(1, "Message is required"),
+    message: z.string().min(1, "Message is required")
 });
 export type CreateTicketData = z.infer<typeof createTicketSchema> & {
     files?: Express.Multer.File[];
@@ -299,11 +299,11 @@ export const userController = {
             const validatedData = createTicketSchema.parse(req.body);
             const files = (req as any).files || [];
 
-            const result = await userService.createTicket(user_id, {
+            const ticket = await userService.createTicket(user_id, {
                 ...validatedData,
                 files: files
             });
-            res.status(201).json({ success: true, result });
+            res.status(201).json({ success: true, result: { ticket_id: ticket.ticket_id } });
         },
         {
             action: ActivityType.CREATE_TICKET,
@@ -316,14 +316,58 @@ export const userController = {
     ),
 
     /**
-     * Get user's tickets
+     * Get tickets (for regular users - their own tickets only)
      * @param req - The request object
      * @param res - The response object
      */
     getTickets: withActivityLog(
         async (req: Request, res: Response) => {
             const { user_id } = req.session.user!;
-            const result = await userService.getTickets(user_id);
+            const { status } = req.query;
+
+            // Handle multiple status values
+            let statusFilter: string | string[] | undefined;
+            if (status) {
+                if (Array.isArray(status)) {
+                    statusFilter = status.map(s => String(s));
+                } else {
+                    statusFilter = String(status);
+                }
+            }
+            
+            // Regular users can only see their own tickets
+            const result = await userService.getTickets(user_id, statusFilter, false);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.VIEW_PROFILE,
+            extractUserId: (req) => req.session.user?.user_id ?? null,
+        }
+    ),
+
+    /**
+     * Get all tickets (for admin users only)
+     * @param req - The request object
+     * @param res - The response object
+     */
+    getAllTickets: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { user_id } = req.session.user!;
+            const { status } = req.query;
+
+            // Handle multiple status values
+            let statusFilter: string | string[] | undefined;
+            if (status) {
+                if (Array.isArray(status)) {
+                    statusFilter = status.map(s => String(s));
+                } else {
+                    statusFilter = String(status);
+                }
+            }
+            
+            // Admin users can see all tickets
+            const result = await userService.getTickets(user_id, statusFilter, true);
             res.status(200).json({ success: true, result });
             return result;
         },

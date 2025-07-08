@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/app-error";
-import { User, Prisma, Attachment } from "@prisma/client";
+import { User, Prisma, Attachment, TicketPriority } from "@prisma/client";
 import { type CreateTicketData, type UpdateEmployeeData } from "../controllers/user-controller";
 import * as fs from 'fs';
 import * as path from 'path';
@@ -549,7 +549,8 @@ export const userService = {
                         user_id,
                         subject: data.subject,
                         category: data.category,
-                        message: data.message,
+                        content: data.message,
+                        priority: 'MEDIUM' as TicketPriority, // Default priority since not in schema
                         status: "OPEN",
                     },
                 });
@@ -588,18 +589,45 @@ export const userService = {
     },
 
     /**
-     * Get user's tickets
-     * @param user_id - The user ID
+     * Get tickets
+     * @param user_id - The user ID (for admin users, this can be used to get all tickets)
+     * @param status - Optional status filter (can be array for multiple statuses)
+     * @param isAdmin - Whether the user is an admin (if true, gets all tickets)
      */
-    async getTickets(user_id: string) {
+    async getTickets(user_id: string, status?: string | string[], isAdmin: boolean = false) {
+        const whereClause: any = {};
+        
+        // For non-admin users, only show their own tickets
+        if (!isAdmin) {
+            whereClause.user_id = user_id;
+        }
+        
+        // Handle status filtering
+        if (status) {
+            if (Array.isArray(status)) {
+                whereClause.status = { in: status };
+            } else {
+                whereClause.status = status;
+            }
+        }
+
         const tickets = await prisma.ticket.findMany({
-            where: { user_id },
+            where: whereClause,
             include: {
                 Attachment: {
                     select: {
                         attachment_id: true,
                         file_url: true,
                         created_at: true,
+                    }
+                },
+                User: {
+                    select: {
+                        user_id: true,
+                        fname: true,
+                        lname: true,
+                        email: true,
+                        role: true,
                     }
                 }
             },

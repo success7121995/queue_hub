@@ -246,4 +246,42 @@ export const notificationUtils = {
 
         return result;
     },
+
+    /**
+     * Create support ticket notification for all admins
+     * @param user_name - The name of the user who submitted the ticket
+     * @returns Array of created notifications
+     */
+    async createSupportTicketNotification(user_name: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Get all active admins (all admin roles)
+            const admins = await tx.user.findMany({
+                where: {
+                    role: "ADMIN",
+                    status: "ACTIVE",
+                },
+                select: {
+                    user_id: true,
+                },
+            });
+
+            // Create notifications for all admins
+            const notifications = await Promise.all(
+                admins.map(admin =>
+                    tx.notification.create({
+                        data: {
+                            user_id: admin.user_id,
+                            title: "New Support Ticket Submitted",
+                            content: `${user_name} submitted a new support ticket`,
+                            redirect_url: "/admin/unresolved-tickets",
+                        },
+                    })
+                )
+            );
+
+            return notifications;
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
 }; 

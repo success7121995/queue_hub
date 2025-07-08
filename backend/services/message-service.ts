@@ -339,4 +339,13 @@ export const messageService = {
 
         return result;
     },
+
+    /**
+     * Create support ticket notification for all admins
+     * @param user_name - The name of the user who submitted the ticket
+     * @returns Array of created notifications
+     */
+    async createSupportTicketNotification(user_name: string) {
+        return await notificationUtils.createSupportTicketNotification(user_name);
+    },
 }

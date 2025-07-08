@@ -287,6 +287,44 @@ const registerSocketHandlers = (io: Server) => {
          */
         socket.on("createTicket", async ({ user_id, ticket_id }) => {
             try {
+                // Get user information for notification
+                const user = await prisma.user.findUnique({
+                    where: { user_id },
+                    select: { fname: true, lname: true, username: true }
+                });
+
+                if (user) {
+                    // Create support ticket notification for all admins
+                    const user_name = user.username || `${user.fname} ${user.lname}`.trim();
+                    await messageService.createSupportTicketNotification(user_name);
+
+                    // Get ALL admins to notify them (not just specific roles)
+                    const admins = await prisma.user.findMany({
+                        where: {
+                            role: "ADMIN",
+                            status: "ACTIVE",
+                        },
+                        select: {
+                            user_id: true,
+                        },
+                    });
+
+                    // Emit notification updates to all admins
+                    for (const admin of admins) {
+                        // Get updated notifications and unread count for this admin
+                        const [adminNotifications, unreadCount] = await Promise.all([
+                            messageService.getNotifications(admin.user_id),
+                            notificationUtils.getUnreadCount(admin.user_id)
+                        ]);
+
+                        // Emit notification update to this admin
+                        io.to(admin.user_id).emit("notificationUpdate", {
+                            notifications: adminNotifications,
+                            unreadCount
+                        });
+                    }
+                }
+
                 // Since the ticket is already created via HTTP, we just need to acknowledge it
                 // The ticket_id parameter is used to identify the ticket that was created
                 socket.emit("ticketCreated", { success: true, ticket_id });
@@ -298,7 +336,14 @@ const registerSocketHandlers = (io: Server) => {
 
         socket.on("getTickets", async ({ user_id }) => {
             try {
-                const tickets = await userService.getTickets(user_id);
+                // Get user role to determine if admin
+                const user = await prisma.user.findUnique({
+                    where: { user_id },
+                    select: { role: true }
+                });
+                
+                const isAdmin = user?.role === 'ADMIN';
+                const tickets = await userService.getTickets(user_id, undefined, isAdmin);
                 socket.emit("tickets", tickets.tickets);
             } catch (error) {
                 console.error("Error getting tickets:", error);

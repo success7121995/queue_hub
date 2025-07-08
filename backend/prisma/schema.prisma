@@ -400,10 +400,17 @@ model Tag {
 }
 
 model Ticket {
-  ticket_id String @id @default(uuid())
+  ticket_id String @id @default(uuid()) 
   user_id String
   subject String
   category String
+  content String
+  priority TicketPriority @default(MEDIUM)
+  assigned_to String?
+  assigned_at DateTime?
+  resolved_at DateTime?
+  closed_at DateTime?
+  closed_by String?
   status TicketStatus
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -739,8 +746,13 @@ enum UserStatus {
 
 enum TicketStatus {
   OPEN
-  CLOSED
-  PENDING
   RESOLVED
   IN_PROGRESS
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }

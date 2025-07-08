@@ -35,7 +35,8 @@ router.put('/change-password', requireAuth(), (req, res) => authController.chang
 
 // User ticket routes
 router.post('/ticket', requireAuth(), uploadTicketFiles, (req, res) => userController.createTicket(req, res)); // Create a ticket
-router.get('/ticket', requireAuth(), (req, res) => userController.getTickets(req, res)); // Get tickets
+router.get('/ticket/all', requireAuth([UserRole.ADMIN]), (req, res) => userController.getAllTickets(req, res)); // Get all tickets (admin only)
+router.get('/ticket', requireAuth(), (req, res) => userController.getTickets(req, res)); // Get user's own tickets
 router.get('/ticket/:ticket_id', requireAuth(), (req, res) => userController.getTicket(req, res)); // Get a ticket
 
 // User queue management (protected)

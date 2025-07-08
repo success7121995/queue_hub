@@ -7,7 +7,7 @@ const UnresolvedTickets = () => {
 		<Tickets
 			title="Unresolved Tickets"
 			filter={{
-				status: "open",
+				status: ["OPEN", "IN_PROGRESS"],
 			}}
 		/>
 	);

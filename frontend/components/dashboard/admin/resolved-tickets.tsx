@@ -7,7 +7,7 @@ const ResolvedTickets = () => {
 		<Tickets
 			title="Resolved Tickets"
 			filter={{
-				status: "resolved",
+				status: "RESOLVED",
 			}}
 		/>
 	);

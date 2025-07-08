@@ -15,6 +15,7 @@ export const userKeys = {
     lastMessages: () => [...userKeys.all, 'lastMessages'] as const,
     conversation: (other_user_id: string) => [...userKeys.all, 'conversation', other_user_id] as const,
     tickets: () => [...userKeys.all, 'tickets'] as const,
+    allTickets: () => [...userKeys.all, 'allTickets'] as const,
     notifications: () => [...userKeys.all, 'notifications'] as const,
 } as const;
 
@@ -340,7 +341,7 @@ export const fetchUpdateHiddenChat = async (user_id: string, other_user_id: stri
  * @param data
  * @returns
  */
-export const fetchCreateTicket = async (data: CreateTicketFormFields): Promise<{ success: boolean }> => {
+export const fetchCreateTicket = async (data: CreateTicketFormFields): Promise<{ success: boolean; result: { ticket_id: string } }> => {
     const formData = new FormData();
     formData.append('subject', data.subject);
     formData.append('category', data.category);
@@ -369,11 +370,22 @@ export const fetchCreateTicket = async (data: CreateTicketFormFields): Promise<{
 }
 
 /**
- * Fetch get tickets
+ * Fetch get tickets for regular users
+ * @param status - Optional status filter(s)
  * @returns
  */
-export const fetchGetTickets = async (): Promise<{ success: boolean; result: { tickets: any[] } }> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket`, {
+export const fetchGetTickets = async (status?: string | string[]): Promise<{ success: boolean; result: { tickets: any[] } }> => {
+    const url = new URL(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket`);
+    
+    if (status) {
+        if (Array.isArray(status)) {
+            status.forEach(s => url.searchParams.append('status', s));
+        } else {
+            url.searchParams.append('status', status);
+        }
+    }
+
+    const res = await fetch(url.toString(), {
         method: 'GET',
         credentials: 'include',
     });
@@ -381,6 +393,36 @@ export const fetchGetTickets = async (): Promise<{ success: boolean; result: { t
     if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to get tickets');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch get all tickets for admin users
+ * @param status - Optional status filter(s)
+ * @returns
+ */
+export const fetchGetAllTickets = async (status?: string | string[]): Promise<{ success: boolean; result: { tickets: any[] } }> => {
+    const url = new URL(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket/all`);
+    
+    if (status) {
+        if (Array.isArray(status)) {
+            status.forEach(s => url.searchParams.append('status', s));
+        } else {
+            url.searchParams.append('status', status);
+        }
+    }
+
+    const res = await fetch(url.toString(), {
+        method: 'GET',
+        credentials: 'include',
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to get all tickets');
     }
 
     const responseData = await res.json();
@@ -666,7 +708,7 @@ export const useUpdateHiddenChat = (user_id: string, other_user_id: string, opti
  * @param options
  * @returns
  */
-export const useCreateTicket = (options?: Omit<UseMutationOptions<{ success: boolean }, Error, CreateTicketFormFields>, 'mutationFn'>) => {
+export const useCreateTicket = (options?: Omit<UseMutationOptions<{ success: boolean; result: { ticket_id: string } }, Error, CreateTicketFormFields>, 'mutationFn'>) => {
     return useMutation({
         mutationFn: fetchCreateTicket,
         ...options,
@@ -674,14 +716,29 @@ export const useCreateTicket = (options?: Omit<UseMutationOptions<{ success: boo
 }
 
 /**
- * Use get tickets
+ * Use get tickets for regular users
+ * @param status - Optional status filter(s)
  * @param options
  * @returns
  */
-export const useGetTickets = (options?: Omit<UseQueryOptions<{ success: boolean; result: { tickets: any[] } }, Error>, 'queryKey' | 'queryFn'>) => {
+export const useGetTickets = (status?: string | string[], options?: Omit<UseQueryOptions<{ success: boolean; result: { tickets: any[] } }, Error>, 'queryKey' | 'queryFn'>) => {
     return useQuery({
-        queryKey: userKeys.tickets(),
-        queryFn: fetchGetTickets,
+        queryKey: [...userKeys.tickets(), status],
+        queryFn: () => fetchGetTickets(status),
+        ...options,
+    });
+}
+
+/**
+ * Use get all tickets for admin users
+ * @param status - Optional status filter(s)
+ * @param options
+ * @returns
+ */
+export const useGetAllTickets = (status?: string | string[], options?: Omit<UseQueryOptions<{ success: boolean; result: { tickets: any[] } }, Error>, 'queryKey' | 'queryFn'>) => {
+    return useQuery({
+        queryKey: [...userKeys.allTickets(), status],
+        queryFn: () => fetchGetAllTickets(status),
         ...options,
     });
 }

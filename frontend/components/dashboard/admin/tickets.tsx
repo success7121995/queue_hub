@@ -1,7 +1,6 @@
 "use client";
 
-// TODO: Enable when backend is ready
-// import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Table } from "@/components";
 import { Column } from "@/components/common/table";
 import LoadingIndicator from "@/components/common/loading-indicator";
@@ -9,6 +8,7 @@ import ExportBtn from "@/components/common/export-btn";
 import { useDateTime } from "@/constant/datetime-provider";
 import { Badge } from "@/components/common/badge";
 import { MessageSquare, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { useGetAllTickets } from "@/hooks/user-hooks";
 
 export interface Ticket {
 	id: string;
@@ -45,9 +45,9 @@ export interface Ticket {
 
 interface TicketsProps {
 	filter?: {
-		status?: Ticket["status"];
-		priority?: Ticket["priority"];
-		category?: Ticket["category"];
+		status?: string | string[];
+		priority?: string;
+		category?: string;
 		assignedTo?: string;
 	};
 	title: string;
@@ -56,90 +56,26 @@ interface TicketsProps {
 const Tickets = ({ filter, title }: TicketsProps) => {
 	const { formatDate } = useDateTime();
 
-	// TODO: Enable when backend is ready
-	// const { data: tickets, isLoading } = useQuery<Ticket[]>({
-	// 	queryKey: ['tickets', filter],
-	// 	queryFn: async () => {
-	// 		const queryParams = new URLSearchParams();
-	// 		if (filter?.status) queryParams.append('status', filter.status);
-	// 		if (filter?.priority) queryParams.append('priority', filter.priority);
-	// 		if (filter?.category) queryParams.append('category', filter.category);
-	// 		if (filter?.assignedTo) queryParams.append('assignedTo', filter.assignedTo);
-	//
-	// 		const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/tickets?${queryParams}`, {
-	// 			credentials: 'include',
-	// 		});
-	// 		if (!res.ok) throw new Error('Failed to fetch tickets');
-	// 		return res.json();
-	// 	},
-	// });
+	// Determine status filter based on component usage
+	let statusFilter: string | string[] | undefined;
+	if (filter?.status) {
+		statusFilter = filter.status;
+	}
 
-	// Mock data for demo
-	const mockTickets: Ticket[] = [
-		{
-			id: "TICKET-001",
-			title: "Cannot access merchant dashboard",
-			description: "I'm unable to log in to the merchant dashboard since yesterday.",
-			status: "open",
-			priority: "high",
-			category: "technical",
-			createdBy: {
-				id: "USER-001",
-				name: "John Doe",
-				email: "john@example.com",
-				role: "merchant",
-			},
-			createdAt: "2024-03-15T10:00:00Z",
-			updatedAt: "2024-03-15T10:00:00Z",
-			lastActivityAt: "2024-03-15T10:00:00Z",
-			comments: [],
-		},
-		{
-			id: "TICKET-002",
-			title: "Billing issue with subscription",
-			description: "I was charged twice for my monthly subscription.",
-			status: "in_progress",
-			priority: "urgent",
-			category: "billing",
-			createdBy: {
-				id: "USER-002",
-				name: "Jane Smith",
-				email: "jane@example.com",
-				role: "merchant",
-			},
-			assignedTo: {
-				id: "ADMIN-001",
-				name: "Admin User",
-				email: "admin@queuehub.com",
-			},
-			createdAt: "2024-03-14T15:30:00Z",
-			updatedAt: "2024-03-15T09:15:00Z",
-			lastActivityAt: "2024-03-15T09:15:00Z",
-			comments: [
-				{
-					id: "COMMENT-001",
-					content: "Looking into this issue now.",
-					createdBy: {
-						id: "ADMIN-001",
-						name: "Admin User",
-						role: "admin",
-					},
-					createdAt: "2024-03-15T09:15:00Z",
-				},
-			],
-		},
-	];
+	const { data: ticketsResponse, isLoading } = useGetAllTickets(statusFilter, {
+		staleTime: 0, // No stale cache allowed
+		gcTime: 0, // No garbage collection time
+	});
 
-	const data = mockTickets;
+	const tickets = ticketsResponse?.result?.tickets || [];
 
-	const getStatusBadge = (status: Ticket["status"]) => {
-		const statusConfig = {
-			open: { color: "bg-blue-100 text-blue-800", icon: <AlertCircle className="w-4 h-4" /> },
-			in_progress: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-4 h-4" /> },
-			resolved: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-4 h-4" /> },
-			closed: { color: "bg-gray-100 text-gray-800", icon: <XCircle className="w-4 h-4" /> },
+	const getStatusBadge = (status: string) => {
+		const statusConfig: Record<string, { color: string; icon: JSX.Element }> = {
+			OPEN: { color: "bg-blue-100 text-blue-800", icon: <AlertCircle className="w-4 h-4" /> },
+			IN_PROGRESS: { color: "bg-yellow-100 text-yellow-800", icon: <Clock className="w-4 h-4" /> },
+			RESOLVED: { color: "bg-green-100 text-green-800", icon: <CheckCircle className="w-4 h-4" /> },
 		};
-		const config = statusConfig[status];
+		const config = statusConfig[status] || { color: "bg-gray-100 text-gray-800", icon: <XCircle className="w-4 h-4" /> };
 		return (
 			<Badge className={`flex items-center gap-1 ${config.color}`}>
 				{config.icon}
@@ -148,28 +84,28 @@ const Tickets = ({ filter, title }: TicketsProps) => {
 		);
 	};
 
-	const getPriorityBadge = (priority: Ticket["priority"]) => {
-		const priorityConfig = {
-			low: "bg-gray-100 text-gray-800",
-			medium: "bg-blue-100 text-blue-800",
-			high: "bg-yellow-100 text-yellow-800",
-			urgent: "bg-red-100 text-red-800",
+	const getPriorityBadge = (priority: string) => {
+		const priorityConfig: Record<string, string> = {
+			LOW: "bg-gray-100 text-gray-800",
+			MEDIUM: "bg-blue-100 text-blue-800",
+			HIGH: "bg-yellow-100 text-yellow-800",
+			URGENT: "bg-red-100 text-red-800",
 		};
 		return (
-			<Badge className={priorityConfig[priority]}>
+			<Badge className={priorityConfig[priority] || "bg-gray-100 text-gray-800"}>
 				{priority.charAt(0).toUpperCase() + priority.slice(1)}
 			</Badge>
 		);
 	};
 
-	const columns: Column<Ticket>[] = [
+	const columns: Column<any>[] = [
 		{
 			header: "ID",
-			accessor: "id",
+			accessor: "ticket_id",
 		},
 		{
-			header: "Title",
-			accessor: "title",
+			header: "Subject",
+			accessor: "subject",
 		},
 		{
 			header: "Status",
@@ -187,36 +123,36 @@ const Tickets = ({ filter, title }: TicketsProps) => {
 			header: "Created By",
 			accessor: (row) => (
 				<div>
-					<div className="font-medium">{row.createdBy.name}</div>
-					<div className="text-sm text-gray-500">{row.createdBy.email}</div>
+					<div className="font-medium">{row.User?.fname} {row.User?.lname}</div>
+					<div className="text-sm text-gray-500">{row.User?.email}</div>
+					<div className="text-xs text-gray-400">{row.User?.role}</div>
 				</div>
 			),
 		},
 		{
-			header: "Assigned To",
-			accessor: (row) => row.assignedTo ? (
-				<div>
-					<div className="font-medium">{row.assignedTo.name}</div>
-					<div className="text-sm text-gray-500">{row.assignedTo.email}</div>
+			header: "Content",
+			accessor: (row) => (
+				<div className="max-w-xs truncate">
+					{row.content}
 				</div>
-			) : "Unassigned",
+			),
 		},
 		{
-			header: "Created",
-			accessor: (row) => formatDate(new Date(row.createdAt)),
-		},
-		{
-			header: "Last Activity",
-			accessor: (row) => formatDate(new Date(row.lastActivityAt)),
-		},
-		{
-			header: "Comments",
+			header: "Attachments",
 			accessor: (row) => (
 				<div className="flex items-center gap-1">
 					<MessageSquare className="w-4 h-4" />
-					<span>{row.comments.length}</span>
+					<span>{row.Attachment?.length || 0}</span>
 				</div>
 			),
+		},
+		{
+			header: "Created",
+			accessor: (row) => formatDate(new Date(row.created_at)),
+		},
+		{
+			header: "Updated",
+			accessor: (row) => formatDate(new Date(row.updated_at)),
 		},
 		{
 			header: "Actions",
@@ -233,15 +169,26 @@ const Tickets = ({ filter, title }: TicketsProps) => {
 		},
 	];
 	
+	if (isLoading) {
+		return (
+			<div className="min-h-screen font-regular-eng p-8">
+				<div className="flex justify-between items-center mb-8">
+					<h1 className="text-3xl text-primary-light font-bold">{title}</h1>
+				</div>
+				<LoadingIndicator />
+			</div>
+		);
+	}
+
 	return (
 		<div className="min-h-screen font-regular-eng p-8">
 			<div className="flex justify-between items-center mb-8">
 				<h1 className="text-3xl text-primary-light font-bold">{title}</h1>
-				<ExportBtn data={data} filename="tickets" />
+				<ExportBtn data={tickets} filename="tickets" />
 			</div>
 
 			<div className="w-full overflow-x-auto">
-				<Table columns={columns} data={data} />
+				<Table columns={columns} data={tickets} />
 			</div>
 		</div>
 	);

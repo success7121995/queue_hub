@@ -2,15 +2,15 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, BookOpen, Send, FileText, Plus, Loader2, ThumbsUp, ThumbsDown, Paperclip, RefreshCcw, MessageCircle, X } from 'lucide-react';
+import { Search, BookOpen, Send, FileText, Plus, Loader2, ThumbsUp, ThumbsDown, Paperclip, RefreshCcw, MessageCircle, X, Download, Eye } from 'lucide-react';
 import DateRangeSelect from '@/components/common/date-select';
 import Table from '@/components/common/table';
 import { useForm } from "react-hook-form";
 import LoadingIndicator from '@/components/common/loading-indicator';
 import { cn } from '@/lib/utils';
 import Attachment from '@/components/common/attachment';
-import { createTicket, getTickets, onTicketCreated, onTicketsReceived } from '@/lib/socket';
-import { useCreateTicket, useGetTickets } from '@/hooks/user-hooks';
+import { createTicket, getTickets, onTicketCreated, onTicketsReceived, connectSocket } from '@/lib/socket';
+import { useCreateTicket, useGetTickets, useGetTicket } from '@/hooks/user-hooks';
 import { useAuth } from '@/hooks/auth-hooks';
 import { CreateTicketFormFields } from '@/types/form';
 
@@ -33,10 +33,16 @@ const TICKET_CATEGORIES = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-    Open: 'bg-green-100 text-green-700',
-    Pending: 'bg-yellow-100 text-yellow-700',
-    Resolved: 'bg-gray-100 text-gray-700',
-    Closed: 'bg-red-100 text-red-700',
+    OPEN: 'bg-green-100 text-green-700',
+    IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
+    RESOLVED: 'bg-gray-100 text-gray-700',
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+    Low: 'bg-gray-100 text-gray-700',
+    Medium: 'bg-blue-100 text-blue-700',
+    High: 'bg-yellow-100 text-yellow-700',
+    Urgent: 'bg-red-100 text-red-700',
 };
 
 type TabType = 'kb' | 'ticket' | 'mytickets';
@@ -94,13 +100,185 @@ const AccordionItem = ({ question, answer }: { question: string; answer: string 
   );
 }
 
+// Ticket Detail Modal Component
+const TicketDetailModal = ({ 
+    isOpen, 
+    onClose, 
+    ticketId 
+}: { 
+    isOpen: boolean; 
+    onClose: () => void; 
+    ticketId: string | null; 
+}) => {
+    const { data: ticketData, isLoading: ticketLoading } = useGetTicket(ticketId || '', {
+        enabled: isOpen && !!ticketId,
+    });
+
+    const ticket = ticketData?.result?.ticket;
+
+    // Handle escape key and click outside
+    useEffect(() => {
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'hidden';
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 className="text-xl font-bold text-gray-900">Ticket Details</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                    {ticketLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="animate-spin w-8 h-8 text-primary-light" />
+                            <span className="ml-2 text-gray-600">Loading ticket details...</span>
+                        </div>
+                    ) : ticket ? (
+                        <div className="space-y-6">
+                            {/* Subject */}
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">{ticket.subject}</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    <span className={cn('px-2 py-1 rounded-full text-xs font-semibold', STATUS_COLORS[ticket.status] || 'bg-gray-100 text-gray-700')}>
+                                        {ticket.status}
+                                    </span>
+                                    <span className={cn('px-2 py-1 rounded-full text-xs font-semibold', PRIORITY_COLORS[ticket.priority] || 'bg-gray-100 text-gray-700')}>
+                                        {ticket.priority}
+                                    </span>
+                                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                        {ticket.category}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Message</h4>
+                                <div className="bg-gray-50 rounded-lg p-4 text-gray-800 whitespace-pre-wrap">
+                                    {ticket.content || ticket.message}
+                                </div>
+                            </div>
+
+                            {/* Attachments */}
+                            {ticket.Attachment && ticket.Attachment.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-700 mb-2">Attachments</h4>
+                                    <div className="space-y-2">
+                                        {ticket.Attachment.map((attachment: any, index: number) => (
+                                            <div key={index} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                                                <div className="flex items-center">
+                                                    <FileText className="w-4 h-4 text-gray-500 mr-2" />
+                                                    <span className="text-sm text-gray-700">{attachment.filename || `Attachment ${index + 1}`}</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL}${attachment.file_url}`, '_blank')}
+                                                        className="flex items-center gap-1 text-primary-light hover:text-primary-hover text-sm"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                        View
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            const link = document.createElement('a');
+                                                            link.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}${attachment.file_url}`;
+                                                            link.download = attachment.filename || `attachment-${index + 1}`;
+                                                            link.click();
+                                                        }}
+                                                        className="flex items-center gap-1 text-primary-light hover:text-primary-hover text-sm"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                        Download
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Metadata */}
+                            <div className="border-t border-gray-200 pt-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                                    <div>
+                                        <span className="font-medium">Created:</span> {new Date(ticket.created_at).toLocaleString()}
+                                    </div>
+                                    {ticket.updated_at && (
+                                        <div>
+                                            <span className="font-medium">Last Updated:</span> {new Date(ticket.updated_at).toLocaleString()}
+                                        </div>
+                                    )}
+                                    {ticket.resolved_at && (
+                                        <div>
+                                            <span className="font-medium">Resolved:</span> {new Date(ticket.resolved_at).toLocaleString()}
+                                        </div>
+                                    )}
+                                    {ticket.closed_at && (
+                                        <div>
+                                            <span className="font-medium">Closed:</span> {new Date(ticket.closed_at).toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-gray-600">
+                            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                            <p>Ticket not found or could not be loaded.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex justify-end p-6 border-t border-gray-200">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const HelpCenter = () => {
     const [tab, setTab] = useState<TabType>('kb');
     const [ticketFilters, setTicketFilters] = useState<{ status: string; dateRange: [null, null] }>({ status: '', dateRange: [null, null] });
     const formMethods = useForm<TicketForm>({ defaultValues: { category: '', priority: 'Low', subject: '', message: '', files: [] } });
-    const queryClient = useQueryClient();
     const [attachments, setAttachments] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    
+    // Modal state
+    const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Get current user
     const { data: authData } = useAuth();
@@ -110,28 +288,14 @@ const HelpCenter = () => {
     const { data: ticketsData, isLoading: ticketsLoading, refetch: refetchTickets } = useGetTickets();
 
     // Create ticket mutation
-    const createTicketMutation = useCreateTicket({
-        onSuccess: (data: any) => {
-            // Emit socket event to notify backend about the created ticket
-            if (user?.user_id && data.result?.ticket_id) {
-                createTicket(user.user_id, data.result.ticket_id);
-            }
-            
-            // Reset form
-            formMethods.reset();
-            setAttachments([]);
-            
-            // Refetch tickets
-            refetchTickets();
-        },
-        onError: (error) => {
-            console.error('Failed to create ticket:', error);
-        }
-    });
+    const createTicketMutation = useCreateTicket();
 
-    // Socket event handlers
+    // Socket event handlers for ticket creation notifications
     useEffect(() => {
         if (!user?.user_id) return;
+
+        // Connect to socket
+        connectSocket();
 
         // Listen for ticket creation confirmation
         const unsubscribeTicketCreated = onTicketCreated((data: { success: boolean; ticket_id?: string }) => {
@@ -141,21 +305,10 @@ const HelpCenter = () => {
             }
         });
 
-        // Listen for tickets data
-        const unsubscribeTicketsReceived = onTicketsReceived((data: any[]) => {
-            console.log('Tickets received via socket:', data);
-            // Update the query cache with new data
-            queryClient.setQueryData(['user', 'tickets'], { success: true, result: { tickets: data } });
-        });
-
-        // Request tickets via socket
-        getTickets(user.user_id);
-
         return () => {
             unsubscribeTicketCreated();
-            unsubscribeTicketsReceived();
         };
-    }, [user?.user_id, queryClient, refetchTickets]);
+    }, [user?.user_id, refetchTickets]);
 
     /**
      * Submit Ticket
@@ -168,7 +321,25 @@ const HelpCenter = () => {
             files: attachments
         };
         
-        createTicketMutation.mutate(ticketData);
+        createTicketMutation.mutate(ticketData, {
+            onSuccess: (response) => {
+                // Reset form
+                formMethods.reset();
+                setAttachments([]);
+
+                // Emit socket event to notify admins about the new ticket
+                if (user?.user_id && response?.result?.ticket_id) {
+                    createTicket(user.user_id, response.result.ticket_id);
+                }
+
+                // Refetch tickets
+                refetchTickets();
+                setTab('mytickets');
+            },
+            onError: (error) => {
+                console.error('Failed to create ticket:', error);
+            }
+        });
     }
 
     /**
@@ -190,12 +361,33 @@ const HelpCenter = () => {
         }
     };
 
+    /**
+     * Handle ticket click
+     */
+    const handleTicketClick = (ticketId: string) => {
+        setSelectedTicketId(ticketId);
+        setIsModalOpen(true);
+    };
+
+    /**
+     * Close modal
+     */
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedTicketId(null);
+    };
+
     // --- Table columns for My Tickets ---
     const ticketColumns = [
         {
             header: 'Subject',
             accessor: (row: any) => (
-                <span className="font-semibold text-primary-light underline cursor-pointer" onClick={() => {}}>{row.subject}</span>
+                <span 
+                    className="font-semibold text-primary-light underline cursor-pointer hover:text-primary-hover transition-colors" 
+                    onClick={() => handleTicketClick(row.ticket_id)}
+                >
+                    {row.subject}
+                </span>
             ),
             className: 'font-semibold text-primary-light',
             priority: 3,
@@ -308,13 +500,20 @@ const HelpCenter = () => {
                 <div className="flex flex-col sm:flex-row gap-2 mb-4 items-center">
                 <select className="border border-primary-light rounded text-xs text-primary-light p-1 pl-[10px]" value={ticketFilters.status} onChange={e => setTicketFilters(f => ({ ...f, status: e.target.value }))}>
                     <option value="">All Statuses</option>
-                    <option value="Open">Open</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Closed">Closed</option>
+                    <option value="OPEN">Open</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Resolved</option>
                 </select>
                 <DateRangeSelect selectedYear={''} selectedMonth={''} onYearChange={() => {}} onMonthChange={() => {}} />
                 </div>
+
+                {/* Loading indicator for tickets */}
+                {ticketsLoading && (
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className="animate-spin w-8 h-8 text-primary-light" />
+                        <span className="ml-2 text-gray-600">Loading tickets...</span>
+                    </div>
+                )}
 
                 <Table
                     data={filteredTickets}
@@ -322,12 +521,19 @@ const HelpCenter = () => {
                     getRowClassName={() => 'cursor-pointer'}
                     renderActions={undefined}
                     rowsPerPage={10}
-                    loading={ticketsLoading}
+                    loading={false} // We handle loading separately above
                     message="No tickets found."
                     actions={undefined}
                 />
             </div>
             )}
+
+            {/* Ticket Detail Modal */}
+            <TicketDetailModal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                ticketId={selectedTicketId}
+            />
 
             {/* Future: Chatbot/Live Chat */}
             <div className="fixed bottom-6 right-6 z-40">
