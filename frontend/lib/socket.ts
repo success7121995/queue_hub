@@ -13,9 +13,11 @@ let newMessageCallbacks: ((data: any) => void)[] = [];
 let messageReadCallbacks: ((data: { message_id: string; is_read: boolean }) => void)[] = [];
 let notificationUpdateCallbacks: ((data: { notifications: any[]; unreadCount: number }) => void)[] = [];
 let notificationDeletedCallbacks: ((data: { success: boolean; notification_id: string }) => void)[] = [];
+let notificationMarkedAsReadCallbacks: ((data: { success: boolean; notification_id: string }) => void)[] = [];
 let chatRoomEnteredCallbacks: ((data: { success: boolean; sender_id: string }) => void)[] = [];
 let ticketCreatedCallbacks: ((data: { success: boolean; ticket_id?: string }) => void)[] = [];
 let ticketsReceivedCallbacks: ((data: any[]) => void)[] = [];
+let merchantSignupNotificationSentCallbacks: ((data: { success: boolean; merchant_id: string; notifiedAdmins: number }) => void)[] = [];
 
 /**
  * Connect to the socket
@@ -144,6 +146,14 @@ export const connectSocket = () => {
     });
 
     /**
+     * Handle notification marked as read confirmation
+     * @param data - The data containing success status and notification ID
+     */
+    socket.on("notificationMarkedAsRead", (data) => {
+        notificationMarkedAsReadCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
      * Handle chat room entered confirmation
      * @param data - The data containing success status and sender ID
      */
@@ -165,6 +175,14 @@ export const connectSocket = () => {
      */
     socket.on("tickets", (data) => {
         ticketsReceivedCallbacks.forEach(callback => callback(data));
+    });
+
+    /**
+     * Handle merchant signup notification sent confirmation
+     * @param data - The data containing success status, merchant ID, and notified admins count
+     */
+    socket.on("merchantSignupNotificationSent", (data) => {
+        merchantSignupNotificationSentCallbacks.forEach(callback => callback(data));
     });
 
     /**
@@ -205,9 +223,11 @@ export const disconnectSocket = () => {
         messageReadCallbacks = [];
         notificationUpdateCallbacks = [];
         notificationDeletedCallbacks = [];
+        notificationMarkedAsReadCallbacks = [];
         chatRoomEnteredCallbacks = [];
         ticketCreatedCallbacks = [];
         ticketsReceivedCallbacks = [];
+        merchantSignupNotificationSentCallbacks = [];
     }
 };
 
@@ -344,6 +364,18 @@ export const onNotificationDeleted = (callback: (data: { success: boolean; notif
 };
 
 /**
+ * Register a callback for notification marked as read confirmation
+ * @param callback - The callback function to be called when a notification is marked as read
+ * @returns A function to unregister the callback
+ */
+export const onNotificationMarkedAsRead = (callback: (data: { success: boolean; notification_id: string }) => void) => {
+    notificationMarkedAsReadCallbacks.push(callback);
+    return () => {
+        notificationMarkedAsReadCallbacks = notificationMarkedAsReadCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
  * Register a callback for chat room entered confirmation
  * @param callback - The callback function to be called when a chat room is entered
  * @returns A function to unregister the callback
@@ -376,6 +408,18 @@ export const onTicketsReceived = (callback: (data: any[]) => void) => {
     ticketsReceivedCallbacks.push(callback);
     return () => {
         ticketsReceivedCallbacks = ticketsReceivedCallbacks.filter(cb => cb !== callback);
+    };
+};
+
+/**
+ * Register a callback for merchant signup notification sent confirmation
+ * @param callback - The callback function to be called when merchant signup notification is sent
+ * @returns A function to unregister the callback
+ */
+export const onMerchantSignupNotificationSent = (callback: (data: { success: boolean; merchant_id: string; notifiedAdmins: number }) => void) => {
+    merchantSignupNotificationSentCallbacks.push(callback);
+    return () => {
+        merchantSignupNotificationSentCallbacks = merchantSignupNotificationSentCallbacks.filter(cb => cb !== callback);
     };
 };
 
@@ -516,6 +560,17 @@ export const deleteNotification = (notificationId: string, userId: string) => {
 };
 
 /**
+ * Mark notification as read via socket
+ * @param notificationId - The notification ID
+ * @param userId - The user ID
+ */
+export const markNotificationAsRead = (notificationId: string, userId: string) => {
+    if (socket) {
+        socket.emit("markNotificationAsRead", { notification_id: notificationId, user_id: userId });
+    }
+};
+
+/**
  * Enter chat room and delete notifications for sender via socket
  * @param userId - The user ID (receiver)
  * @param senderId - The sender's user ID
@@ -523,5 +578,16 @@ export const deleteNotification = (notificationId: string, userId: string) => {
 export const enterChatRoom = (userId: string, senderId: string) => {
     if (socket) {
         socket.emit("enterChatRoom", { user_id: userId, sender_id: senderId });
+    }
+};
+
+/**
+ * Send merchant signup notification to admins via socket
+ * @param merchantName - The merchant business name
+ * @param merchantId - The merchant ID
+ */
+export const sendMerchantSignupNotification = (merchantName: string, merchantId: string) => {
+    if (socket) {
+        socket.emit("merchantSignupNotification", { merchant_name: merchantName, merchant_id: merchantId });
     }
 };

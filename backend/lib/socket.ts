@@ -351,6 +351,33 @@ const registerSocketHandlers = (io: Server) => {
         });
 
         /**
+         * Handle mark notification as read
+         * @param notification_id - The notification ID
+         * @param user_id - The user ID
+         */
+        socket.on("markNotificationAsRead", async ({ notification_id, user_id }) => {
+            try {
+                // Mark the notification as read
+                await messageService.markNotificationAsRead(notification_id, user_id);
+                
+                // Get updated notifications and unread count
+                const [notifications, unreadCount] = await Promise.all([
+                    messageService.getNotifications(user_id),
+                    notificationUtils.getUnreadCount(user_id)
+                ]);
+                
+                // Emit updated notifications to the user
+                io.to(user_id).emit("notificationUpdate", { notifications, unreadCount });
+                
+                // Send success confirmation
+                socket.emit("notificationMarkedAsRead", { success: true, notification_id });
+            } catch (error) {
+                console.error("Error marking notification as read:", error);
+                socket.emit("error", { message: "Failed to mark notification as read" });
+            }
+        });
+
+        /**
          * Handle enter chat room (delete notifications for sender)
          * @param user_id - The user ID (receiver)
          * @param sender_id - The sender's user ID
@@ -374,6 +401,55 @@ const registerSocketHandlers = (io: Server) => {
             } catch (error) {
                 console.error("Error entering chat room:", error);
                 socket.emit("error", { message: "Failed to enter chat room" });
+            }
+        });
+
+        /**
+         * Handle merchant signup notification to admins
+         * @param merchant_name - The merchant business name
+         * @param merchant_id - The merchant ID
+         */
+        socket.on("merchantSignupNotification", async ({ merchant_name, merchant_id }) => {
+            try {
+                // Create notifications for admins with specific roles
+                const notifications = await notificationUtils.createAdminNotifications(
+                    ["SUPER_ADMIN", "OPS_ADMIN", "SUPPORT_AGENT"],
+                    "New Merchant Registration",
+                    `"${merchant_name}" has requested to join.`,
+                    "/admin/approve-merchants"
+                );
+
+                // Get all eligible admins to notify them
+                const admins = await notificationUtils.getAdminsByRoles([
+                    "SUPER_ADMIN", 
+                    "OPS_ADMIN", 
+                    "SUPPORT_AGENT"
+                ]);
+
+                // Emit notification updates to all eligible admins
+                for (const admin of admins) {
+                    // Get updated notifications and unread count for this admin
+                    const [adminNotifications, unreadCount] = await Promise.all([
+                        notificationUtils.getNotifications(admin.user_id),
+                        notificationUtils.getUnreadCount(admin.user_id)
+                    ]);
+
+                    // Emit notification update to this admin
+                    io.to(admin.user_id).emit("notificationUpdate", {
+                        notifications: adminNotifications,
+                        unreadCount
+                    });
+                }
+
+                // Send success confirmation
+                socket.emit("merchantSignupNotificationSent", { 
+                    success: true, 
+                    merchant_id,
+                    notifiedAdmins: admins.length 
+                });
+            } catch (error) {
+                console.error("Error sending merchant signup notification:", error);
+                socket.emit("error", { message: "Failed to send merchant signup notification" });
             }
         });
 

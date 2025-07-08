@@ -304,4 +304,39 @@ export const messageService = {
     async deleteNotificationsBySender(user_id: string, sender_id: string) {
         return await notificationUtils.deleteNotificationsBySender(user_id, sender_id);
     },
+
+    /**
+     * Mark notification as read
+     * @param notification_id - The notification ID
+     * @param user_id - The user ID (for validation)
+     * @returns The updated notification
+     */
+    async markNotificationAsRead(notification_id: string, user_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            // First, verify the notification belongs to the user
+            const notification = await tx.notification.findFirst({
+                where: {
+                    notification_id,
+                    user_id,
+                },
+            });
+
+            if (!notification) {
+                throw new Error("Notification not found or access denied");
+            }
+
+            // Mark notification as read
+            const updatedNotification = await tx.notification.update({
+                where: { notification_id },
+                data: {
+                    is_read: true,
+                    read_at: new Date(),
+                },
+            });
+
+            return updatedNotification;
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
 }

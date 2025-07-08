@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useDateTime } from "@/constant/datetime-provider";
 import { useGetNotifications } from "@/hooks/user-hooks";
 import { Notification } from "@/types/notification";
-import { onNotificationUpdate, getNotifications, deleteNotification, joinRoom, connectSocket, enterChatRoom } from "@/lib/socket";
+import { onNotificationUpdate, getNotifications, deleteNotification, joinRoom, connectSocket, enterChatRoom, markNotificationAsRead } from "@/lib/socket";
 import { useAuth } from "@/hooks/auth-hooks";
 import { useChat } from "@/contexts/chat-context";
 
@@ -77,19 +77,34 @@ const NotificationComponent = ({ className = "", isLoading: externalLoading }: N
     const handleNotificationClick = (notification: Notification) => {
         if (!notification.redirect_url || !userId) return;
 
-        // Extract user_id from redirect_url (e.g., /messages/:user_id)
-        const urlParts = notification.redirect_url.split('/');
-        const targetUserId = urlParts[urlParts.length - 1];
+        // Mark notification as read immediately for non-message notifications
+        if (!notification.redirect_url.startsWith('/messages/') && notification.notification_id) {
+            markNotificationAsRead(notification.notification_id, userId);
+        }
 
-        if (targetUserId && notification.notification_id) {
-            // Open the chat with the target user
-            openChat(targetUserId);
-            
-            // Join the chat room for the target user
-            joinRoom(targetUserId);
-            
-            // Enter chat room and delete notifications for this sender
-            enterChatRoom(userId, targetUserId);
+        // Check if this is a message notification (redirects to /messages/:user_id)
+        if (notification.redirect_url.startsWith('/messages/')) {
+            // Extract user_id from redirect_url (e.g., /messages/:user_id)
+            const urlParts = notification.redirect_url.split('/');
+            const targetUserId = urlParts[urlParts.length - 1];
+
+            if (targetUserId && notification.notification_id) {
+                // Open the chat with the target user
+                openChat(targetUserId);
+                
+                // Join the chat room for the target user
+                joinRoom(targetUserId);
+                
+                // Enter chat room and delete notifications for this sender
+                enterChatRoom(userId, targetUserId);
+                
+                // Close the notification dropdown
+                setIsOpen(false);
+            }
+        } else {
+            // Handle other types of notifications (like admin notifications)
+            // Navigate to the redirect URL
+            window.location.href = notification.redirect_url;
             
             // Close the notification dropdown
             setIsOpen(false);

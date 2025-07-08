@@ -9,6 +9,7 @@ import LoadingIndicator from "@/components/common/loading-indicator";
 import { useCreateBranch, useUserMerchants } from "@/hooks/merchant-hooks";
 import { useAuth, useCreateUser, useSignup } from "@/hooks/auth-hooks";
 import { useAddAdmin } from "@/hooks/admin-hooks";
+import { connectSocket, sendMerchantSignupNotification } from "@/lib/socket";
 
 interface PreviewProps {
     form?: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -84,9 +85,19 @@ const Preview: React.FC<PreviewProps> = ({ form, onPrev, isSignupForm = false })
      * Signup
      */
     const signupMutation = useSignup({
-        onSuccess: () => {
+        onSuccess: (data) => {
             setShowSuccess(true);
             Cookies.remove(COOKIE_KEY);
+            
+            // Send notification to admins about new merchant signup
+            if (data?.result?.merchant) {
+                const merchantName = data.result.merchant.business_name;
+                const merchantId = data.result.merchant.merchant_id;
+                
+                // Connect to socket and send notification
+                connectSocket();
+                sendMerchantSignupNotification(merchantName, merchantId);
+            }
         },
         onError: (error) => {
             console.error("Error during signup:", error);

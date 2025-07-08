@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, AdminRole } from "@prisma/client";
 
 /**
  * Shared notification utilities that can be used across different services
@@ -154,6 +154,94 @@ export const notificationUtils = {
                 },
             });
             return { success: true, deletedCount: deletedCount.count };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
+
+    /**
+     * Get admins by specific roles
+     * @param roles - Array of admin roles to filter by
+     * @returns Array of admin users with their roles
+     */
+    async getAdminsByRoles(roles: AdminRole[]) {
+        const result = await prisma.$transaction(async (tx) => {
+            const admins = await tx.user.findMany({
+                where: {
+                    role: "ADMIN",
+                    status: "ACTIVE",
+                    UserAdmin: {
+                        role: {
+                            in: roles,
+                        },
+                    },
+                },
+                select: {
+                    user_id: true,
+                    username: true,
+                    fname: true,
+                    lname: true,
+                    email: true,
+                    UserAdmin: {
+                        select: {
+                            role: true,
+                            position: true,
+                        },
+                    },
+                },
+            });
+            return admins;
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
+
+    /**
+     * Create notifications for all admins with specific roles
+     * @param roles - Array of admin roles to notify
+     * @param title - The notification title
+     * @param content - The notification content
+     * @param redirect_url - The redirect URL (optional)
+     * @returns Array of created notifications
+     */
+    async createAdminNotifications(
+        roles: AdminRole[],
+        title: string,
+        content: string,
+        redirect_url?: string
+    ) {
+        const result = await prisma.$transaction(async (tx) => {
+            // Get admins with specified roles
+            const admins = await tx.user.findMany({
+                where: {
+                    role: "ADMIN",
+                    status: "ACTIVE",
+                    UserAdmin: {
+                        role: {
+                            in: roles,
+                        },
+                    },
+                },
+                select: {
+                    user_id: true,
+                },
+            });
+
+            // Create notifications for all eligible admins
+            const notifications = await Promise.all(
+                admins.map(admin =>
+                    tx.notification.create({
+                        data: {
+                            user_id: admin.user_id,
+                            title,
+                            content,
+                            redirect_url,
+                        },
+                    })
+                )
+            );
+
+            return notifications;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         return result;
