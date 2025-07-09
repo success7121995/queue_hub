@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import LoadingIndicator from '@/components/common/loading-indicator';
 import { cn } from '@/lib/utils';
 import Attachment from '@/components/common/attachment';
-import { createTicket, getTickets, onTicketCreated, onTicketsReceived, connectSocket } from '@/lib/socket';
+import { createTicket, onTicketCreated, connectSocket } from '@/lib/socket';
 import { useCreateTicket, useGetTickets, useGetTicket } from '@/hooks/user-hooks';
 import { useAuth } from '@/hooks/auth-hooks';
 import { CreateTicketFormFields } from '@/types/form';

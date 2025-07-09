@@ -74,6 +74,7 @@ model Attachment {
   created_at DateTime @default(now())
   Ticket Ticket? @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
   Message Message? @relation(fields: [message_id], references: [message_id], onDelete: Cascade)
+  TicketFollowUp TicketFollowUp[]
 }
 
 model Avatar {
@@ -415,6 +416,18 @@ model Ticket {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  Attachment Attachment[]
+  TicketFollowUp TicketFollowUp[]
+}
+
+model TicketFollowUp {
+  follow_up_id String @id @default(uuid())
+  ticket_id String
+  admin_id String
+  content String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  Ticket Ticket @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
   Attachment Attachment[]
 }
 

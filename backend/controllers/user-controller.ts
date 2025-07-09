@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { ActivityType, MerchantRole } from "@prisma/client";
+import { ActivityType, MerchantRole, TicketPriority } from "@prisma/client";
 import { withActivityLog } from "../utils/with-activity-log";
 import { userService } from "../services/user-service";
+import { geminiService } from "../services/gemini-service";
 import { AppError } from "../utils/app-error";
 import { z } from "zod";
 
@@ -22,6 +23,7 @@ const createTicketSchema = z.object({
     message: z.string().min(1, "Message is required")
 });
 export type CreateTicketData = z.infer<typeof createTicketSchema> & {
+    priority: TicketPriority;
     files?: Express.Multer.File[];
 };
 
@@ -299,8 +301,21 @@ export const userController = {
             const validatedData = createTicketSchema.parse(req.body);
             const files = (req as any).files || [];
 
+            // Determine priority using Gemini AI
+            let priority: TicketPriority = 'MEDIUM'; // Default fallback
+            try {
+                priority = await geminiService.determineTicketPriority(
+                    validatedData.subject,
+                    validatedData.message
+                );
+            } catch (error) {
+                console.error('Failed to determine ticket priority with Gemini:', error);
+                // Continue with default priority if Gemini fails
+            }
+
             const ticket = await userService.createTicket(user_id, {
                 ...validatedData,
+                priority,
                 files: files
             });
             res.status(201).json({ success: true, result: { ticket_id: ticket.ticket_id } });
@@ -323,6 +338,7 @@ export const userController = {
     getTickets: withActivityLog(
         async (req: Request, res: Response) => {
             const { user_id } = req.session.user!;
+
             const { status } = req.query;
 
             // Handle multiple status values
@@ -384,9 +400,10 @@ export const userController = {
      */
     getTicket: withActivityLog(
         async (req: Request, res: Response) => {
-            const { user_id } = req.session.user!;
             const { ticket_id } = req.params;
-            const result = await userService.getTicket(user_id, ticket_id);
+            console.log(req.params);
+
+            const result = await userService.getTicket(ticket_id);
             res.status(200).json({ success: true, result });
             return result;
         },

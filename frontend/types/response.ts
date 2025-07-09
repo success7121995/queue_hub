@@ -3,7 +3,7 @@ import { Address, MerchantRole, Plan } from "./form";
 import { QueueWithTags, Tag } from "./queue";
 import { Avatar, Message, User, UserAdmin, UserMerchant } from "./user";
 import { MessagePreview } from "./message";
-import { Ticket } from "@/components/dashboard/admin/tickets";
+import { Ticket } from "@/components/dashboard/admin/ticket/tickets";
 import { Notification } from "./notification";
 
 // Types

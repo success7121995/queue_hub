@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/app-error";
 import { User, Prisma, Attachment, TicketPriority } from "@prisma/client";
 import { type CreateTicketData, type UpdateEmployeeData } from "../controllers/user-controller";
+import { geminiService } from "./gemini-service";
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -550,7 +551,7 @@ export const userService = {
                         subject: data.subject,
                         category: data.category,
                         content: data.message,
-                        priority: 'MEDIUM' as TicketPriority, // Default priority since not in schema
+                        priority: data.priority,
                         status: "OPEN",
                     },
                 });
@@ -644,27 +645,39 @@ export const userService = {
      * @param user_id - The user ID
      * @param ticket_id - The ticket ID
      */
-    async getTicket(user_id: string, ticket_id: string) {
-        const ticket = await prisma.ticket.findFirst({
-            where: { 
-                ticket_id,
-                user_id, // Ensure user can only access their own tickets
-            },
-            include: {
-                Attachment: {
-                    select: {
-                        attachment_id: true,
-                        file_url: true,
-                        created_at: true,
+    async getTicket(ticket_id: string) {
+        const result = await prisma.$transaction(async (tx) => {
+            console.log(ticket_id);
+            const ticket = await tx.ticket.findFirst({
+                where: { 
+                    ticket_id
+                },
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true,
+                        }
+                    },
+                    User: {
+                        select: {
+                            user_id: true,
+                            username: true,
+                            fname: true,
+                            lname: true,
+                        }
                     }
-                }
-            },
-        });
+                },
+            });
 
-        if (!ticket) {
-            throw new AppError("Ticket not found", 404);
-        }
+            if (!ticket) {
+                throw new AppError("Ticket not found", 404);
+            }
 
-        return { ticket };
+            return { ticket };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
     },
 }; 

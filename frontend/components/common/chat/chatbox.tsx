@@ -602,13 +602,13 @@ const Chatbox = () => {
 			
 			{/* Three dots menu */}
 			<button
-				className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded-full z-10"
+				className="absolute right-2 top-[60%] transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded-full z-10"
 				onClick={(e) => handleShowChatOptions(other_user_id, e)}
 				type="button"
 				aria-label="Chat options"
 			>
 				<svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-					<path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+					<path d="M10 7a2 2 0 110-4 2 2 0 010 4zM10 13a2 2 0 110-4 2 2 0 010 4zM10 19a2 2 0 110-4 2 2 0 010 4z" />
 				</svg>
 			</button>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Tickets from "./tickets";
+import Tickets from "./ticket/tickets";
 
 const AssignedTickets = () => {
 	// In a real app, we would get the current admin's ID from the auth context
