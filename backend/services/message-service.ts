@@ -150,7 +150,7 @@ export const messageService = {
     /**
      * Send a message with attachment from user_id to receiverId
      */
-    async sendMessageWithAttachment(senderId: string, receiverId: string, content: string, file: Express.Multer.File) {
+    async sendMessageWithAttachment(senderId: string, receiverId: string, content: string, file: any) {
         const result = await prisma.$transaction(async (tx) => {        
             const message = await tx.message.create({
                 data: {

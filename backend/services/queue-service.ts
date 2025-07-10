@@ -14,19 +14,19 @@ export const queueService = {
             const tags = await tx.tag.findMany({
                 where: {
                     entity_id: {
-                        in: queues.map((queue) => queue.queue_id),
+                        in: queues.map((queue: any) => queue.queue_id),
                     },
                 },
             });
 
-            const tagsByQueueId = tags.reduce((acc, tag) => {
+            const tagsByQueueId = tags.reduce((acc: Record<string, Tag[]>, tag: Tag) => {
                 if (!acc[tag.entity_id]) acc[tag.entity_id] = [];
                 acc[tag.entity_id].push(tag);
                 return acc;
             }, {} as Record<string, Tag[]>);
 
             // Attach tags to each queue
-            const queuesWithTags = queues.map((queue) => ({
+            const queuesWithTags = queues.map((queue: any) => ({
                 ...queue,
                 tags: tagsByQueueId[queue.queue_id] || [],
             }));

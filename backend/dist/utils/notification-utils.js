@@ -152,7 +152,7 @@ exports.notificationUtils = {
                     user_id: true,
                 },
             });
-            const notifications = await Promise.all(admins.map(admin => tx.notification.create({
+            const notifications = await Promise.all(admins.map((admin) => tx.notification.create({
                 data: {
                     user_id: admin.user_id,
                     title,
@@ -175,7 +175,7 @@ exports.notificationUtils = {
                     user_id: true,
                 },
             });
-            const notifications = await Promise.all(admins.map(admin => tx.notification.create({
+            const notifications = await Promise.all(admins.map((admin) => tx.notification.create({
                 data: {
                     user_id: admin.user_id,
                     title: "New Support Ticket Submitted",

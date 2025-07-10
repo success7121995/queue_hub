@@ -559,8 +559,8 @@ export const userService = {
                 // Create attachments
                 if (data.files && data.files.length > 0) {
                     for (const file of data.files) {
-                        // Ensure file is Express.Multer.File
-                        const multerFile = file as unknown as Express.Multer.File;
+                        // Ensure file has the required properties
+                        const multerFile = file as any;
                         const fileUrl = `/uploads/${multerFile.filename}`;
                         uploadedFilePaths.push(path.join(process.cwd(), 'public', 'uploads', multerFile.filename));
                         await tx.attachment.create({

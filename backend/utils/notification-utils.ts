@@ -229,7 +229,7 @@ export const notificationUtils = {
 
             // Create notifications for all eligible admins
             const notifications = await Promise.all(
-                admins.map(admin =>
+                admins.map((admin: any) =>
                     tx.notification.create({
                         data: {
                             user_id: admin.user_id,
@@ -267,7 +267,7 @@ export const notificationUtils = {
 
             // Create notifications for all admins
             const notifications = await Promise.all(
-                admins.map(admin =>
+                admins.map((admin: any) =>
                     tx.notification.create({
                         data: {
                             user_id: admin.user_id,
