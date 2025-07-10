@@ -41,6 +41,15 @@ declare module 'express-session' {
     }
 }
 
+// Extend Express Request interface
+declare global {
+    namespace Express {
+        interface Request {
+            session: session.Session & Partial<session.SessionData>;
+        }
+    }
+}
+
 // CORS configuration
 const corsOptions = {
     origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",

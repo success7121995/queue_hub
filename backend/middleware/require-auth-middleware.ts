@@ -45,7 +45,7 @@ export const requireAdminRole = (requiredAdminRole?: AdminRole[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             // Check if user is authenticated and is an admin
-            if (!(req.session as any).user || (req.session as any).user.role !== 'ADMIN') {
+            if (!req.session.user || req.session.user.role !== 'ADMIN') {
                 throw new AppError('Admin access required', 403);
             }
 
@@ -57,7 +57,7 @@ export const requireAdminRole = (requiredAdminRole?: AdminRole[]) => {
             // Fetch admin role from database
             const userAdmin = await prisma.userAdmin.findFirst({
                 where: {
-                    user_id: (req.session as any).user.user_id
+                    user_id: req.session.user.user_id
                 },
                 select: { role: true }
             });
@@ -88,7 +88,7 @@ export const requireMerchantRole = (requiredMerchantRole?: MerchantRole[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             // Check if user is authenticated and is a merchant
-            if (!(req.session as any).user || (req.session as any).user.role !== 'MERCHANT') {
+            if (!req.session.user || req.session.user.role !== 'MERCHANT') {
                 throw new AppError('Merchant access required', 403);
             }
 
@@ -100,7 +100,7 @@ export const requireMerchantRole = (requiredMerchantRole?: MerchantRole[]) => {
             // Fetch merchant role from database
             const userMerchant = await prisma.userMerchant.findFirst({
                 where: {
-                    user_id: (req.session as any).user.user_id
+                    user_id: req.session.user.user_id
                 },
                 select: { role: true }
             });
