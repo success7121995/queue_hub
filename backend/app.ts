@@ -28,10 +28,34 @@ if (missingEnvVars.length > 0) {
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            "http://localhost:3000",
+            "https://queue-hub.vercel.app",
+            "https://queue-hub.vercel.app/"
+        ];
+        
+        // Add the environment variable if it exists
+        if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
+            allowedOrigins.push(process.env.NEXT_PUBLIC_FRONTEND_URL);
+        }
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            console.log('CORS allowed origin:', origin);
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            console.log('Allowed origins:', allowedOrigins);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Origin", "Accept"],
+    exposedHeaders: ["Content-Length", "X-Requested-With"],
     optionsSuccessStatus: 200
 };
 
@@ -49,6 +73,9 @@ const io = new Server(server, {
 });
 
 app.use(cors(corsOptions));
+
+// Handle CORS preflight requests
+app.options('*', cors(corsOptions));
 
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));

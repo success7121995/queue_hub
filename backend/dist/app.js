@@ -25,7 +25,25 @@ if (missingEnvVars.length > 0) {
     process.exit(1);
 }
 const corsOptions = {
-    origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
+    origin: function (origin, callback) {
+        if (!origin)
+            return callback(null, true);
+        const allowedOrigins = [
+            "http://localhost:3000",
+            "https://queue-hub.vercel.app",
+            "https://queue-hub.vercel.app/"
+        ];
+        if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
+            allowedOrigins.push(process.env.NEXT_PUBLIC_FRONTEND_URL);
+        }
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        }
+        else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
