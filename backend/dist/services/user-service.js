@@ -52,7 +52,7 @@ exports.userService = {
     },
     async getUserById(userId) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
-            const user = await prisma_1.prisma.user.findUnique({
+            const user = await tx.user.findUnique({
                 where: { user_id: userId },
                 select: {
                     user_id: true,
