@@ -1,12 +1,13 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/app.js",
     "dev": "ts-node-dev --respawn --transpile-only app.ts",
-    "build": "tsc"
+    "build": "tsc && prisma generate",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,7 @@
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "multer": "^2.0.1",
@@ -31,7 +33,6 @@
     "@types/express-session": "^1.18.2",
     "@types/multer": "^1.4.13",
     "@types/node": "^24.0.0",
-    "dotenv": "^16.5.0",
     "prisma": "^6.11.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",

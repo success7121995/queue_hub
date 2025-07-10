@@ -695,6 +695,7 @@ export const merchantController = {
             // Save to DB
             const result = await merchantService.uploadBranchImages(branch_id, imageData);
             res.status(200).json({ success: true, result });
+            return result;
         },
         {
             action: ActivityType.UPDATE_BRANCH,
@@ -718,7 +719,6 @@ export const merchantController = {
 
             const result = await merchantService.updateBranchImage(branch_id, image_id, updateData);
             res.status(200).json({ success: true, result });
-            return result; 
         },
         {
             action: ActivityType.UPDATE_BRANCH,

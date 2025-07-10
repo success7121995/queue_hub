@@ -3,11 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.messageService = void 0;
 const prisma_1 = require("../lib/prisma");
 const client_1 = require("@prisma/client");
-const uuid_1 = require("uuid");
+const notification_utils_1 = require("../utils/notification-utils");
 exports.messageService = {
-    /**
-     * Get last messages
-     */
     async getLastMessages(user_id) {
         const result = await prisma_1.prisma.$queryRawUnsafe(`
             WITH RankedMessages AS (
@@ -42,11 +39,6 @@ exports.messageService = {
         `, user_id);
         return result;
     },
-    /**
-     * Mark message as read
-     * @param message_id - The message ID
-     * @returns The message
-     */
     async markMessageAsRead(message_id) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const message = await tx.message.update({
@@ -57,66 +49,115 @@ exports.messageService = {
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Get all messages between two users
-     */
-    async getConversation(user_id, otherUserId) {
+    async getConversation(user_id, other_user_id, before, limit) {
+        const take = limit ?? 10;
         const result = await prisma_1.prisma.$transaction(async (tx) => {
-            // First, check if there's a hidden chat record for this user
             const hiddenChat = await tx.hiddenChat.findUnique({
                 where: {
                     user_id_other_user_id: {
                         user_id,
-                        other_user_id: otherUserId
-                    }
-                }
+                        other_user_id: other_user_id
+                    },
+                },
             });
-            // Build the where clause for messages
             const whereClause = {
                 OR: [
-                    { sender_id: user_id, receiver_id: otherUserId },
-                    { sender_id: otherUserId, receiver_id: user_id },
+                    { sender_id: user_id, receiver_id: other_user_id },
+                    { sender_id: other_user_id, receiver_id: user_id },
                 ],
             };
-            // If there's a hidden chat record, filter out messages created before the hidden chat was updated
             if (hiddenChat) {
-                whereClause.created_at = {
-                    gt: hiddenChat.updated_at
-                };
+                whereClause.created_at = { gt: hiddenChat.updated_at };
+            }
+            if (before) {
+                whereClause.created_at = whereClause.created_at
+                    ? { ...whereClause.created_at, lt: before }
+                    : { lt: before };
             }
             const messages = await tx.message.findMany({
                 where: whereClause,
-                orderBy: { created_at: "asc" },
+                orderBy: { created_at: "desc" },
+                take,
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true
+                        }
+                    }
+                }
             });
-            return messages;
+            const ordered = messages.slice().reverse();
+            return {
+                messages: ordered,
+                hasMore: messages.length === take,
+            };
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Send a message from user_id to receiverId
-     */
     async sendMessage(senderId, receiverId, content) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const message = await tx.message.create({
                 data: {
-                    message_id: (0, uuid_1.v4)(),
                     sender_id: senderId,
                     receiver_id: receiverId,
                     content,
                 },
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true
+                        }
+                    }
+                }
             });
             return message;
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Hide chat
-     */
+    async sendMessageWithAttachment(senderId, receiverId, content, file) {
+        const result = await prisma_1.prisma.$transaction(async (tx) => {
+            const message = await tx.message.create({
+                data: {
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    content,
+                    Attachment: {
+                        create: {
+                            file_url: `/uploads/${file.filename}`
+                        }
+                    }
+                },
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true
+                        }
+                    }
+                }
+            });
+            return message;
+        }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
+        return result;
+    },
     async hideChat(user_id, other_user_id) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
-            await tx.hiddenChat.create({
-                data: {
-                    id: (0, uuid_1.v4)(),
+            await tx.hiddenChat.upsert({
+                where: {
+                    user_id_other_user_id: {
+                        user_id,
+                        other_user_id
+                    }
+                },
+                update: {
+                    updated_at: new Date()
+                },
+                create: {
                     user_id,
                     other_user_id,
                 },
@@ -124,9 +165,6 @@ exports.messageService = {
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Update hidden chat record (Update updated_at)
-     */
     async updateHiddenChat(user_id, other_user_id) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             await tx.hiddenChat.update({
@@ -135,5 +173,62 @@ exports.messageService = {
             });
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
+    },
+    async getNotifications(user_id) {
+        return await notification_utils_1.notificationUtils.getNotifications(user_id);
+    },
+    async updateMessageNotification(receiver_id, sender_username, message_content, sender_id) {
+        const title = `${sender_username} sent you a message`;
+        const content = message_content.startsWith('📎 ') ? message_content : message_content;
+        const redirect_url = `/messages/${sender_id}`;
+        return await notification_utils_1.notificationUtils.updateOrCreateNotification(receiver_id, title, content, redirect_url);
+    },
+    async deleteNotification(notification_id, user_id) {
+        const result = await prisma_1.prisma.$transaction(async (tx) => {
+            const notification = await tx.notification.findFirst({
+                where: {
+                    notification_id,
+                    user_id,
+                },
+            });
+            if (!notification) {
+                throw new Error("Notification not found or access denied");
+            }
+            await tx.notification.delete({
+                where: {
+                    notification_id,
+                },
+            });
+            return { success: true };
+        }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
+        return result;
+    },
+    async deleteNotificationsBySender(user_id, sender_id) {
+        return await notification_utils_1.notificationUtils.deleteNotificationsBySender(user_id, sender_id);
+    },
+    async markNotificationAsRead(notification_id, user_id) {
+        const result = await prisma_1.prisma.$transaction(async (tx) => {
+            const notification = await tx.notification.findFirst({
+                where: {
+                    notification_id,
+                    user_id,
+                },
+            });
+            if (!notification) {
+                throw new Error("Notification not found or access denied");
+            }
+            const updatedNotification = await tx.notification.update({
+                where: { notification_id },
+                data: {
+                    is_read: true,
+                    read_at: new Date(),
+                },
+            });
+            return updatedNotification;
+        }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
+        return result;
+    },
+    async createSupportTicketNotification(user_name) {
+        return await notification_utils_1.notificationUtils.createSupportTicketNotification(user_name);
     },
 };

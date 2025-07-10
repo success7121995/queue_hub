@@ -20,9 +20,15 @@ let ticketsReceivedCallbacks: ((data: any[]) => void)[] = [];
 let merchantSignupNotificationSentCallbacks: ((data: { success: boolean; merchant_id: string; notifiedAdmins: number }) => void)[] = [];
 
 /**
+ * Check if we're in a browser environment
+ */
+const isBrowser = typeof window !== 'undefined';
+
+/**
  * Connect to the socket
  */
 export const connectSocket = () => {
+    if (!isBrowser) return; // Don't connect on server-side
     if (socket || isConnecting) return;
 
     isConnecting = true;
@@ -36,7 +42,7 @@ export const connectSocket = () => {
         reconnectionDelay: 1000
     });
 
-    if (typeof window !== 'undefined') {
+    if (isBrowser) {
         (window as any).socket = socket;
     }
 

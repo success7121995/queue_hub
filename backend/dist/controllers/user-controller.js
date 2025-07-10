@@ -4,6 +4,7 @@ exports.userController = void 0;
 const client_1 = require("@prisma/client");
 const with_activity_log_1 = require("../utils/with-activity-log");
 const user_service_1 = require("../services/user-service");
+const gemini_service_1 = require("../services/gemini-service");
 const app_error_1 = require("../utils/app-error");
 const zod_1 = require("zod");
 const updateEmployeeSchema = zod_1.z.object({
@@ -14,12 +15,12 @@ const updateEmployeeSchema = zod_1.z.object({
     role: zod_1.z.nativeEnum(client_1.MerchantRole).optional(),
     staff_id: zod_1.z.string().min(1, "Staff ID is required").optional(),
 });
+const createTicketSchema = zod_1.z.object({
+    subject: zod_1.z.string().min(1, "Subject is required"),
+    category: zod_1.z.string().min(1, "Category is required"),
+    message: zod_1.z.string().min(1, "Message is required")
+});
 exports.userController = {
-    /**
-     * Update user profile
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateProfile: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         const updateData = req.body;
@@ -34,11 +35,6 @@ exports.userController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Get current user info
-     * @param req - The request object
-     * @param res - The response object
-     */
     me: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
@@ -52,16 +48,7 @@ exports.userController = {
             }
         });
         return userData;
-    }, {
-        action: client_1.ActivityType.VIEW_PROFILE,
-        extractUserId: (req) => req.user?.user_id ?? null,
-        extractData: () => ({}),
     }),
-    /**
-     * Get employees
-     * @param req - The request object
-     * @param res - The response object
-     */
     getEmployees: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         const merchant_id = user?.merchant_id;
@@ -71,11 +58,6 @@ exports.userController = {
         const result = await user_service_1.userService.getEmployees(merchant_id);
         res.status(200).json({ success: true, result });
     }),
-    /**
-     * Assign branches to employee
-     * @param req - The request object
-     * @param res - The response object
-     */
     assignBranches: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { staff_id } = req.params;
         const { branch_ids } = req.body;
@@ -89,11 +71,6 @@ exports.userController = {
             branch_ids: req.body.branch_ids
         }),
     }),
-    /**
-     * Update employee
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateEmployee: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { staff_id } = req.params;
         const updateData = updateEmployeeSchema.parse(req.body);
@@ -107,11 +84,6 @@ exports.userController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Delete employee
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteEmployee: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { user_id } = req.params;
         const result = await user_service_1.userService.deleteEmployee(user_id);
@@ -123,11 +95,6 @@ exports.userController = {
             user_id: req.params.user_id,
         }),
     }),
-    /**
-     * Upload avatar
-     * @param req - The request object
-     * @param res - The response object
-     */
     uploadAvatar: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
@@ -148,11 +115,6 @@ exports.userController = {
             image_url: req.file ? `/uploads/${req.file.filename}` : null,
         }),
     }),
-    /**
-     * Delete avatar
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteAvatar: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
@@ -167,11 +129,6 @@ exports.userController = {
             user_id: req.user?.user_id ?? null,
         }),
     }),
-    /**
-     * Join a queue
-     * @param req - The request object
-     * @param res - The response object
-     */
     joinQueue: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { queue_id } = req.params;
         const { user_id } = req.user;
@@ -186,11 +143,6 @@ exports.userController = {
             ticket_number: result?.entry?.number,
         }),
     }),
-    /**
-     * Leave a queue
-     * @param req - The request object
-     * @param res - The response object
-     */
     leaveQueue: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { queue_id } = req.params;
         const { user_id } = req.user;
@@ -205,11 +157,6 @@ exports.userController = {
             ticket_number: result?.entry?.number,
         }),
     }),
-    /**
-     * Get user's queue history
-     * @param req - The request object
-     * @param res - The response object
-     */
     getQueueHistory: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { user_id } = req.user;
         const { start_date, end_date } = req.query;
@@ -219,5 +166,95 @@ exports.userController = {
         });
         res.status(200).json({ success: true, result });
         return result;
+    }),
+    createTicket: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { user_id } = req.session.user;
+        const validatedData = createTicketSchema.parse(req.body);
+        const files = req.files || [];
+        let priority = 'MEDIUM';
+        try {
+            priority = await gemini_service_1.geminiService.determineTicketPriority(validatedData.subject, validatedData.message);
+        }
+        catch (error) {
+            console.error('Failed to determine ticket priority with Gemini:', error);
+        }
+        const ticket = await user_service_1.userService.createTicket(user_id, {
+            ...validatedData,
+            priority,
+            files: files
+        });
+        res.status(201).json({ success: true, result: { ticket_id: ticket.ticket_id } });
+    }, {
+        action: client_1.ActivityType.CREATE_TICKET,
+        extractUserId: (req) => req.session.user?.user_id ?? null,
+        extractData: (req, res, result) => ({
+            subject: req.body.subject,
+            category: req.body.category,
+        }),
+    }),
+    getTickets: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { user_id } = req.session.user;
+        const { status } = req.query;
+        let statusFilter;
+        if (status) {
+            if (Array.isArray(status)) {
+                statusFilter = status.map(s => String(s));
+            }
+            else {
+                statusFilter = String(status);
+            }
+        }
+        const result = await user_service_1.userService.getTickets(user_id, statusFilter, false);
+        res.status(200).json({ success: true, result });
+        return result;
+    }, {
+        action: client_1.ActivityType.VIEW_PROFILE,
+        extractUserId: (req) => req.session.user?.user_id ?? null,
+    }),
+    getAllTickets: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { user_id } = req.session.user;
+        const { status } = req.query;
+        let statusFilter;
+        if (status) {
+            if (Array.isArray(status)) {
+                statusFilter = status.map(s => String(s));
+            }
+            else {
+                statusFilter = String(status);
+            }
+        }
+        const result = await user_service_1.userService.getTickets(user_id, statusFilter, true);
+        res.status(200).json({ success: true, result });
+        return result;
+    }, {
+        action: client_1.ActivityType.VIEW_PROFILE,
+        extractUserId: (req) => req.session.user?.user_id ?? null,
+    }),
+    getTicket: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { ticket_id } = req.params;
+        console.log(req.params);
+        const result = await user_service_1.userService.getTicket(ticket_id);
+        res.status(200).json({ success: true, result });
+        return result;
+    }, {
+        action: client_1.ActivityType.VIEW_PROFILE,
+        extractUserId: (req) => req.session.user?.user_id ?? null,
+        extractData: (req) => ({
+            ticket_id: req.params.ticket_id,
+        }),
+    }),
+    updateTicket: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { ticket_id } = req.params;
+        const updateData = req.body;
+        const result = await user_service_1.userService.updateTicket(ticket_id, updateData);
+        res.status(200).json({ success: true, result });
+        return result;
+    }, {
+        action: client_1.ActivityType.UPDATE_TICKET,
+        extractUserId: (req) => req.session.user?.user_id ?? null,
+        extractData: (req) => ({
+            ticket_id: req.params.ticket_id,
+            updated_fields: Object.keys(req.body),
+        }),
     }),
 };

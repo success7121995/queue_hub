@@ -6,26 +6,29 @@ const user_controller_1 = require("../controllers/user-controller");
 const require_auth_middleware_1 = require("../middleware/require-auth-middleware");
 const client_1 = require("@prisma/client");
 const multer_1 = require("../lib/multer");
+const admin_controller_1 = require("../controllers/admin-controller");
 const router = (0, express_1.Router)();
-// Auth routes
+router.get('/unique-username-and-email', (req, res) => auth_controller_1.authController.checkUniqueUsernameAndEmail(req, res));
 router.post('/login', (req, res) => auth_controller_1.authController.login(req, res));
 router.post('/logout', (req, res) => auth_controller_1.authController.logout(req, res));
 router.get('/me', (req, res) => user_controller_1.userController.me(req, res));
 router.put('/me', (0, require_auth_middleware_1.requireAuth)(), (req, res) => user_controller_1.userController.updateProfile(req, res));
-// Avatar routes
 router.post('/avatar', (0, require_auth_middleware_1.requireAuth)(), multer_1.uploadAvatar, (req, res) => user_controller_1.userController.uploadAvatar(req, res));
 router.delete('/avatar', (0, require_auth_middleware_1.requireAuth)(), (req, res) => user_controller_1.userController.deleteAvatar(req, res));
-// Employee routes
+router.get('/admin', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.ADMIN]), (req, res) => admin_controller_1.adminController.getAdmins(req, res));
 router.post('/employee/create', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.MERCHANT]), (0, require_auth_middleware_1.requireMerchantRole)([client_1.MerchantRole.OWNER, client_1.MerchantRole.MANAGER]), (req, res) => auth_controller_1.authController.addNewEmployee(req, res));
 router.get('/employee/get', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.MERCHANT]), (0, require_auth_middleware_1.requireMerchantRole)([client_1.MerchantRole.OWNER, client_1.MerchantRole.MANAGER]), (req, res) => user_controller_1.userController.getEmployees(req, res));
 router.post('/employee/:staff_id/assign-branches', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.MERCHANT]), (0, require_auth_middleware_1.requireMerchantRole)([client_1.MerchantRole.OWNER, client_1.MerchantRole.MANAGER]), (req, res) => user_controller_1.userController.assignBranches(req, res));
 router.put('/employee/:staff_id', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.MERCHANT]), (0, require_auth_middleware_1.requireMerchantRole)([client_1.MerchantRole.OWNER, client_1.MerchantRole.MANAGER]), (req, res) => user_controller_1.userController.updateEmployee(req, res));
 router.delete('/employee/:user_id', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.MERCHANT]), (0, require_auth_middleware_1.requireMerchantRole)([client_1.MerchantRole.OWNER, client_1.MerchantRole.MANAGER]), (req, res) => user_controller_1.userController.deleteEmployee(req, res));
-// User profile routes
-router.put('/change-password', (0, require_auth_middleware_1.requireAuth)(), (req, res) => auth_controller_1.authController.changePassword(req, res)); // Change user password
-// User queue management (protected)
-router.get('/queues', (0, require_auth_middleware_1.requireAuth)(), () => { }); // Get user's active queues
-router.post('/queues/:queue_id/join', (0, require_auth_middleware_1.requireAuth)(), () => { }); // Join a queue
-router.delete('/queues/:queue_id/leave', (0, require_auth_middleware_1.requireAuth)(), () => { }); // Leave a queue
-router.get('/queues/:queue_id/status', (0, require_auth_middleware_1.requireAuth)(), () => { }); // Get queue status
+router.put('/change-password', (0, require_auth_middleware_1.requireAuth)(), (req, res) => auth_controller_1.authController.changePassword(req, res));
+router.post('/ticket', (0, require_auth_middleware_1.requireAuth)(), multer_1.uploadTicketFiles, (req, res) => user_controller_1.userController.createTicket(req, res));
+router.get('/ticket/all', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.ADMIN]), (req, res) => user_controller_1.userController.getAllTickets(req, res));
+router.get('/ticket', (0, require_auth_middleware_1.requireAuth)(), (req, res) => user_controller_1.userController.getTickets(req, res));
+router.get('/ticket/:ticket_id', (0, require_auth_middleware_1.requireAuth)(), (req, res) => user_controller_1.userController.getTicket(req, res));
+router.put('/ticket/:ticket_id', (0, require_auth_middleware_1.requireAuth)([client_1.UserRole.ADMIN]), (req, res) => user_controller_1.userController.updateTicket(req, res));
+router.get('/queues', (0, require_auth_middleware_1.requireAuth)(), () => { });
+router.post('/queues/:queue_id/join', (0, require_auth_middleware_1.requireAuth)(), () => { });
+router.delete('/queues/:queue_id/leave', (0, require_auth_middleware_1.requireAuth)(), () => { });
+router.get('/queues/:queue_id/status', (0, require_auth_middleware_1.requireAuth)(), () => { });
 exports.default = router;

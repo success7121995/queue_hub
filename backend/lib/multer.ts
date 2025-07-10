@@ -3,9 +3,18 @@ import { Request } from 'express';
 import path from 'path';
 import fs from 'fs';
 
+// Ensure upload directory exists
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+// Ensure the directory is writable
+try {
+    fs.accessSync(UPLOAD_DIR, fs.constants.W_OK);
+} catch (error) {
+    console.error('Upload directory is not writable:', UPLOAD_DIR);
+    throw new Error('Upload directory is not writable');
 }
 
 const storage = multer.diskStorage({
@@ -38,8 +47,6 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any, acceptPDF: boo
         cb(new Error('Only image files are allowed (jpeg, png, webp, svg)'), false);
     }
 };
-
-
 
 const limits = { fileSize: 10 * 1024 * 1024 };
 

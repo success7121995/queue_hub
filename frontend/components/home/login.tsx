@@ -42,7 +42,7 @@ const Login = () => {
                 Cookies.set('session_id', sessionId, {
                     path: '/',
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
                 });
             }
 
@@ -50,7 +50,7 @@ const Login = () => {
                 Cookies.set('role', result.user.role, {
                     path: '/',
                     secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
                 });
             }
 

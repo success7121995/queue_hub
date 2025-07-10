@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.withActivityLog = void 0;
+const admin_service_1 = require("../services/admin-service");
 const app_error_1 = require("./app-error");
 const withActivityLog = (handler, config) => {
     return async (req, res) => {
         let error = null;
         let status = 500;
-        let user_id = null;
         let result = null;
         const originalJson = res.json.bind(res);
         res.json = (body) => {
@@ -32,18 +32,21 @@ const withActivityLog = (handler, config) => {
             }
         }
         finally {
-            // try {
-            //     await adminService.createActivityLog({
-            //         action: config.action,
-            //         action_data: config.extractData?.(req, res, result) ?? {},
-            //         success: !error,
-            //         error,
-            //         status,
-            //         user_id: config.extractUserId?.(req, res, result) ?? null,
-            //     });
-            // } catch (logErr) {
-            //     console.error("Activity log failed:", logErr);
-            // }
+            try {
+                if (config?.action) {
+                    await admin_service_1.adminService.createActivityLog({
+                        action: config.action,
+                        action_data: config?.extractData?.(req, res, result) ?? {},
+                        success: !error,
+                        error,
+                        status,
+                        user_id: config?.extractUserId?.(req, res, result) ?? null,
+                    });
+                }
+            }
+            catch (logErr) {
+                console.error("Activity log failed:", logErr);
+            }
         }
     };
 };

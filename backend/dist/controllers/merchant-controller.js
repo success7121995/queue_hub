@@ -9,7 +9,6 @@ const queue_service_1 = require("../services/queue-service");
 const app_error_1 = require("../utils/app-error");
 const user_service_1 = require("../services/user-service");
 const branchSchema = zod_1.z.object({
-    // Branch Information 
     branch_name: zod_1.z.string().min(1, "Branch name is required"),
     contact_person_id: zod_1.z.string().min(1, "Contact person is required"),
     phone: zod_1.z.preprocess((val) => val === "" ? undefined : val, zod_1.z.string().min(1, "Branch phone is required").optional()),
@@ -44,7 +43,6 @@ const branchImageSchema = zod_1.z.object({
     feature_image: zod_1.z.preprocess((val) => val === "" ? undefined : val, zod_1.z.string().optional()),
     galleries: zod_1.z.array(zod_1.z.string()).optional(),
 });
-// Schema for creating a branch with address
 const createBranchSchema = zod_1.z.object({
     branch_name: zod_1.z.string().min(1, "Branch name is required"),
     contact_person_id: zod_1.z.string().min(1, "Contact person is required"),
@@ -56,24 +54,37 @@ const createBranchSchema = zod_1.z.object({
 const logoSchema = zod_1.z.object({
     logo_url: zod_1.z.string().min(1, "Logo URL is required"),
 });
-// Merchant controller
-// Handles: profile management, queue operations, analytics
 exports.merchantController = {
-    /**
-     * Get merchant by id
-     * @param req - The request object
-     * @param res - The response object
-     */
     getMerchantById: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { merchant_id } = req.params;
         const result = await merchant_service_1.merchantService.getMerchantById(merchant_id);
         res.status(200).json({ success: true, result });
     }),
-    /**
-     * Update merchant profile
-     * @param req - The request object
-     * @param res - The response object
-     */
+    getMerchants: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const user = req.session.user;
+        if (!user) {
+            throw new app_error_1.AppError("User not found", 404);
+        }
+        const query = req.query;
+        const queryParams = {};
+        Object.keys(query).forEach(key => {
+            if (query[key] !== undefined && query[key] !== '') {
+                if (key === 'approval_status') {
+                    if (Array.isArray(query[key])) {
+                        queryParams[key] = query[key];
+                    }
+                    else {
+                        queryParams[key] = [query[key]];
+                    }
+                }
+                else {
+                    queryParams[key] = query[key];
+                }
+            }
+        });
+        const result = await merchant_service_1.merchantService.getMerchants(user.role, queryParams);
+        res.status(200).json({ success: true, result });
+    }),
     updateProfile: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { merchant_id } = req.params;
         const updateData = req.body;
@@ -87,11 +98,30 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Update merchant address
-     * @param req - The request object
-     * @param res - The response object
-     */
+    updateMerchant: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { merchant_id } = req.params;
+        const updateData = req.body;
+        const result = await merchant_service_1.merchantService.updateMerchant(merchant_id, updateData);
+        res.status(200).json({ success: true, result });
+    }, {
+        action: client_1.ActivityType.UPDATE_MERCHANT,
+        extractUserId: (req, res, result) => result?.merchant?.owner_id ?? null,
+        extractData: (req, res, result) => ({
+            merchant_id: req.params.merchant_id,
+            updated_fields: Object.keys(req.body),
+        }),
+    }),
+    deleteMerchant: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { merchant_id } = req.params;
+        const result = await merchant_service_1.merchantService.deleteMerchant(merchant_id);
+        res.status(200).json({ success: true, result });
+    }, {
+        action: client_1.ActivityType.DELETE_MERCHANT,
+        extractUserId: (req, res, result) => result?.merchant?.owner_id ?? null,
+        extractData: (req, res, result) => ({
+            merchant_id: req.params.merchant_id,
+        }),
+    }),
     updateMerchantAddress: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { merchant_id } = req.params;
         const updateData = req.body;
@@ -105,11 +135,6 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Get user merchants
-     * @param req - The request object
-     * @param res - The response object
-     */
     getUserMerchants: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { merchant_id } = req.params;
         const { prefetch } = req.query;
@@ -117,17 +142,11 @@ exports.merchantController = {
         res.status(200).json({ success: true, result });
         return result;
     }),
-    /**
-     * Create a new queue
-     * @param req - The request object
-     * @param res - The response object
-     */
     createQueue: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
             throw new app_error_1.AppError("User not found", 404);
         }
-        // Get the selected branch ID from user data
         const userData = await user_service_1.userService.getUserById(user.user_id);
         const selectedBranchId = userData.user.UserMerchant?.selected_branch_id;
         if (!selectedBranchId) {
@@ -135,7 +154,6 @@ exports.merchantController = {
         }
         const { queue_name, tags } = req.body;
         const result = await merchant_service_1.merchantService.createQueue(selectedBranchId, queue_name, tags);
-        // Emit socket event for queue creation
         if (req.io) {
             req.io.emit("queueCreated", { message: "Queue created successfully" });
         }
@@ -147,17 +165,11 @@ exports.merchantController = {
             queue_name: req.body.queue_name,
         }),
     }),
-    /**
-     * View queues by merchant
-     * @param req - The request object
-     * @param res - The response object
-     */
     viewQueuesByBranch: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
             throw new app_error_1.AppError("User not found", 404);
         }
-        // Get the selected branch ID from user data
         const userData = await user_service_1.userService.getUserById(user.user_id);
         const selectedBranchId = userData.user.UserMerchant?.selected_branch_id;
         if (!selectedBranchId) {
@@ -166,16 +178,10 @@ exports.merchantController = {
         const result = await queue_service_1.queueService.viewQueuesByBranch(selectedBranchId);
         res.status(200).json({ success: true, result });
     }),
-    /**
-     * Update queue details
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateQueue: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { queue_id } = req.params;
         const { queue_name, tags } = req.body.data;
         const result = await merchant_service_1.merchantService.updateQueue(queue_id, queue_name, tags);
-        // Emit socket event for queue update
         if (req.io) {
             req.io.emit("queueUpdated", { queueId: queue_id, message: "Queue updated successfully" });
         }
@@ -188,15 +194,9 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Delete a queue
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteQueue: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { queue_id } = req.params;
         const result = await merchant_service_1.merchantService.deleteQueue(queue_id);
-        // Emit socket event for queue deletion
         if (req.io) {
             req.io.emit("queueDeleted", { queueId: queue_id, message: "Queue deleted successfully" });
         }
@@ -208,11 +208,6 @@ exports.merchantController = {
             queue_id: req.params.queue_id,
         }),
     }),
-    /**
-     * View queue analytics
-     * @param req - The request object
-     * @param res - The response object
-     */
     viewQueueAnalytics: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { queue_id } = req.params;
         const { start_date, end_date } = req.query;
@@ -222,18 +217,12 @@ exports.merchantController = {
         });
         res.status(200).json({ success: true, result });
     }),
-    /**
-     * Create a new branch
-     * @param req - The request object
-     * @param res - The response object
-     */
     createBranch: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const validatedData = createBranchSchema.parse(req.body);
         const user = req.session.user;
         if (!user) {
             throw new app_error_1.AppError("User not found", 404);
         }
-        // Get merchant_id from the user's session
         const merchant_id = user.merchant_id;
         if (!merchant_id) {
             throw new app_error_1.AppError("Merchant ID not found", 404);
@@ -251,25 +240,14 @@ exports.merchantController = {
             contact_person_id: req.body.contact_person_id,
         }),
     }),
-    /**
-     * Get branches by merchant id
-     * @param req - The request object
-     * @param res - The response object
-     */
     getBranchesByMerchantId: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         const { merchant_id } = req.params;
         const { prefetch, user_id } = req.query;
-        // Use the user_id from query params if provided, otherwise use session user
         const targetUserId = user_id || user?.user_id;
         const result = await merchant_service_1.merchantService.getBranchesByMerchantId(merchant_id, prefetch === 'true', targetUserId);
         res.status(200).json({ success: true, result });
     }),
-    /**
-     * Switch user's selected branch
-     * @param req - The request object
-     * @param res - The response object
-     */
     switchBranch: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
@@ -280,7 +258,6 @@ exports.merchantController = {
             throw new app_error_1.AppError("Branch ID is required", 400);
         }
         const result = await merchant_service_1.merchantService.switchBranch(user.user_id, branch_id);
-        // Return the updated user data so frontend can refresh auth
         const updatedUserData = await user_service_1.userService.getUserById(user.user_id);
         res.status(200).json({
             success: true,
@@ -294,11 +271,6 @@ exports.merchantController = {
             branch_id: req.body.branch_id,
         }),
     }),
-    /**
-     * Update branch data
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateBranch: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id } = req.params;
         const updateData = req.body;
@@ -312,11 +284,6 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Update branch address
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateBranchAddress: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id } = req.params;
         const updateData = req.body;
@@ -330,11 +297,6 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Create a new branch feature
-     * @param req - The request object
-     * @param res - The response object
-     */
     createBranchFeature: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id } = req.params;
         const { feature_name } = req.body;
@@ -348,21 +310,11 @@ exports.merchantController = {
             feature_name: req.body.feature_name,
         }),
     }),
-    /**
-     * Delete a branch feature
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteBranchFeature: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { feature_id } = req.params;
         const result = await merchant_service_1.merchantService.deleteBranchFeature(feature_id);
         res.status(200).json({ success: true, result });
     }),
-    /**
-     * Create a new branch tag
-     * @param req - The request object
-     * @param res - The response object
-     */
     createBranchTag: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id } = req.params;
         const { tag_name } = req.body;
@@ -376,11 +328,6 @@ exports.merchantController = {
             tag_name: req.body.tag_name,
         }),
     }),
-    /**
-     * Delete a branch tag
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteBranchTag: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { tag_id } = req.params;
         const result = await merchant_service_1.merchantService.deleteBranchTag(tag_id);
@@ -393,14 +340,8 @@ exports.merchantController = {
             tag_id: req.body.tag_id,
         }),
     }),
-    /**
-     * Update branch images (single or multiple)
-     * @param req - The request object
-     * @param res - The response object
-     */
     uploadBranchImages: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id } = req.params;
-        // Use multer's req.file or req.files
         let files = [];
         if (req.file) {
             files = [req.file];
@@ -411,7 +352,6 @@ exports.merchantController = {
         if (!files.length) {
             return res.status(400).json({ success: false, error: 'No file uploaded' });
         }
-        // Determine image type based on route path
         let imageType;
         if (req.route.path.includes('logo')) {
             imageType = 'LOGO';
@@ -425,16 +365,15 @@ exports.merchantController = {
         else {
             return res.status(400).json({ success: false, error: 'Invalid image type' });
         }
-        // Prepare data for DB: each file gets a record
         const imageData = files.map(file => ({
-            image_id: undefined, // Let DB generate or use uuid if needed
+            image_id: undefined,
             image_url: `/uploads/${file.filename}`,
             image_type: imageType,
             uploaded_at: new Date(),
         }));
-        // Save to DB
         const result = await merchant_service_1.merchantService.uploadBranchImages(branch_id, imageData);
         res.status(200).json({ success: true, result });
+        return result;
     }, {
         action: client_1.ActivityType.UPDATE_BRANCH,
         extractUserId: (req) => req.user?.user_id ?? null,
@@ -443,17 +382,11 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Update branch image
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateBranchImage: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id, image_id } = req.params;
         const updateData = req.body;
         const result = await merchant_service_1.merchantService.updateBranchImage(branch_id, image_id, updateData);
         res.status(200).json({ success: true, result });
-        return result;
     }, {
         action: client_1.ActivityType.UPDATE_BRANCH,
         extractUserId: (req) => req.user?.user_id ?? null,
@@ -462,11 +395,6 @@ exports.merchantController = {
             image_id: req.params.image_id,
         }),
     }),
-    /**
-     * Delete branch images
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteBranchImages: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id, image_id } = req.params;
         const result = await merchant_service_1.merchantService.deleteBranchImages(branch_id, image_id);
@@ -479,11 +407,6 @@ exports.merchantController = {
             image_id: req.params.image_id,
         }),
     }),
-    /**
-     * Update branch opening hours
-     * @param req - The request object
-     * @param res - The response object
-     */
     updateBranchOpeningHours: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { branch_id } = req.params;
         const updateData = req.body;
@@ -497,11 +420,6 @@ exports.merchantController = {
             updated_fields: Object.keys(req.body),
         }),
     }),
-    /**
-     * Create a new logo
-     * @param req - The request object
-     * @param res - The response object
-     */
     uploadLogo: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user) {
@@ -511,7 +429,6 @@ exports.merchantController = {
         if (!merchant_id) {
             throw new app_error_1.AppError("Merchant not found", 404);
         }
-        // Check if file was uploaded
         if (!req.file) {
             throw new app_error_1.AppError("No logo file uploaded", 400);
         }
@@ -526,11 +443,6 @@ exports.merchantController = {
             logo_url: req.file ? `/uploads/${req.file.filename}` : null,
         }),
     }),
-    /**
-     * Delete a logo
-     * @param req - The request object
-     * @param res - The response object
-     */
     deleteLogo: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { logo_id } = req.params;
         const result = await merchant_service_1.merchantService.deleteLogo(logo_id);

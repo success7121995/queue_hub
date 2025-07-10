@@ -3,12 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const require_auth_middleware_1 = require("../middleware/require-auth-middleware");
 const message_controller_1 = require("../controllers/message-controller");
+const multer_1 = require("../lib/multer");
 const router = (0, express_1.Router)();
-// Message routes
-router.get('/last', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.getLastMessages); // Get last messages
-router.get('/conversation/:otherUserId', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.getConversation); // Get conversation with a user
-router.post('/send', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.sendMessage); // Send message
-router.put('/:message_id/read', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.markMessageAsRead); // Mark message as read
-router.post('/conversation/:otherUserId/delete', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.hideChat); // Hide chat
-router.patch('/conversation/:otherUserId/update', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.updateHiddenChat); // Update hidden chat
+router.get('/last', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.getLastMessages);
+router.get('/conversation/:other_user_id', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.getConversation);
+router.post('/send', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.sendMessage);
+router.post('/send-with-attachment', (0, require_auth_middleware_1.requireAuth)(), multer_1.uploadChatAttachment, message_controller_1.messageController.sendMessageWithAttachment);
+router.put('/:message_id/read', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.markMessageAsRead);
+router.post('/conversation/:other_user_id/delete', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.hideChat);
+router.patch('/conversation/:other_user_id/update', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.updateHiddenChat);
+router.get('/notifications', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.getNotifications);
+router.put('/notifications/:notification_id/read', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.markNotificationAsRead);
+router.delete('/notifications/:notification_id', (0, require_auth_middleware_1.requireAuth)(), message_controller_1.messageController.deleteNotification);
 exports.default = router;

@@ -11,11 +11,15 @@ import React from "react";
 const urbanistItalic = localFont({
     src: "../public/fonts/Urbanist-Italic-VariableFont_wght.ttf",
     variable: "--font-urbanist-italic",
+    display: 'swap',
+    fallback: ['system-ui', 'arial'],
 });
 
 const unbanist = localFont({
     src: "../public/fonts/Urbanist-VariableFont_wght.ttf",
     variable: "--font-urbanist",
+    display: 'swap',
+    fallback: ['system-ui', 'arial'],
 });
 
 export const metadata: Metadata = {

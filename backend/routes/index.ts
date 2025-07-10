@@ -8,6 +8,16 @@ import geminiRoutes from "./gemini-routes";
 
 const router = Router();
 
+// Health check endpoint
+router.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        uptime: process.uptime()
+    });
+});
+
 // Public routes (no authentication required)
 router.use("/auth", userRoutes);  // Login, register, etc.
 

@@ -35,19 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userService = void 0;
 const prisma_1 = require("../lib/prisma");
-const uuid_1 = require("uuid");
 const app_error_1 = require("../utils/app-error");
 const client_1 = require("@prisma/client");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-// User service
-// Handles: user profile operations, queue participation logic
 exports.userService = {
-    /**
-     * Update user profile
-     * @param user_id - The user ID
-     * @param updateData - The data to update
-     */
     async updateUserProfile(user_id, updateData) {
         const user = await prisma_1.prisma.user.update({
             where: { user_id },
@@ -58,10 +50,6 @@ exports.userService = {
         });
         return { user };
     },
-    /**
-     * Get user by ID
-     * @param userId - The user ID
-     */
     async getUserById(userId) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const user = await prisma_1.prisma.user.findUnique({
@@ -122,10 +110,6 @@ exports.userService = {
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Get employees
-     * @param merchant_id - The merchant ID
-     */
     async getEmployees(merchant_id) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const employees = await tx.userMerchant.findMany({
@@ -165,22 +149,14 @@ exports.userService = {
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Assign branches to employee
-     * @param staffId - The staff ID
-     * @param branchIds - The branch IDs
-     */
     async assignBranches(staffId, branchIds) {
         return prisma_1.prisma.$transaction(async (tx) => {
-            // Delete existing assignments for the staff member
             await tx.userMerchantOnBranch.deleteMany({
                 where: {
                     staff_id: staffId,
                 },
             });
-            // If there are new branches to assign, create them
             if (branchIds && branchIds.length > 0) {
-                // Ensure the user merchant exists
                 const userMerchant = await tx.userMerchant.findUnique({
                     where: { staff_id: staffId },
                     select: { staff_id: true }
@@ -188,7 +164,6 @@ exports.userService = {
                 if (!userMerchant) {
                     throw new app_error_1.AppError("User merchant not found", 404);
                 }
-                // Verify that all branch IDs exist
                 const branches = await tx.branch.findMany({
                     where: { branch_id: { in: branchIds } },
                     select: { branch_id: true }
@@ -198,7 +173,6 @@ exports.userService = {
                     const notFound = branchIds.filter(id => !foundBranchIds.includes(id));
                     throw new app_error_1.AppError(`The following branches were not found: ${notFound.join(', ')}`, 404);
                 }
-                // Create new assignments
                 const newAssignments = branchIds.map((branchId) => ({
                     staff_id: staffId,
                     branch_id: branchId,
@@ -210,11 +184,6 @@ exports.userService = {
             return { success: true };
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.Serializable });
     },
-    /**
-     * Update employee
-     * @param staffId - The staff ID
-     * @param updateData - The update data
-     */
     async updateEmployee(staffId, updateData) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const userMerchant = await tx.userMerchant.findUnique({
@@ -223,7 +192,6 @@ exports.userService = {
             if (!userMerchant) {
                 throw new app_error_1.AppError("User merchant not found", 404);
             }
-            // Prepare data for User and UserMerchant updates
             const userData = {};
             if (updateData.fname)
                 userData.fname = updateData.fname;
@@ -236,7 +204,6 @@ exports.userService = {
                 userMerchantData.position = updateData.position;
             if (updateData.role)
                 userMerchantData.role = updateData.role;
-            // Update User record if there's data for it
             if (Object.keys(userData).length > 0) {
                 userData.updated_at = new Date();
                 await tx.user.update({
@@ -244,7 +211,6 @@ exports.userService = {
                     data: userData,
                 });
             }
-            // Update UserMerchant record if there's data for it
             if (Object.keys(userMerchantData).length > 0) {
                 userMerchantData.updated_at = new Date();
                 await tx.userMerchant.update({
@@ -252,7 +218,6 @@ exports.userService = {
                     data: userMerchantData
                 });
             }
-            // Return the fully updated employee record
             return tx.userMerchant.findUnique({
                 where: { staff_id: staffId },
                 include: {
@@ -289,9 +254,6 @@ exports.userService = {
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.Serializable });
         return result;
     },
-    /**
-     * Delete employee
-     */
     async deleteEmployee(user_id) {
         const user = await prisma_1.prisma.user.findUnique({
             where: { user_id },
@@ -352,11 +314,6 @@ exports.userService = {
         }
         return transactionResult;
     },
-    /**
-     * Upload avatar
-     * @param user_id - The user ID
-     * @param image_url - The image URL
-     */
     async uploadAvatar(user_id, image_url) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
             const user = await tx.user.findUnique({
@@ -381,7 +338,6 @@ exports.userService = {
                 data: {
                     Avatar: {
                         create: {
-                            image_id: (0, uuid_1.v4)(),
                             image_url: image_url
                         }
                     }
@@ -403,11 +359,9 @@ exports.userService = {
                 throw new app_error_1.AppError("User not found", 404);
             }
             if (user.Avatar) {
-                // Delete the avatar record from database
                 await tx.avatar.delete({
                     where: { image_id: user.Avatar.image_id }
                 });
-                // Delete the avatar file
                 const filePath = path.join(process.cwd(), 'public', user.Avatar.image_url);
                 fs.unlink(filePath, (err) => {
                     if (err) {
@@ -419,22 +373,14 @@ exports.userService = {
         }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
         return result;
     },
-    /**
-     * Join a queue
-     * @param queue_id - The queue ID
-     * @param user_id - The user ID
-     */
     async joinQueue(queue_id, user_id) {
-        // Get the last queue entry number
         const lastEntry = await prisma_1.prisma.queueEntry.findFirst({
             where: { queue_id },
             orderBy: { number: 'desc' },
         });
         const nextNumber = (lastEntry?.number ?? 0) + 1;
-        // Create new queue entry
         const entry = await prisma_1.prisma.queueEntry.create({
             data: {
-                entry_id: (0, uuid_1.v4)(),
                 queue_id,
                 user_id,
                 number: nextNumber,
@@ -444,13 +390,7 @@ exports.userService = {
         });
         return { entry };
     },
-    /**
-     * Leave a queue
-     * @param queue_id - The queue ID
-     * @param user_id - The user ID
-     */
     async leaveQueue(queue_id, user_id) {
-        // Find the user's active queue entry
         const entry = await prisma_1.prisma.queueEntry.findFirst({
             where: {
                 queue_id,
@@ -461,7 +401,6 @@ exports.userService = {
         if (!entry) {
             throw new app_error_1.AppError("No active queue entry found", 404);
         }
-        // Update entry status to NO_SHOW
         const updatedEntry = await prisma_1.prisma.queueEntry.update({
             where: { entry_id: entry.entry_id },
             data: {
@@ -471,11 +410,6 @@ exports.userService = {
         });
         return { entry: updatedEntry };
     },
-    /**
-     * Get user's queue history
-     * @param user_id - The user ID
-     * @param params - The history parameters
-     */
     async getQueueHistory(user_id, params) {
         const { start_date, end_date } = params;
         const entries = await prisma_1.prisma.queueEntry.findMany({
@@ -502,5 +436,131 @@ exports.userService = {
             },
         });
         return { entries };
+    },
+    async createTicket(user_id, data) {
+        let uploadedFilePaths = [];
+        try {
+            const result = await prisma_1.prisma.$transaction(async (tx) => {
+                const ticket = await tx.ticket.create({
+                    data: {
+                        user_id,
+                        subject: data.subject,
+                        category: data.category,
+                        content: data.message,
+                        priority: data.priority,
+                        status: "OPEN",
+                    },
+                });
+                if (data.files && data.files.length > 0) {
+                    for (const file of data.files) {
+                        const multerFile = file;
+                        const fileUrl = `/uploads/${multerFile.filename}`;
+                        uploadedFilePaths.push(path.join(process.cwd(), 'public', 'uploads', multerFile.filename));
+                        await tx.attachment.create({
+                            data: {
+                                ticket_id: ticket.ticket_id,
+                                file_url: fileUrl,
+                            },
+                        });
+                    }
+                }
+                return ticket;
+            }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
+            return result;
+        }
+        catch (err) {
+            for (const filePath of uploadedFilePaths) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error(`Failed to delete attachment file: ${err.message}`);
+                    }
+                });
+            }
+            throw err;
+        }
+    },
+    async getTickets(user_id, status, isAdmin = false) {
+        const whereClause = {};
+        if (!isAdmin) {
+            whereClause.user_id = user_id;
+        }
+        if (status) {
+            if (Array.isArray(status)) {
+                whereClause.status = { in: status };
+            }
+            else {
+                whereClause.status = status;
+            }
+        }
+        const tickets = await prisma_1.prisma.ticket.findMany({
+            where: whereClause,
+            include: {
+                Attachment: {
+                    select: {
+                        attachment_id: true,
+                        file_url: true,
+                        created_at: true,
+                    }
+                },
+                User: {
+                    select: {
+                        user_id: true,
+                        fname: true,
+                        lname: true,
+                        email: true,
+                        role: true,
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+        return { tickets };
+    },
+    async getTicket(ticket_id) {
+        const result = await prisma_1.prisma.$transaction(async (tx) => {
+            console.log(ticket_id);
+            const ticket = await tx.ticket.findFirst({
+                where: {
+                    ticket_id
+                },
+                include: {
+                    Attachment: {
+                        select: {
+                            attachment_id: true,
+                            file_url: true,
+                            created_at: true,
+                        }
+                    },
+                    User: {
+                        select: {
+                            user_id: true,
+                            username: true,
+                            fname: true,
+                            lname: true,
+                        }
+                    }
+                },
+            });
+            if (!ticket) {
+                throw new app_error_1.AppError("Ticket not found", 404);
+            }
+            return { ticket };
+        }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.ReadCommitted });
+        return result;
+    },
+    async updateTicket(ticket_id, data) {
+        const result = await prisma_1.prisma.$transaction(async (tx) => {
+            const ticket = await tx.ticket.update({
+                where: { ticket_id },
+                data: {
+                    ...data,
+                    updated_at: new Date(),
+                },
+            });
+            return { ticket };
+        }, { isolationLevel: client_1.Prisma.TransactionIsolationLevel.Serializable });
+        return result;
     },
 };

@@ -7,7 +7,6 @@ const client_1 = require("@prisma/client");
 const with_activity_log_1 = require("../utils/with-activity-log");
 const app_error_1 = require("../utils/app-error");
 const merchantSchema = zod_1.z.object({
-    // Step 1: Signup
     signup: zod_1.z.object({
         plan: zod_1.z.enum(["TRIAL", "ESSENTIAL", "GROWTH"]),
         lang: zod_1.z.enum(["EN", "ZH", "ZH_CH"]),
@@ -21,14 +20,12 @@ const merchantSchema = zod_1.z.object({
         confirm_password: zod_1.z.string().min(8, "Password must be at least 8 characters"),
         use_same_address: zod_1.z.boolean().default(true),
     }),
-    // Step 2: Branch Info
     branchInfo: zod_1.z.object({
         branch_name: zod_1.z.string().min(1, "Branch name is required"),
         email: zod_1.z.string().email("Invalid email address").optional(),
         phone: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
     }),
-    // Step 3: Address
     address: zod_1.z.object({
         street: zod_1.z.string().min(1, "Street is required"),
         city: zod_1.z.string().min(1, "City is required"),
@@ -38,7 +35,6 @@ const merchantSchema = zod_1.z.object({
         unit: zod_1.z.string().optional(),
         floor: zod_1.z.string().optional(),
     }),
-    // Step 4: Branch Address (optional)
     branchAddress: zod_1.z.object({
         street: zod_1.z.string().min(1, "Street is required"),
         city: zod_1.z.string().min(1, "City is required"),
@@ -48,7 +44,6 @@ const merchantSchema = zod_1.z.object({
         unit: zod_1.z.string().optional(),
         floor: zod_1.z.string().optional(),
     }).optional(),
-    // Step 5: Payment
     payment: zod_1.z.object({
         save_card: zod_1.z.boolean().default(false),
         auto_renewal: zod_1.z.boolean().default(false),
@@ -67,6 +62,20 @@ const employeeSchema = zod_1.z.object({
     position: zod_1.z.string().min(1, "Position is required"),
     image_url: zod_1.z.string().optional(),
 });
+const adminSchema = zod_1.z.object({
+    fname: zod_1.z.string().min(1, "First name is required"),
+    lname: zod_1.z.string().min(1, "Last name is required"),
+    username: zod_1.z.string().min(3, "Username must be at least 3 characters"),
+    password: zod_1.z.string().min(8, "Password must be at least 8 characters"),
+    confirm_password: zod_1.z.string().min(8, "Password must be at least 8 characters"),
+    admin_id: zod_1.z.string().optional(),
+    email: zod_1.z.string().email("Invalid email address"),
+    phone: zod_1.z.string().min(1, "Phone number is required"),
+    role: zod_1.z.enum(["SUPER_ADMIN", "OPS_ADMIN", "DEVELOPER", "SUPPORT_AGENT"]),
+    position: zod_1.z.string().min(1, "Position is required"),
+    image_url: zod_1.z.string().optional(),
+    supervisor_id: zod_1.z.string().min(1, "Supervisor is required"),
+});
 const changePasswordSchema = zod_1.z.object({
     old_password: zod_1.z.string().min(8, "Password must be at least 8 characters"),
     new_password: zod_1.z.string().min(8, "Password must be at least 8 characters"),
@@ -80,23 +89,54 @@ const customerSchema = zod_1.z.object({
     phone: zod_1.z.string().min(1, "Phone number is required")
 });
 exports.authController = {
-    /**
-     * Login a user (Merchant or admin)
-     * @param req - The request object
-     * @param res - The response object
-     */
+    addNewAdmin: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        console.log('req.body: ' + req.body);
+        const validatedData = adminSchema.parse(req.body);
+        console.log('validatedData: ' + validatedData);
+        if (!validatedData.supervisor_id) {
+            throw new app_error_1.AppError("Supervisor is required", 400);
+        }
+        const result = await auth_service_1.authService.addNewAdmin(validatedData);
+        res.status(201).json({
+            success: true,
+            result
+        });
+        return result;
+    }, {
+        action: client_1.ActivityType.CREATE_STAFF_USER,
+        extractUserId: (req, res, result) => result?.user?.user_id ?? null,
+        extractData: (req, res, result) => ({
+            email: req.body.email,
+            role: req.body.role,
+        }),
+    }),
+    checkUniqueUsernameAndEmail: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
+        const { username, email } = req.query;
+        let result = {
+            isUniqueUsername: false,
+            isUniqueEmail: false,
+        };
+        if (username) {
+            const isUniqueUsername = await auth_service_1.authService.getUniqueUsername(username);
+            result.isUniqueUsername = isUniqueUsername;
+        }
+        if (email) {
+            const isUniqueEmail = await auth_service_1.authService.getUniqueEmail(email);
+            result.isUniqueEmail = isUniqueEmail;
+        }
+        res.status(200).json({ success: true, result });
+        return result;
+    }),
     login: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const { email, password } = req.body;
         const result = await auth_service_1.authService.login(email, password);
         if (!result) {
             throw new app_error_1.AppError("User not found", 404);
         }
-        // Get merchant role if user is a merchant
         let merchantRole;
         let adminRole;
         if (result.user.role === client_1.UserRole.ADMIN && result.userAdmin) {
             adminRole = result.userAdmin.role;
-            // Set session data
             req.session.user = {
                 user_id: result.user.user_id,
                 email: result.user.email,
@@ -107,7 +147,6 @@ exports.authController = {
         }
         if (result?.user.role === client_1.UserRole.MERCHANT && result.userMerchant) {
             merchantRole = result.userMerchant.role;
-            // Set session data
             req.session.user = {
                 user_id: result.user.user_id,
                 email: result.user.email,
@@ -116,7 +155,6 @@ exports.authController = {
                 merchantRole,
             };
         }
-        // Save session explicitly
         await new Promise((resolve, reject) => {
             req.session.save((err) => {
                 if (err) {
@@ -136,45 +174,35 @@ exports.authController = {
         extractUserId: (req, res, result) => result?.user?.user_id ?? null,
         extractData: (req, res, result) => ({
             email: req.body.email,
+            user_id: result?.user?.user_id ?? null,
             role: result?.user?.role ?? null,
         }),
     }),
-    /**
-     * Logout a user
-     * @param req - The request object
-     * @param res - The response object
-     */
     logout: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
-        // Clear session
+        const user = req.session.user;
+        if (!user?.user_id) {
+            throw new app_error_1.AppError("User ID not found", 404);
+        }
         await new Promise((resolve) => {
             req.session.destroy(() => {
                 resolve();
             });
         });
-        // Clear cookies
         res.clearCookie('session_id');
-        res.status(200).json({ success: true });
-        return null;
+        res.status(200).json({ success: true, user });
+        return user;
     }, {
         action: client_1.ActivityType.LOGOUT_USER,
-        extractUserId: (req) => req.user?.user_id ?? null,
-        extractData: () => ({}),
+        extractUserId: (req, res, result) => {
+            return result?.user_id ?? null;
+        },
     }),
-    /**
-     * Register a merchant
-     * @param req - The request object
-     * @param res - The response object
-     */
     registerMerchant: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
-        // Validate request body against schema
         const validatedData = merchantSchema.parse(req.body);
-        // Check if passwords match
         if (validatedData.signup.password !== validatedData.signup.confirm_password) {
             throw new app_error_1.AppError("Passwords do not match", 400);
         }
-        // Register merchant
         const result = await auth_service_1.authService.registerMerchant(validatedData);
-        // Return success response
         res.status(201).json({
             success: true,
             result
@@ -189,16 +217,10 @@ exports.authController = {
             plan: req.body.signup.plan,
         }),
     }),
-    /**
-     * Add new employee
-     * @param req - The request object
-     * @param res - The response object
-     */
     addNewEmployee: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const validatedData = employeeSchema.parse(req.body);
         const user = req.session.user;
         const merchant_id = user?.merchant_id;
-        console.log(validatedData);
         if (!merchant_id) {
             throw new app_error_1.AppError("Merchant ID not found", 404);
         }
@@ -216,9 +238,6 @@ exports.authController = {
             role: req.body.role,
         }),
     }),
-    /**
-     * Change password
-     */
     changePassword: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const user = req.session.user;
         if (!user?.user_id) {
@@ -239,11 +258,6 @@ exports.authController = {
             user_id: req.session.user?.user_id,
         }),
     }),
-    /**
-     * Register a customer
-     * @param req - The request object
-     * @param res - The response object
-     */
     registerCustomer: (0, with_activity_log_1.withActivityLog)(async (req, res) => {
         const validatedData = customerSchema.parse(req.body);
         const result = await auth_service_1.authService.registerCustomer(validatedData);

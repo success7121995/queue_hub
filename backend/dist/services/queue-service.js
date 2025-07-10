@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.queueService = void 0;
 const prisma_1 = require("../lib/prisma");
 const client_1 = require("@prisma/client");
-// Handles: queue operations, customer management, wait time calculations
 exports.queueService = {
     async viewQueuesByBranch(branch_id) {
         const result = await prisma_1.prisma.$transaction(async (tx) => {
@@ -25,7 +24,6 @@ exports.queueService = {
                 acc[tag.entity_id].push(tag);
                 return acc;
             }, {});
-            // Attach tags to each queue
             const queuesWithTags = queues.map((queue) => ({
                 ...queue,
                 tags: tagsByQueueId[queue.queue_id] || [],

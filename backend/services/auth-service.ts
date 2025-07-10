@@ -276,6 +276,9 @@ export const authService = {
                 return { user, userAdmin, redirect: "/admin" };
             }
 
+            // Default case for other roles
+            return { user, redirect: "/" };
+
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         return result;
