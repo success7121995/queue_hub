@@ -5,6 +5,11 @@ export interface QueuesWithTags {
 
 export interface Queue {
   queue_name: string;
+  number: number;
+  queue_status: QueueStatus;
+  created_at: string;
+  updated_at: string;
+  entries: QueueEntry[];
   tags?: string;
 }
 
@@ -14,8 +19,8 @@ export interface QueueEntry {
   id: number;
   userId: number;
   status: QueueEntryStatus;
-  joinedAt: Date;
-  leftAt: Date | null;
+  joined_at: Date;
+  left_at: Date | null;
 }
 
 export type QueueEntryStatus = 'WAITING' | 'SERVED' | 'CANCELLED' | 'NO_SHOW';
