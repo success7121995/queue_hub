@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/app-error";
-import { User, Prisma, Attachment, TicketPriority } from "@prisma/client";
+import { User, Prisma, Attachment, TicketPriority, Ticket } from "@prisma/client";
 import { type CreateTicketData, type UpdateEmployeeData } from "../controllers/user-controller";
 import { geminiService } from "./gemini-service";
 import * as fs from 'fs';
@@ -677,6 +677,27 @@ export const userService = {
 
             return { ticket };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+
+        return result;
+    },
+
+    /**
+     * Update ticket
+     * @param ticket_id - The ticket ID
+     * @param data - The update data
+     */
+    async updateTicket(ticket_id: string, data: Partial<Ticket>) {
+        const result = await prisma.$transaction(async (tx) => {
+            const ticket = await tx.ticket.update({
+                where: { ticket_id },
+                data: {
+                    ...data,
+                    updated_at: new Date(),
+                },
+            });
+
+            return { ticket };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         return result;
     },

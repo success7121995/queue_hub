@@ -38,6 +38,7 @@ router.post('/ticket', requireAuth(), uploadTicketFiles, (req, res) => userContr
 router.get('/ticket/all', requireAuth([UserRole.ADMIN]), (req, res) => userController.getAllTickets(req, res)); // Get all tickets (admin only)
 router.get('/ticket', requireAuth(), (req, res) => userController.getTickets(req, res)); // Get user's own tickets
 router.get('/ticket/:ticket_id', requireAuth(), (req, res) => userController.getTicket(req, res)); // Get a ticket
+router.put('/ticket/:ticket_id', requireAuth([UserRole.ADMIN]), (req, res) => userController.updateTicket(req, res)); // Update a ticket (admin only)
 
 // User queue management (protected)
 router.get('/queues', requireAuth(), () => {});  // Get user's active queues

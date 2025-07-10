@@ -15,6 +15,7 @@ const registerSocketHandlers = (io: Server) => {
          */
         socket.on("joinRoom", ({ user_id }) => {
             if (user_id) {
+                console.log("User joined room:", user_id);
                 socket.join(user_id);
             }
         });

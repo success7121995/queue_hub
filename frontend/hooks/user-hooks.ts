@@ -431,8 +431,8 @@ export const fetchGetAllTickets = async (status?: string | string[]): Promise<{ 
 
 /**
  * Fetch get ticket
- * @param ticket_id
- * @returns
+ * @param ticket_id 
+ * @returns 
  */
 export const fetchGetTicket = async (ticket_id: string): Promise<{ success: boolean; result: { ticket: any } }> => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket/${ticket_id}`, {
@@ -443,6 +443,31 @@ export const fetchGetTicket = async (ticket_id: string): Promise<{ success: bool
     if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to get ticket');
+    }
+
+    const responseData = await res.json();
+    return responseData;
+}
+
+/**
+ * Fetch update ticket
+ * @param ticket_id 
+ * @param updateData 
+ * @returns 
+ */
+export const fetchUpdateTicket = async (ticket_id: string, updateData: any): Promise<{ success: boolean; result: { ticket: any } }> => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/ticket/${ticket_id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update ticket');
     }
 
     const responseData = await res.json();
@@ -751,9 +776,21 @@ export const useGetAllTickets = (status?: string | string[], options?: Omit<UseQ
  */
 export const useGetTicket = (ticket_id: string, options?: Omit<UseQueryOptions<{ success: boolean; result: { ticket: any } }, Error>, 'queryKey' | 'queryFn'>) => {
     return useQuery({
-        queryKey: [...userKeys.tickets(), ticket_id],
+        queryKey: userKeys.allTickets(),
         queryFn: () => fetchGetTicket(ticket_id),
         enabled: !!ticket_id,
+        ...options,
+    });
+}
+
+/**
+ * Use update ticket
+ * @param options 
+ * @returns 
+ */
+export const useUpdateTicket = (options?: Omit<UseMutationOptions<{ success: boolean; result: { ticket: any } }, Error, { ticket_id: string; updateData: any }>, 'mutationFn'>) => {
+    return useMutation({
+        mutationFn: ({ ticket_id, updateData }) => fetchUpdateTicket(ticket_id, updateData),
         ...options,
     });
 }

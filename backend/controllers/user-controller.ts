@@ -415,4 +415,28 @@ export const userController = {
             }),
         }
     ),
+
+    /**
+     * Update a ticket
+     * @param req - The request object
+     * @param res - The response object
+     */
+    updateTicket: withActivityLog(
+        async (req: Request, res: Response) => {
+            const { ticket_id } = req.params;
+            const updateData = req.body;
+
+            const result = await userService.updateTicket(ticket_id, updateData);
+            res.status(200).json({ success: true, result });
+            return result;
+        },
+        {
+            action: ActivityType.UPDATE_TICKET,
+            extractUserId: (req) => req.session.user?.user_id ?? null,
+            extractData: (req) => ({
+                ticket_id: req.params.ticket_id,
+                updated_fields: Object.keys(req.body),
+            }),
+        }
+    ),
 }; 

@@ -15,17 +15,17 @@ model AcceptPayment {
 }
 
 model APILog {
-  log_id      String       @id @default(uuid())
-  user_id     String?
-  method      String
-  endpoint    String
-  status      Int
+  log_id        String   @id @default(uuid())
+  user_id       String?
+  method        String
+  endpoint      String
+  status        Int
   response_time Float
   ip_address    String
   user_agent    String
   error         String?
-  created_at    DateTime     @default(now())
-  User          User?        @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  created_at    DateTime @default(now())
+  User          User?    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model ActivityLog {
@@ -67,29 +67,29 @@ model AnalyticsLog {
 }
 
 model Attachment {
-  attachment_id String @id @default(uuid())
-  ticket_id String?
-  message_id String?
-  file_url String
-  created_at DateTime @default(now())
-  Ticket Ticket? @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
-  Message Message? @relation(fields: [message_id], references: [message_id], onDelete: Cascade)
-  TicketFollowUp TicketFollowUp[]
+  attachment_id  String           @id @default(uuid())
+  ticket_id      String?
+  file_url       String
+  created_at     DateTime         @default(now())
+  message_id     String?
+  Message        Message?         @relation(fields: [message_id], references: [message_id], onDelete: Cascade)
+  Ticket         Ticket?          @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
+  TicketFollowUp TicketFollowUp[] @relation("AttachmentToTicketFollowUp")
 }
 
 model Avatar {
-  image_id        String @id @default(uuid())
-  user_id         String @unique
-  image_url       String
-  created_at      DateTime @default(now())
-  User            User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  image_id   String   @id @default(uuid())
+  user_id    String   @unique
+  image_url  String
+  created_at DateTime @default(now())
+  User       User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Branch {
   branch_id            String                 @id @default(uuid())
   merchant_id          String
   branch_name          String
-  contact_person_id    String                 // Reference to UserMerchant staff_id
+  contact_person_id    String
   phone                String?
   email                String?
   description          String?
@@ -97,13 +97,13 @@ model Branch {
   created_at           DateTime               @default(now())
   updated_at           DateTime               @updatedAt
   Address              Address?
+  ContactPerson        UserMerchant           @relation("BranchContactPerson", fields: [contact_person_id], references: [staff_id])
   Merchant             Merchant               @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
   BranchFeature        BranchFeature[]
   BranchImage          BranchImage[]
   BranchOpeningHour    BranchOpeningHour[]
   Queue                Queue[]
   UserMerchantOnBranch UserMerchantOnBranch[]
-  ContactPerson        UserMerchant           @relation("BranchContactPerson", fields: [contact_person_id], references: [staff_id], onDelete: Restrict)
 }
 
 model BranchFeature {
@@ -178,13 +178,14 @@ model FavoriteMercahnt {
 }
 
 model HiddenChat {
-  id      String @id @default(uuid())
-  user_id String
+  id            String   @id @default(uuid())
+  user_id       String
   other_user_id String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  User          User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
   @@unique([user_id, other_user_id])
-  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Invoice {
@@ -217,16 +218,16 @@ model LegalDocuement {
 }
 
 model Logo {
-  logo_id String @id @default(uuid())   
-  merchant_id String @unique
-  logo_url String
-  created_at DateTime @default(now())
-  Merchant Merchant @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
+  logo_id     String   @id @default(uuid())
+  merchant_id String   @unique
+  logo_url    String
+  created_at  DateTime @default(now())
+  Merchant    Merchant @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
 }
 
 model Merchant {
   merchant_id         String             @id @default(uuid())
-  owner_id            String @unique
+  owner_id            String             @unique
   approval_status     ApprovalStatus     @default(PENDING)
   business_name       String
   phone               String             @unique
@@ -242,24 +243,24 @@ model Merchant {
   Address             Address?
   Branch              Branch[]
   FavoriteMercahnt    FavoriteMercahnt[]
-  User                User?               @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
+  Logo                Logo?
+  User                User               @relation(fields: [owner_id], references: [user_id], onDelete: Cascade)
   News                News[]
   Review              Review[]
   UserMerchant        UserMerchant[]
-  Logo                Logo?
 }
 
 model Message {
-  message_id                     String   @id @default(uuid())
+  message_id                     String       @id @default(uuid())
   sender_id                      String
   receiver_id                    String
   content                        String
-  is_read                        Boolean  @default(false)   
-  created_at                     DateTime  @default(now())
-  User_Message_receiver_idToUser User     @relation("Message_receiver_idToUser", fields: [receiver_id], references: [user_id], onDelete: Cascade)
-  User_Message_sender_idToUser   User     @relation("Message_sender_idToUser", fields: [sender_id], references: [user_id], onDelete: Cascade)
-  Attachment Attachment[]
-  
+  is_read                        Boolean      @default(false)
+  created_at                     DateTime     @default(now())
+  Attachment                     Attachment[]
+  User_Message_receiver_idToUser User         @relation("Message_receiver_idToUser", fields: [receiver_id], references: [user_id], onDelete: Cascade)
+  User_Message_sender_idToUser   User         @relation("Message_sender_idToUser", fields: [sender_id], references: [user_id], onDelete: Cascade)
+
   @@index([sender_id, created_at])
   @@index([receiver_id, created_at])
   @@index([sender_id, receiver_id, created_at])
@@ -277,15 +278,15 @@ model News {
 }
 
 model Notification {
-  notification_id String @id @default(uuid())
-  user_id String
-  title String
-  content String
-  is_read Boolean @default(false)
-  read_at DateTime?
-  redirect_url String?
-  created_at DateTime @default(now())
-  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  notification_id String    @id @default(uuid())
+  user_id         String
+  title           String
+  content         String
+  is_read         Boolean   @default(false)
+  read_at         DateTime?
+  redirect_url    String?
+  created_at      DateTime  @default(now())
+  User            User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model OAuthAccount {
@@ -309,9 +310,9 @@ model PasswordReset {
   reset_token        String
   reset_token_expiry DateTime
   reset_at           DateTime @default(now())
-  User               User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
+  User               User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model PaymentMethod {
@@ -323,24 +324,24 @@ model PaymentMethod {
 }
 
 model Preference {
-  preference_id String @id @default(uuid())
-  user_id String @unique
-  allow_email_notification Boolean  @default(true)
-  allow_inbox_notification Boolean  @default(true)
-  preference_type PreferenceType
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  preference_id            String         @id @default(uuid())
+  user_id                  String         @unique
+  allow_email_notification Boolean        @default(true)
+  allow_inbox_notification Boolean        @default(true)
+  preference_type          PreferenceType
+  created_at               DateTime       @default(now())
+  updated_at               DateTime       @updatedAt
+  User                     User           @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Queue {
-  queue_id     String           @id @default(uuid())
+  queue_id     String       @id @default(uuid())
   branch_id    String?
   queue_name   String
-  queue_status QueueStatus @default(CLOSED)
-  created_at   DateTime         @default(now())
+  queue_status QueueStatus  @default(CLOSED)
+  created_at   DateTime     @default(now())
   updated_at   DateTime
-  Branch       Branch?          @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
+  Branch       Branch?      @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
   QueueEntry   QueueEntry[]
 }
 
@@ -359,7 +360,7 @@ model QueueEntry {
 }
 
 model Review {
-  review_id   String    @id @default(uuid())  
+  review_id   String    @id @default(uuid())
   merchant_id String
   user_id     String
   rating      Int
@@ -392,98 +393,98 @@ model SystemHealth {
 }
 
 model Tag {
-  tag_id             String   @id @default(uuid())
-  entity_id          String
-  entity_type        TagEntity
-  tag_name           String
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
+  tag_id      String    @id @default(uuid())
+  entity_id   String
+  entity_type TagEntity
+  tag_name    String
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
 }
 
 model Ticket {
-  ticket_id String @id @default(uuid()) 
-  user_id String
-  subject String
-  category String
-  content String
-  priority TicketPriority @default(MEDIUM)
-  assigned_to String?
-  assigned_at DateTime?
-  resolved_at DateTime?
-  closed_at DateTime?
-  closed_by String?
-  status TicketStatus
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  User User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  Attachment Attachment[]
+  ticket_id      String           @id @default(uuid())
+  user_id        String
+  subject        String
+  category       String
+  status         TicketStatus
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  assigned_at    DateTime?
+  assigned_to    String?
+  closed_at      DateTime?
+  closed_by      String?
+  content        String
+  priority       TicketPriority   @default(MEDIUM)
+  resolved_at    DateTime?
+  Attachment     Attachment[]
+  User           User             @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   TicketFollowUp TicketFollowUp[]
 }
 
 model TicketFollowUp {
-  follow_up_id String @id @default(uuid())
-  ticket_id String
-  admin_id String
-  content String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  Ticket Ticket @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
-  Attachment Attachment[]
+  follow_up_id String       @id @default(uuid())
+  ticket_id    String
+  admin_id     String
+  content      String
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+  Ticket       Ticket       @relation(fields: [ticket_id], references: [ticket_id], onDelete: Cascade)
+  Attachment   Attachment[] @relation("AttachmentToTicketFollowUp")
 }
 
 model User {
-  user_id                           String                       @id @default(uuid())
-  username                          String                       @unique
+  user_id                           String             @id @default(uuid())
+  username                          String             @unique
   lname                             String
   fname                             String
-  email                             String                       @unique
+  email                             String             @unique
   password_hash                     String?
-  phone                             String                       @unique
-  role                              UserRole                     @default(GUEST)
-  status                            UserStatus                   @default(INACTIVE)
-  registration_date                 DateTime                     @default(now())
-  created_at                        DateTime                     @default(now())
+  phone                             String             @unique
+  role                              UserRole           @default(GUEST)
+  status                            UserStatus         @default(INACTIVE)
+  registration_date                 DateTime           @default(now())
+  created_at                        DateTime           @default(now())
   updated_at                        DateTime
   last_login                        DateTime?
-  lang                              Lang                         @default(EN)
-  email_verified                    Boolean                      @default(false)
-  verification_token                String?                      @unique
-  ActivityLog                       ActivityLog[]
+  lang                              Lang               @default(EN)
+  email_verified                    Boolean            @default(false)
+  verification_token                String?            @unique
   APILog                            APILog[]
+  ActivityLog                       ActivityLog[]
+  Avatar                            Avatar?
   EmailLog                          EmailLog[]
   FavoriteMercahnt                  FavoriteMercahnt[]
+  HiddenChat                        HiddenChat[]
   Merchant                          Merchant?
-  Message_Message_receiver_idToUser Message[]                    @relation("Message_receiver_idToUser")
-  Message_Message_sender_idToUser   Message[]                    @relation("Message_sender_idToUser")
+  Message_Message_receiver_idToUser Message[]          @relation("Message_receiver_idToUser")
+  Message_Message_sender_idToUser   Message[]          @relation("Message_sender_idToUser")
   Notification                      Notification[]
   OAuthAccount                      OAuthAccount[]
   PasswordReset                     PasswordReset[]
+  Preference                        Preference?
   QueueEntry                        QueueEntry[]
   Review                            Review[]
-  UserDevice                        UserDevice[]
-  UserMerchant                      UserMerchant?
-  UserAdmin                         UserAdmin?
-  Avatar                            Avatar?
-  Preference                        Preference?
-  HiddenChat                        HiddenChat[]
   Ticket                            Ticket[]
+  UserAdmin                         UserAdmin?
+  UserDevice                        UserDevice?
+  UserMerchant                      UserMerchant?
 }
 
 model UserAdmin {
-  admin_id String @id @default(uuid())
-  user_id  String @unique
-  role     AdminRole
-  position String
+  admin_id      String    @id @default(uuid())
+  user_id       String    @unique
+  role          AdminRole
+  position      String
+  join_at       DateTime  @default(now())
+  updated_at    DateTime
+  created_at    DateTime  @default(now())
   supervisor_id String?
-  join_at DateTime @default(now())
-  updated_at DateTime
-  User     User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  created_at DateTime @default(now())
+  User          User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model UserDevice {
   device_id     String     @id @default(uuid())
-  user_id       String @unique
+  user_id       String     @unique
   device_type   DeviceType
   platform      String
   browser       String
@@ -500,22 +501,22 @@ model UserDevice {
 
 model UserMerchant {
   staff_id             String                 @id @default(uuid())
-  user_id              String @unique
+  user_id              String                 @unique
   merchant_id          String
   position             String
   role                 MerchantRole
   join_at              DateTime               @default(now())
-  Merchant             Merchant               @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
-  User                 User?                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  UserMerchantOnBranch UserMerchantOnBranch[]
-  Branch               Branch[]                 @relation("BranchContactPerson")
-  selected_branch_id   String?                 
+  selected_branch_id   String?
   created_at           DateTime               @default(now())
   updated_at           DateTime               @updatedAt
+  Branch               Branch[]               @relation("BranchContactPerson")
+  Merchant             Merchant               @relation(fields: [merchant_id], references: [merchant_id], onDelete: Cascade)
+  User                 User                   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  UserMerchantOnBranch UserMerchantOnBranch[]
 }
 
 model UserMerchantOnBranch {
-  staff_id     String @default(uuid())
+  staff_id     String       @default(uuid())
   branch_id    String
   assigned_at  DateTime     @default(now())
   Branch       Branch       @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
@@ -734,7 +735,7 @@ enum SystemHealthSource {
 enum TagEntity {
   MERCHANT
   QUEUE
-  BRANCH  
+  BRANCH
 }
 
 enum UserRole {
