@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/app-error";
-import { User, Prisma, Attachment, TicketPriority, Ticket } from "@prisma/client";
+import { User, Prisma, Attachment, TicketPriority, Ticket, PrismaClient } from "@prisma/client";
 import { type CreateTicketData, type UpdateEmployeeData } from "../controllers/user-controller";
 import { geminiService } from "./gemini-service";
 import * as fs from 'fs';
@@ -37,8 +37,8 @@ export const userService = {
      */
     async getUserById(userId: string) {
 
-        const result = await prisma.$transaction(async (tx) => {
-            const user = await prisma.user.findUnique({
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const user = await tx.user.findUnique({
                 where: { user_id: userId },
                 select: {
                     user_id: true,
@@ -105,7 +105,7 @@ export const userService = {
      * @param merchant_id - The merchant ID
      */
     async getEmployees(merchant_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const employees = await tx.userMerchant.findMany({
                 where: { merchant_id },
                 include: {
@@ -152,7 +152,7 @@ export const userService = {
      * @param branchIds - The branch IDs
      */
     async assignBranches(staffId: string, branchIds: string[]) {
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Delete existing assignments for the staff member
             await tx.userMerchantOnBranch.deleteMany({
                 where: {
@@ -205,7 +205,7 @@ export const userService = {
      * @param updateData - The update data
      */
     async updateEmployee(staffId: string, updateData: UpdateEmployeeData) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const userMerchant = await tx.userMerchant.findUnique({
                 where: { staff_id: staffId },
             });
@@ -295,7 +295,7 @@ export const userService = {
         }
         const avatarUrl = user.Avatar?.image_url;
 
-        const transactionResult = await prisma.$transaction(async (tx) => {
+        const transactionResult = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const userMerchantToDelete = await tx.userMerchant.findUnique({
                 where: { user_id: user_id },
             });
@@ -364,7 +364,7 @@ export const userService = {
      * @param image_url - The image URL
      */
     async uploadAvatar(user_id: string, image_url: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({
                 where: { user_id },
                 include: {
@@ -403,7 +403,7 @@ export const userService = {
     },
 
     async deleteAvatar(user_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({
                 where: { user_id },
                 include: {
@@ -544,7 +544,7 @@ export const userService = {
         // NOTE: Ensure the route/controller uses uploadTicketFiles multer middleware so req.files is populated
         let uploadedFilePaths: string[] = [];
         try {
-            const result = await prisma.$transaction(async (tx) => {
+            const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
                 const ticket = await tx.ticket.create({
                     data: {
                         user_id,
@@ -646,7 +646,7 @@ export const userService = {
      * @param ticket_id - The ticket ID
      */
     async getTicket(ticket_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             console.log(ticket_id);
             const ticket = await tx.ticket.findFirst({
                 where: { 
@@ -687,7 +687,7 @@ export const userService = {
      * @param data - The update data
      */
     async updateTicket(ticket_id: string, data: Partial<Ticket>) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const ticket = await tx.ticket.update({
                 where: { ticket_id },
                 data: {

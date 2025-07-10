@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
-import { Branch, Prisma, Tag, TagEntity, ImageType, BranchOpeningHour, ApprovalStatus, UserRole, UserMerchant } from "@prisma/client";
+import { Branch, Prisma, Tag, TagEntity, ImageType, BranchOpeningHour, ApprovalStatus, UserRole, UserMerchant, PrismaClient } from "@prisma/client";
 import { BranchSchema, AddressSchema } from "../controllers/merchant-controller";
 import fs from "fs";
 import path from "path";
@@ -21,7 +21,7 @@ export const merchantService = {
      * @returns The merchant
      */
     async getMerchantById(merchant_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const merchant = await tx.merchant.findUnique({
                 where: { merchant_id },
                 include: {
@@ -49,7 +49,7 @@ export const merchantService = {
      * @param query - The filter object
      */
     async getMerchants(user_role: UserRole, queries: Record<string, any>) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Extract approval_status if present
             let approvalStatus = queries.approval_status;
             const queriesCopy = { ...queries };
@@ -154,7 +154,7 @@ export const merchantService = {
      * @returns The updated merchant
      */
     async updateMerchant(merchant_id: string, updateData: any) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const merchant = await tx.merchant.update({
                 where: { merchant_id },
                 data: updateData,
@@ -176,7 +176,7 @@ export const merchantService = {
      * @returns The deleted merchant
      */
     async deleteMerchant(merchant_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const merchant = await tx.merchant.delete({
                 where: { merchant_id },
             });
@@ -205,7 +205,7 @@ export const merchantService = {
      * @returns 
      */
     async getUserMerchants(merchant_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const userMerchants = await tx.userMerchant.findMany({
                 where: {
                     merchant_id,
@@ -232,7 +232,7 @@ export const merchantService = {
      */
     async updateMerchantProfile(merchant_id: string, updateData: any) {
 
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const merchant = await tx.merchant.update({
                 where: { merchant_id },
                 data: {
@@ -257,7 +257,7 @@ export const merchantService = {
      * @param data - The address data to update
      */
     async updateMerchantAddress(merchant_id: string, data: Partial<AddressSchema>) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // First, find the address associated with this merchant
             const existingAddress = await tx.address.findFirst({
                 where: { merchant_id },
@@ -306,7 +306,7 @@ export const merchantService = {
      * @returns The created queue and tags
      */
     async createQueue (branch_id: string, queue_name: string, tags?: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const newQueue = await tx.queue.create({
                 data: {
                     queue_name,
@@ -361,7 +361,7 @@ export const merchantService = {
      * @param updateData - The data to update
      */
     async updateQueue(queue_id: string, queue_name: string, tags: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             let queue = await tx.queue.findUnique({
                 where: { queue_id },
             });
@@ -441,7 +441,7 @@ export const merchantService = {
      * @param status - The status to set
      */
     async openOrCloseQueue(queue_id: string, status: "OPEN" | "CLOSED") {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const queue = await tx.queue.update({
                 where: { queue_id },
                 data: { queue_status: status },
@@ -461,7 +461,7 @@ export const merchantService = {
      * @param queue_id - The queue ID
      */
     async deleteQueue(queue_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const queue = await tx.queue.delete({
                 where: { queue_id },
             });
@@ -522,7 +522,7 @@ export const merchantService = {
      * @returns The created branch
      */
     async createBranch(data: BranchSchema & { merchant_id: string } & { address?: AddressSchema }) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const branch = await tx.branch.create({
                 data: {
                     branch_id: uuidv4(),
@@ -565,7 +565,7 @@ export const merchantService = {
      * @returns 
      */
     async getBranchesByMerchantId(merchant_id: string, prefetch: boolean = false, user_id?: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             let branches: Partial<Branch>[] = [];
             
             // If user_id is provided, check their role and branch assignments
@@ -698,7 +698,7 @@ export const merchantService = {
      * @returns 
      */
     async updateBranch(branch_id: string, data: Partial<BranchSchema>) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const branch = await tx.branch.update({
                 where: { branch_id },
                 data: {
@@ -724,7 +724,7 @@ export const merchantService = {
      * @returns 
      */
     async updateBranchAddress(branch_id: string, data: Partial<AddressSchema>) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // First, find the address associated with this branch
             const existingAddress = await tx.address.findFirst({
                 where: { branch_id },
@@ -762,7 +762,7 @@ export const merchantService = {
         const uploadedFilePaths: string[] = data.map((img: any) => path.join(process.cwd(), 'public', img.image_url));
 
         try {
-            const result = await prisma.$transaction(async (tx) => {
+            const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
                 const uploadedImages = [];
     
                 for (const img of data) {
@@ -805,7 +805,7 @@ export const merchantService = {
      * @returns 
      */
     async updateBranchImage(branch_id: string, image_id: string, data: { image_url: string }) {  
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const image = await tx.branchImage.update({
                 where: { image_id },
                 data: {
@@ -829,7 +829,7 @@ export const merchantService = {
      * @returns 
      */
     async deleteBranchImages(branch_id: string, image_id: string) { 
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const image = await tx.branchImage.findUnique({ where: { image_id } });
 
             if (image && image.image_url) {
@@ -859,7 +859,7 @@ export const merchantService = {
      * @returns 
      */
     async createBranchFeature(branch_id: string, feature_name: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const feature = await tx.branchFeature.create({
                 data: {
                     branch_id,
@@ -887,7 +887,7 @@ export const merchantService = {
      * @returns 
      */
     async deleteBranchFeature(feature_id: string) {  
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const feature = await tx.branchFeature.delete({
                 where: { feature_id },
             });
@@ -908,7 +908,7 @@ export const merchantService = {
      * @returns 
      */
     async createBranchTag(branch_id: string, tag_name: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const tag = await tx.tag.create({
                 data: {
                     entity_id: branch_id,
@@ -934,7 +934,7 @@ export const merchantService = {
      * @param tag_id - The tag ID
      */
     async deleteBranchTag(tag_id: string) {  
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const tag = await tx.tag.findUnique({
                 where: { tag_id },
             });
@@ -967,7 +967,7 @@ export const merchantService = {
             throw new AppError("Day of the week is required", 400);
         }
 
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const existingHour = await tx.branchOpeningHour.findFirst({
                 where: {
                     branch_id: branch_id,
@@ -1016,7 +1016,7 @@ export const merchantService = {
      * @returns The updated UserMerchant record
      */
     async switchBranch(user_id: string, branch_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Get user merchant data with branch assignments
             const userMerchant = await tx.userMerchant.findUnique({
                 where: { user_id },
@@ -1102,7 +1102,7 @@ export const merchantService = {
      * @returns The updated logo
      */
     async uploadLogo(merchant_id: string, logo_url: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Check if there's already a logo for this merchant
             const existingLogo = await tx.logo.findUnique({
                 where: { merchant_id },
@@ -1156,7 +1156,7 @@ export const merchantService = {
      * @returns The deleted logo
      */
     async deleteLogo(logo_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const logo = await tx.logo.findUnique({
                 where: { logo_id },
             });

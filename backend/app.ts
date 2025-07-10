@@ -26,30 +26,6 @@ if (missingEnvVars.length > 0) {
     process.exit(1);
 }
 
-// Extend the Session type
-declare module 'express-session' {
-    interface SessionData {
-        user: {
-            user_id: string;
-            email: string;
-            role: string;
-            merchant_id?: string;
-            merchantRole?: string;
-            adminRole?: string;
-            admin_id?: string;
-        }
-    }
-}
-
-// Extend Express Request interface
-declare global {
-    namespace Express {
-        interface Request {
-            session: session.Session & Partial<session.SessionData>;
-        }
-    }
-}
-
 // CORS configuration
 const corsOptions = {
     origin: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",

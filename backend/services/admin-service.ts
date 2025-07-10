@@ -2,6 +2,8 @@
 
 import { prisma } from "../lib/prisma";
 import { ActivityType, ApprovalStatus, UserRole, UserStatus } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { AppError } from "../utils/app-error";
 
 /**
  * Helper function to add days to a date, handling month variations correctly
@@ -282,7 +284,7 @@ export const adminService = {
      * Get all admins
      */
     async getAdmins() {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const admins = await tx.user.findMany({
                 where: { role: UserRole.ADMIN },
                 select: {

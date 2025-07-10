@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { notificationUtils } from "../utils/notification-utils";
 
 export const messageService = {
@@ -47,7 +47,7 @@ export const messageService = {
      * @returns The message
      */
     async markMessageAsRead(message_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const message = await tx.message.update({
                 where: { message_id },
                 data: { is_read: true },
@@ -63,7 +63,7 @@ export const messageService = {
      */
     async getConversation(user_id: string, other_user_id: string, before?: string, limit?: number) {
         const take = limit ?? 10;
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // First, check if there's a hidden chat record for this user
             const hiddenChat = await tx.hiddenChat.findUnique({
                 where: {
@@ -123,7 +123,7 @@ export const messageService = {
      * Send a message from user_id to receiverId
      */
     async sendMessage(senderId: string, receiverId: string, content: string) {
-        const result = await prisma.$transaction(async (tx) => {        
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {        
             const message = await tx.message.create({
                 data: {
                     sender_id: senderId,
@@ -151,7 +151,7 @@ export const messageService = {
      * Send a message with attachment from user_id to receiverId
      */
     async sendMessageWithAttachment(senderId: string, receiverId: string, content: string, file: any) {
-        const result = await prisma.$transaction(async (tx) => {        
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {        
             const message = await tx.message.create({
                 data: {
                     sender_id: senderId,
@@ -184,7 +184,7 @@ export const messageService = {
      * Hide chat
      */
     async hideChat(user_id: string, other_user_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.hiddenChat.upsert({
                 where: {
                     user_id_other_user_id: {
@@ -212,7 +212,7 @@ export const messageService = {
      * @returns The updated hidden chat record
      */
     async updateHiddenChat(user_id: string, other_user_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.hiddenChat.update({
                 where: { user_id_other_user_id: { user_id, other_user_id } },
                 data: { updated_at: new Date() },
@@ -269,7 +269,7 @@ export const messageService = {
      * @returns Success response
      */
     async deleteNotification(notification_id: string, user_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // First, verify the notification belongs to the user
             const notification = await tx.notification.findFirst({
                 where: {
@@ -312,7 +312,7 @@ export const messageService = {
      * @returns The updated notification
      */
     async markNotificationAsRead(notification_id: string, user_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // First, verify the notification belongs to the user
             const notification = await tx.notification.findFirst({
                 where: {

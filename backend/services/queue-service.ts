@@ -1,10 +1,10 @@
 import { prisma } from "../lib/prisma";
-import { Prisma, Tag } from "@prisma/client";
+import { Prisma, Tag, PrismaClient } from "@prisma/client";
 
 // Handles: queue operations, customer management, wait time calculations
 export const queueService = {
     async viewQueuesByBranch(branch_id: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const queues = await tx.queue.findMany({
                 where: {
                     branch_id,

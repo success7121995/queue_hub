@@ -1,7 +1,7 @@
 import { AdminSchema, ChangePasswordSchema, CustomerSchema, EmployeeSchema, MerchantSchema } from "../controllers/auth-controller";
 import { prisma } from "../lib/prisma";
 import bcrypt from "bcryptjs";
-import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole, AdminRole } from '@prisma/client';
+import { UserRole, UserStatus, Lang, SubscriptionStatus, Prisma, DayOfWeek, MerchantRole, AdminRole, PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from "../utils/app-error";
  
@@ -11,7 +11,7 @@ export const authService = {
      * @param data - The data
      */
     async addNewAdmin(data: AdminSchema) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Hash password
             const password_hash = await bcrypt.hash(data.password, 10);
 
@@ -78,7 +78,7 @@ export const authService = {
         const password_hash = await bcrypt.hash(signup.password, 10);  
 
         // Create user and merchant in a transaction
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Create user
             const user = await tx.user.create({
                 data: {
@@ -220,7 +220,7 @@ export const authService = {
      * @param password - The password of the user
      */
     async login(email: string, password: string) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({
                 where: { email },
             });
@@ -290,7 +290,7 @@ export const authService = {
      * @param data 
      */
     async addNewEmployee(merchant_id: string, data: EmployeeSchema) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Hash password
             const password_hash = await bcrypt.hash(data.password, 10);
 
@@ -341,7 +341,7 @@ export const authService = {
      * @param data - The data
      */
     async changePassword(user_id: string, data: ChangePasswordSchema) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({ where: { user_id } });
 
             if (!user) {
@@ -372,7 +372,7 @@ export const authService = {
      * @param data - The data
      */
     async registerCustomer(data: CustomerSchema) {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.create({
                 data: {
                     username: data.username,
