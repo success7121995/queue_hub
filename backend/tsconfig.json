@@ -20,7 +20,9 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"allowJs": true,
-		"checkJs": false
+		"checkJs": false,
+		"typeRoots": ["./node_modules/@types", "./types"],
+		"types": ["node", "express", "cors", "express-session", "multer", "bcryptjs", "uuid"]
 	},
 	"include": [
 		"./**/*.ts",
