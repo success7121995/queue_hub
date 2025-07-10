@@ -24,6 +24,12 @@ import { Queue, QueueWithTags, Tag as QueueTag } from "@/types/queue";
 // Define types based on database schema
 type QueueStatus = 'OPEN' | 'CLOSED';
 
+// Payload type for creating/updating queues
+interface QueuePayload {
+	queue_name: string;
+	tags?: string;
+}
+
 const stats = [
 	{ label: "Total Customer Served Today", value: 45 },
 	{ label: "Total Queues", value: 4 },
@@ -81,14 +87,14 @@ const stats = [
 	}, [refetch]);
 
 	// Form handling	
-	const createForm = useForm<Queue>({
+	const createForm = useForm<QueuePayload>({
 		defaultValues: {
 			queue_name: '',
 			tags: '',
 		},
 	});
 
-	const editForm = useForm<Queue>({
+	const editForm = useForm<QueuePayload>({
 		defaultValues: {
 			queue_name: '',
 			tags: '',
@@ -99,7 +105,7 @@ const stats = [
 	 * Create a new queue
 	 * @param data - The form data
 	 */
-	const onCreateSubmit = (data: Queue) => {
+	const onCreateSubmit = (data: QueuePayload) => {
 		// Check if user has a selected branch
 		const selectedBranchId = currentUser?.user?.UserMerchant?.selected_branch_id;
 		
@@ -120,12 +126,12 @@ const stats = [
 						});
 						
 						// Now create the queue
-						const payload: Queue = {
+						const payload = {
 							queue_name: data.queue_name,
 							tags: data.tags || '',
 						};
 						
-						createMutation.mutate(payload, {
+						createMutation.mutate(payload as any, {
 							onSuccess: async () => {
 								setIsCreateModalOpen(false);
 								createForm.reset();
@@ -148,12 +154,12 @@ const stats = [
 		}
 		
 		// If branch is already selected, create the queue directly
-		const payload: Queue = {
+		const payload = {
 			queue_name: data.queue_name,
 			tags: data.tags || '',
 		};
 		
-		createMutation.mutate(payload, {
+		createMutation.mutate(payload as any, {
 			onSuccess: async () => {
 				setIsCreateModalOpen(false);
 				createForm.reset();
@@ -169,16 +175,16 @@ const stats = [
 	 * Update a queue
 	 * @param data - The form data
 	 */
-	const onEditSubmit = (data: Queue) => {
+	const onEditSubmit = (data: QueuePayload) => {
 		if (!selectedQueue) return;
 
-		const payload: Queue = {
+		const payload = {
 			queue_name: data.queue_name,
 			tags: data.tags,
 		};
 
 		updateMutation.mutate(
-			{ queue_id: selectedQueue.queue_id, data: payload },
+			{ queue_id: selectedQueue.queue_id, data: payload as any },
 			{
 			  onSuccess: async () => {
 				setSelectedQueue(null);
