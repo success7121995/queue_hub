@@ -19,6 +19,20 @@ router.get("/health", (req, res) => {
         uptime: process.uptime()
     });
 });
+router.get("/cors-debug", (req, res) => {
+    const origin = req.headers.origin;
+    const normalizedOrigin = origin ? origin.replace(/\/$/, '') : 'no-origin';
+    res.status(200).json({
+        origin: origin,
+        normalizedOrigin: normalizedOrigin,
+        allowedOrigins: [
+            "http://localhost:3000",
+            "https://queue-hub.vercel.app"
+        ],
+        environment: process.env.NODE_ENV || 'development',
+        headers: req.headers
+    });
+});
 router.use("/auth", user_routes_1.default);
 router.use("/admin", admin_routes_1.default);
 router.use("/merchant", merchant_routes_1.default);

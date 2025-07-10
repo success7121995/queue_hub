@@ -25,28 +25,14 @@ if (missingEnvVars.length > 0) {
     process.exit(1);
 }
 const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin)
-            return callback(null, true);
-        const allowedOrigins = [
-            "http://localhost:3000",
-            "https://queue-hub.vercel.app",
-            "https://queue-hub.vercel.app/"
-        ];
-        if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
-            allowedOrigins.push(process.env.NEXT_PUBLIC_FRONTEND_URL);
-        }
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        }
-        else {
-            console.log('CORS blocked origin:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: [
+        "http://localhost:3000",
+        "https://queue-hub.vercel.app"
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Origin", "Accept"],
+    exposedHeaders: ["Content-Length", "X-Requested-With"],
     optionsSuccessStatus: 200
 };
 const port = process.env.PORT || 5500;
@@ -57,6 +43,30 @@ const io = new socket_io_1.Server(server, {
     path: '/socket.io'
 });
 app.use((0, cors_1.default)(corsOptions));
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        const normalizedOrigin = origin.replace(/\/$/, '');
+        const allowedOrigins = [
+            "http://localhost:3000",
+            "https://queue-hub.vercel.app"
+        ];
+        if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
+            allowedOrigins.push(process.env.NEXT_PUBLIC_FRONTEND_URL);
+        }
+        const isAllowed = allowedOrigins.some(allowedOrigin => {
+            const normalizedAllowed = allowedOrigin.replace(/\/$/, '');
+            return normalizedOrigin === normalizedAllowed;
+        });
+        if (isAllowed) {
+            res.header('Access-Control-Allow-Origin', origin.replace(/\/$/, ''));
+            res.header('Access-Control-Allow-Credentials', 'true');
+            res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+        }
+    }
+    next();
+});
 app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));
 app.use((0, express_session_1.default)({
     name: 'session_id',
@@ -92,10 +102,13 @@ if (process.env.NODE_ENV === 'development') {
     });
 }
 app.use("/api", routes_1.default);
+app.get("/", (req, res) => {
+    res.send("Hello World");
+});
 (0, socket_1.default)(io);
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
     console.log(`Socket.IO server is running on path: /socket.io`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`CORS Origin: ${corsOptions.origin}`);
+    console.log(`CORS Origins: ${corsOptions.origin.join(', ')}`);
 });
