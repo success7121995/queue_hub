@@ -170,9 +170,21 @@ export const fetchLogout = async (): Promise<LogoutResponse> => {
         throw new Error(responseData.message || 'Logout failed');
     }
 
-    // Clear cookies
-    Cookies.remove('session_id', { path: '/' });
-    Cookies.remove('role', { path: '/' });
+    // Clear cookies with matching attributes
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+        path: '/',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' as const : 'lax' as const,
+        domain: isProduction ? '.queuehub.app' : undefined // Adjust domain as needed
+    };
+
+    Cookies.remove('session_id', cookieOptions);
+    Cookies.remove('role', cookieOptions);
+
+    // // Clear cookies
+    // Cookies.remove('session_id', { path: '/' });
+    // Cookies.remove('role', { path: '/' });
 
     return responseData;
 };
