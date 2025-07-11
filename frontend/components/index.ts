@@ -67,3 +67,4 @@ export { default as ChatInput } from "./common/chat/chat-input";
 export { default as ChatMessage } from "./common/chat/chat-message";
 export { default as DateTimePicker } from "./common/datetime-picker";
 export { default as HelpCenter } from "./dashboard/merchants/help-center";
+export { default as SafeImage } from "./common/safe-image";

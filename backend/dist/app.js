@@ -25,10 +25,26 @@ if (missingEnvVars.length > 0) {
     process.exit(1);
 }
 const corsOptions = {
-    origin: [
-        "http://localhost:3000",
-        "https://queue-hub.vercel.app"
-    ],
+    origin: function (origin, callback) {
+        if (!origin)
+            return callback(null, true);
+        const allowedOrigins = [
+            "http://localhost:3000",
+            "https://queue-hub.vercel.app",
+        ];
+        if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
+            allowedOrigins.push(process.env.NEXT_PUBLIC_FRONTEND_URL);
+        }
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            console.log('CORS allowed origin:', origin);
+            callback(null, true);
+        }
+        else {
+            console.log('CORS blocked origin:', origin);
+            console.log('Allowed origins:', allowedOrigins);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Origin", "Accept"],
@@ -43,31 +59,9 @@ const io = new socket_io_1.Server(server, {
     path: '/socket.io'
 });
 app.use((0, cors_1.default)(corsOptions));
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-        const normalizedOrigin = origin.replace(/\/$/, '');
-        const allowedOrigins = [
-            "http://localhost:3000",
-            "https://queue-hub.vercel.app"
-        ];
-        if (process.env.NEXT_PUBLIC_FRONTEND_URL) {
-            allowedOrigins.push(process.env.NEXT_PUBLIC_FRONTEND_URL);
-        }
-        const isAllowed = allowedOrigins.some(allowedOrigin => {
-            const normalizedAllowed = allowedOrigin.replace(/\/$/, '');
-            return normalizedOrigin === normalizedAllowed;
-        });
-        if (isAllowed) {
-            res.header('Access-Control-Allow-Origin', origin.replace(/\/$/, ''));
-            res.header('Access-Control-Allow-Credentials', 'true');
-            res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
-        }
-    }
-    next();
-});
+app.options('*', (0, cors_1.default)(corsOptions));
 app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));
+app.set('trust proxy', 1);
 app.use((0, express_session_1.default)({
     name: 'session_id',
     secret: process.env.SESSION_SECRET,
@@ -78,7 +72,7 @@ app.use((0, express_session_1.default)({
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000
-    }
+    },
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -102,13 +96,10 @@ if (process.env.NODE_ENV === 'development') {
     });
 }
 app.use("/api", routes_1.default);
-app.get("/", (req, res) => {
-    res.send("Hello World");
-});
 (0, socket_1.default)(io);
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
     console.log(`Socket.IO server is running on path: /socket.io`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`CORS Origins: ${corsOptions.origin.join(', ')}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`CORS Origin: ${corsOptions.origin}`);
 });
