@@ -133,7 +133,7 @@ model BranchOpeningHour {
   close_time  DateTime
   is_closed   Boolean   @default(false)
   created_at  DateTime  @default(now())
-  updated_at  DateTime
+  updated_at  DateTime  @updatedAt
   Branch      Branch    @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
 }
 
@@ -156,7 +156,7 @@ model EmailTemplate {
   template_name    String
   template_content String
   created_at       DateTime @default(now())
-  updated_at       DateTime
+  updated_at       DateTime @updatedAt
 }
 
 model FAQ {
@@ -164,7 +164,7 @@ model FAQ {
   question     String
   answer       String
   published_at DateTime @default(now())
-  updated_at   DateTime
+  updated_at   DateTime @updatedAt
 }
 
 model FavoriteMercahnt {
@@ -340,7 +340,7 @@ model Queue {
   queue_name   String
   queue_status QueueStatus  @default(CLOSED)
   created_at   DateTime     @default(now())
-  updated_at   DateTime
+  updated_at   DateTime     @updatedAt
   Branch       Branch?      @relation(fields: [branch_id], references: [branch_id], onDelete: Cascade)
   QueueEntry   QueueEntry[]
 }
@@ -352,7 +352,7 @@ model QueueEntry {
   user_id      String
   status       QueueEntryStatus @default(WAITING)
   join_at      DateTime         @default(now())
-  updated_at   DateTime
+  updated_at   DateTime         @updatedAt
   served_at    DateTime?
   completed_at DateTime?
   Queue        Queue            @relation(fields: [queue_id], references: [queue_id], onDelete: Cascade)
@@ -374,10 +374,11 @@ model Review {
 
 model Session {
   id        String   @id @default(uuid())
+  sid       String   @unique
   data      String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
 
   @@index([expiresAt])
 }
@@ -444,7 +445,7 @@ model User {
   status                            UserStatus         @default(INACTIVE)
   registration_date                 DateTime           @default(now())
   created_at                        DateTime           @default(now())
-  updated_at                        DateTime
+  updated_at                        DateTime           @updatedAt
   last_login                        DateTime?
   lang                              Lang               @default(EN)
   email_verified                    Boolean            @default(false)
@@ -476,7 +477,7 @@ model UserAdmin {
   role          AdminRole
   position      String
   join_at       DateTime  @default(now())
-  updated_at    DateTime
+  updated_at    DateTime  @updatedAt
   created_at    DateTime  @default(now())
   supervisor_id String?
   User          User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
@@ -495,7 +496,7 @@ model UserDevice {
   push_token    String?
   is_active     Boolean    @default(true)
   created_at    DateTime   @default(now())
-  updated_at    DateTime
+  updated_at    DateTime   @updatedAt
   User          User       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 

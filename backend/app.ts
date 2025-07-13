@@ -9,6 +9,7 @@ import { Server } from "socket.io";
 import registerSocketHandlers from "./lib/socket";
 import path from "path";
 import { prisma } from './lib/prisma';
+import { PrismaSessionStore } from '@quixo3/prisma-session-store';
 
 // Load environment variables first
 dotenv.config();
@@ -89,6 +90,14 @@ app.use(session({
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
+    store: new PrismaSessionStore(
+        prisma,
+        {
+          checkPeriod: 2 * 60 * 1000,  // Remove expired sessions every 2 minutes
+          dbRecordIdIsSessionId: true,
+          dbRecordIdFunction: undefined,
+        }
+    ),
     cookie: {
         path: '/',
         secure: process.env.NODE_ENV === 'production',
