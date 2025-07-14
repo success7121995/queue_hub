@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, ChevronDown, UserCircle, Settings, LogOut } from "lucide-react";
 import { Dropdown, Notification } from '@/components';
-import { type DropdownItem } from "@/components/common/dropdown";
 import Link from "next/link";
 import { useLogout, useAuth } from "@/hooks/auth-hooks";
 import { useUpdateUserProfile } from "@/hooks/user-hooks";
@@ -35,6 +34,7 @@ const AdminNavbar = () => {
 
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const { mutate: logout } = useLogout();
+	const queryClient = useQueryClient();
 
 	// Close all dropdowns when pathname changes
 	useEffect(() => {
@@ -73,7 +73,9 @@ const AdminNavbar = () => {
 		setIsLoggingOut(true);
 		try {
 			await logout();
-			window.location.href = '/';
+			
+			// Clear all React Query cache
+			queryClient.clear();
 		} catch (error) {
 			console.error('Logout failed:', error);
 		} finally {

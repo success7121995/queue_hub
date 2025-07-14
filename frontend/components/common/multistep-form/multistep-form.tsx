@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Address from "./address";
 import BranchInfo from "./branch-info";
 import Preview from "./preview";
@@ -11,6 +11,9 @@ import AccountSetup from "./account-setup";
 import Stepper from "../stepper";
 import { useRouter } from "next/navigation";
 import { FormProvider } from "@/constant/form-provider";
+import LoadingIndicator from "../loading-indicator";
+import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
+import Cookies from 'js-cookie';
 
 interface MultistepFormProps {
     form: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -21,6 +24,54 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
     const [currentStep, setCurrentStep] = useState(1);
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
     const [useSameAddress, setUseSameAddress] = useState(true);
+    const [isCheckingSession, setIsCheckingSession] = useState(form === "signup");
+
+    // Check for existing valid session on signup form
+    useEffect(() => {
+        if (form !== "signup") {
+            setIsCheckingSession(false);
+            return;
+        }
+
+        const checkExistingSession = async () => {
+            const sessionId = Cookies.get('session_id');
+            const role = Cookies.get('role');
+            
+            if (sessionId && role) {
+                try {
+                    // Try to validate the session
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
+                        credentials: 'include',
+                    });
+                    
+                    if (response.ok) {
+                        const authResponse = await response.json();
+                        const user = authResponse.result?.user;
+                        
+                        if (user) {
+                            // Valid session exists, redirect to appropriate dashboard
+                            if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
+                                const firstAdminSlug = getFirstAdminSlug();
+                                router.push(`/admin/${firstAdminSlug}`);
+                            } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
+                                const firstMerchantSlug = getFirstMerchantSlug();
+                                router.push(`/merchant/${firstMerchantSlug}`);
+                            } else {
+                                router.push('/');
+                            }
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Session validation failed, allowing signup');
+                }
+            }
+            
+            setIsCheckingSession(false);
+        };
+
+        checkExistingSession();
+    }, [form, router]);
 
     // Define steps for each form type
     const formSteps = {
@@ -67,6 +118,19 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
             setCompletedSteps(completedSteps.filter(step => step !== currentStep - 1));
         }
     }, [currentStep, completedSteps, form, useSameAddress]);
+
+    // Show loading while checking session for signup
+    if (isCheckingSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <LoadingIndicator 
+                    fullScreen 
+                    text="Checking session..." 
+                    className="bg-white/80"
+                />
+            </div>
+        );
+    }
 
     const renderStep = () => {
         switch (form) {

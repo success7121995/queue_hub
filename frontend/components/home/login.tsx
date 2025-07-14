@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
-import { useLogin, LoginFormInputs } from "@/hooks/auth-hooks";
+import { useLogin, useAuth, LoginFormInputs } from "@/hooks/auth-hooks";
 import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import Cookies from 'js-cookie';
@@ -15,8 +15,61 @@ const Login = () => {
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isCheckingSession, setIsCheckingSession] = useState(true);
     const loginMutation = useLogin();
     const [showPassword, setShowPassword] = useState(false);
+
+    // Check for existing valid session
+    const { data: authData, isLoading: isAuthLoading, error: authError } = useAuth({
+        enabled: false, // We'll manually trigger this
+        retry: false,
+    });
+
+    /**
+     * Check for existing valid session on component mount
+     */
+    useEffect(() => {
+        const checkExistingSession = async () => {
+            const sessionId = Cookies.get('session_id');
+            const role = Cookies.get('role');
+            
+            if (sessionId && role) {
+                try {
+                    // Try to validate the session
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
+                        credentials: 'include',
+                    });
+                    
+                    if (response.ok) {
+                        const authResponse = await response.json();
+                        const user = authResponse.result?.user;
+                        
+                        if (user) {
+                            // Valid session exists, redirect to appropriate dashboard
+                            const returnUrl = searchParams.get('from') || '/';
+                            
+                            if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
+                                const firstAdminSlug = getFirstAdminSlug();
+                                router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
+                            } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
+                                const firstMerchantSlug = getFirstMerchantSlug();
+                                router.push(returnUrl.startsWith('/merchant') ? returnUrl : `/merchant/${firstMerchantSlug}`);
+                            } else {
+                                router.push(returnUrl);
+                            }
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Session validation failed, allowing login');
+                }
+            }
+            
+            setIsCheckingSession(false);
+        };
+
+        checkExistingSession();
+    }, [router, searchParams]);
 
     /**
      * Toggle password visibility
@@ -75,14 +128,28 @@ const Login = () => {
         }
     };
 
-    const isLoading = loginMutation.isPending || isProcessing;
+    const isLoading = loginMutation.isPending || isProcessing || isCheckingSession;
     
     // Determine loading text based on current state
     const getLoadingText = () => {
+        if (isCheckingSession) return "Checking session...";
         if (loginMutation.isPending) return "Signing in...";
         if (isProcessing) return "Redirecting...";
         return "Loading...";
     };
+
+    // Show loading while checking session
+    if (isCheckingSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <LoadingIndicator 
+                    fullScreen 
+                    text={getLoadingText()} 
+                    className="bg-white/80"
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center max-w-[1200px] mx-auto font-regular-eng">

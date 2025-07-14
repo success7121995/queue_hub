@@ -261,14 +261,32 @@ export const authController = {
             }
 
             // Clear session
-            await new Promise<void>((resolve) => {
-                req.session.destroy(() => {
+            await new Promise<void>((resolve, reject) => {
+                req.session.destroy((err) => {
+                    if (err) {
+                        reject(new AppError("Failed to destroy session", 500));
+                    }
                     resolve();
                 });
             });
 
-            // Clear cookies
-            res.clearCookie('session_id');
+            // Clear cookies with matching options
+            const isProduction = process.env.NODE_ENV === 'production';
+            const cookieOptions = {
+                path: '/',
+                secure: isProduction,
+                sameSite: isProduction ? 'none' as const : 'lax' as const,
+                domain: isProduction ? '.queuehub.app' : undefined
+            };
+
+            res.clearCookie('session_id', cookieOptions);
+            res.clearCookie('role', cookieOptions);
+            res.clearCookie('user_id', cookieOptions);
+
+            // Fallback: also clear without domain, sameSite, or secure (for localhost/dev)
+            res.clearCookie('session_id', { path: '/' });
+            res.clearCookie('role', { path: '/' });
+            res.clearCookie('user_id', { path: '/' });
 
             res.status(200).json({ success: true, user });
             return user;

@@ -166,25 +166,31 @@ export const fetchLogout = async (): Promise<LogoutResponse> => {
     
     const responseData = await res.json();
 
-    if (!res.ok) {
+    if (!res.ok) { 
         throw new Error(responseData.message || 'Logout failed');
     }
 
-    // Clear cookies with matching attributes
+    // Remove cookies with all relevant options
     const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
         path: '/',
         secure: isProduction,
         sameSite: isProduction ? 'none' as const : 'lax' as const,
-        domain: isProduction ? '.queuehub.app' : undefined // Adjust domain as needed
+        domain: isProduction ? '.queuehub.app' : undefined,
     };
 
     Cookies.remove('session_id', cookieOptions);
     Cookies.remove('role', cookieOptions);
+    Cookies.remove('user_id', cookieOptions);
 
-    // // Clear cookies
-    // Cookies.remove('session_id', { path: '/' });
-    // Cookies.remove('role', { path: '/' });
+    // Fallback: also try removing without domain (for localhost/dev)
+    Cookies.remove('session_id', { path: '/' });
+    Cookies.remove('role', { path: '/' });
+    Cookies.remove('user_id', { path: '/' });
+
+    if (responseData.success) {
+        window.location.href = '/';
+    }
 
     return responseData;
 };

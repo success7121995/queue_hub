@@ -94,7 +94,7 @@ app.use(session({
         prisma,
         {
           checkPeriod: 2 * 60 * 1000,  // Remove expired sessions every 2 minutes
-          dbRecordIdIsSessionId: true,
+          dbRecordIdIsSessionId: false, // Use 'sid' field instead of 'id' field
           dbRecordIdFunction: undefined,
         }
     ),
@@ -102,7 +102,8 @@ app.use(session({
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        httpOnly: true, // Add httpOnly for security
     },
 }));
 
@@ -118,20 +119,20 @@ app.use((req, res, next) => {
 });
 
 // Development-only: always set a session user if not present (SUPER_ADMIN)
-if (process.env.NODE_ENV === 'development') {
-    app.use((req, res, next) => {
-      if (!req.session.user) {
-        req.session.user = {
-          user_id: "147a2b6a-8563-4360-a6e8-618358b09325",
-          role: "ADMIN",
-          email: "may@gmail.com",
-          admin_id: "1",
-          adminRole: "OPS_ADMIN"
-        };
-      }
-      next();
-    });
-  }
+// if (process.env.NODE_ENV === 'development') {
+//     app.use((req, res, next) => {
+//       if (!req.session.user) {
+//         req.session.user = {
+//           user_id: "147a2b6a-8563-4360-a6e8-618358b09325",
+//           role: "ADMIN",
+//           email: "may@gmail.com",
+//           admin_id: "1",
+//           adminRole: "OPS_ADMIN"
+//         };
+//       }
+//       next();
+//     });
+//   }
 
 // Routes
 app.use("/api", router);

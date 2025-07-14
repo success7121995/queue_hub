@@ -130,6 +130,11 @@ const DashboardNavbar = () => {
 		setIsLoggingOut(true);
 		try {
 			await logout();
+			
+			// Clear all React Query cache
+			queryClient.clear();
+			
+			// Force redirect to home page
 			window.location.href = '/';
 		} catch (error) {
 			console.error('Logout failed:', error);
