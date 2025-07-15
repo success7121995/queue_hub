@@ -182,6 +182,8 @@ export const authController = {
     login: withActivityLog(
         async (req: Request, res: Response) => {
             const { email, password } = req.body;
+            console.log('email: ' + email);
+            console.log('password: ' + password);
             const result = await authService.login(email, password);
 
             if (!result) {
@@ -234,7 +236,7 @@ export const authController = {
                 path: '/',
                 secure: isProduction,
                 sameSite: isProduction ? 'none' : 'lax',
-                // domain: isProduction ? '.queuehub.app' : undefined, // Removed for cross-origin compatibility
+                domain: isProduction ? '.queuehub.app' : undefined,
                 maxAge: 24 * 60 * 60 * 1000, // 24 hours
                 httpOnly: true,
             } as const;
