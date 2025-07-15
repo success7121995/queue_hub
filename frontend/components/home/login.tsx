@@ -88,7 +88,24 @@ const Login = () => {
         
         try {
             const res = await loginMutation.mutateAsync(data);
-            const { result } = res;
+            const { result, sessionId } = res;
+
+            // Set session and role cookies
+            if (sessionId) {
+                Cookies.set('session_id', sessionId, {
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                });
+            }
+
+            if (result.user.role) {
+                Cookies.set('role', result.user.role, {
+                    path: '/',
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                });
+            }
 
             // Handle redirect based on role and return URL
             const returnUrl = searchParams.get('from') || '/';
