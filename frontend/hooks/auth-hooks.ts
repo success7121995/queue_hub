@@ -4,6 +4,11 @@ import { AddEmployeeFormFields, SignupFormFields, AdminInfo } from "@/types/form
 import { AuthResponse, ChangePasswordResponse, LogoutResponse } from "@/types/response";
 import { User, UserMerchant } from "@/types/user";
 
+// Define the backend base URL explicitly for production
+const BACKEND_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://queue-hub-backend.onrender.com'
+  : (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5500');
+
 // Types
 export interface LoginFormInputs {
     email: string;
@@ -32,7 +37,7 @@ export const authKeys = {
  * @returns 
  */
 export const fetchUniqueUsernameAndEmail = async (username?: string, email?: string): Promise<{isUniqueUsername: boolean, isUniqueEmail: boolean}> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/unique-username-and-email?${username ? `username=${username}` : ''}${email ? `&email=${email}` : ''}`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/user/unique-username-and-email?${username ? `username=${username}` : ''}${email ? `&email=${email}` : ''}`, {
         credentials: 'include',
     });
 
@@ -52,7 +57,7 @@ export const fetchUniqueUsernameAndEmail = async (username?: string, email?: str
  * @returns 
  */
 export const fetchAuth = async (): Promise<AuthResponse> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
         credentials: 'include',
     });
 
@@ -90,7 +95,7 @@ export const fetchCreateUser = async (data: AddEmployeeFormFields): Promise<Auth
         image_url: data.userInfo.image_url,
     };
     
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/employee/create`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/auth/employee/create`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -113,7 +118,7 @@ export const fetchCreateUser = async (data: AddEmployeeFormFields): Promise<Auth
  * @returns 
  */
 export const fetchLogin = async (data: LoginFormInputs): Promise<{success: boolean, result: {user: User, userMerchant?: UserMerchant }, sessionId: string}> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -137,7 +142,7 @@ export const fetchLogin = async (data: LoginFormInputs): Promise<{success: boole
  * @returns 
  */
 export const fetchSignup = async (data: SignupFormFields): Promise<{ success: boolean; result: any }> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/merchant/signup`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/merchant/signup`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -159,7 +164,7 @@ export const fetchSignup = async (data: SignupFormFields): Promise<{ success: bo
  * @returns 
  */
 export const fetchLogout = async (): Promise<LogoutResponse> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
     });
@@ -201,7 +206,7 @@ export const fetchLogout = async (): Promise<LogoutResponse> => {
  * @returns 
  */
 export const fetchChangePassword = async (data: ChangePasswordFormInputs): Promise<ChangePasswordResponse> => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/change-password`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/user/change-password`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',

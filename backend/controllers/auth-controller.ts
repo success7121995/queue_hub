@@ -182,8 +182,6 @@ export const authController = {
     login: withActivityLog(
         async (req: Request, res: Response) => {
             const { email, password } = req.body;
-            console.log('email: ' + email);
-            console.log('password: ' + password);
             const result = await authService.login(email, password);
 
             if (!result) {

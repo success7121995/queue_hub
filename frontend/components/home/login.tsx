@@ -10,6 +10,11 @@ import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import Cookies from 'js-cookie';
 
+// Define the backend base URL explicitly for production
+const BACKEND_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://queue-hub-backend.onrender.com'
+  : (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5500');
+
 const Login = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -36,7 +41,7 @@ const Login = () => {
             if (sessionId && role) {
                 try {
                     // Try to validate the session
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
+                    const response = await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
                         credentials: 'include',
                     });
                     
