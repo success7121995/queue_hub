@@ -61,7 +61,7 @@ const corsOptions = {
 };
 
 // Port configuration
-const port = process.env.PORT || 5500;
+const port = parseInt(process.env.PORT || '5500', 10);
 const app = express();
 
 // HTTP server wrapper for Express
@@ -141,9 +141,9 @@ app.use("/api", router);
 registerSocketHandlers(io);
 
 // Start server using the HTTP server instance
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
     console.log(`Server is running on port ${port}`);
     console.log(`Socket.IO server is running on path: /socket.io`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
-    console.log(`CORS Origin: ${corsOptions.origin}`);
+    // console.log(`CORS Origin: ${corsOptions.origin}`);
 });

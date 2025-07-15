@@ -133,9 +133,6 @@ const DashboardNavbar = () => {
 			
 			// Clear all React Query cache
 			queryClient.clear();
-			
-			// Force redirect to home page
-			window.location.href = '/';
 		} catch (error) {
 			console.error('Logout failed:', error);
 		} finally {
