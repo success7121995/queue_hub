@@ -228,6 +228,18 @@ export const authController = {
                 });
             });
 
+            // Set session_id cookie (matches session middleware)
+            const isProduction = process.env.NODE_ENV === 'production';
+            const cookieOptions = {
+                path: '/',
+                secure: isProduction,
+                sameSite: isProduction ? 'none' : 'lax', // Use correct type
+                domain: isProduction ? '.queuehub.app' : undefined,
+                maxAge: 24 * 60 * 60 * 1000, // 24 hours
+                httpOnly: true,
+            } as const; // Ensure correct typing
+            res.cookie('session_id', req.session.id, cookieOptions);
+
             res.status(200).json({ 
                 success: true, 
                 result,
