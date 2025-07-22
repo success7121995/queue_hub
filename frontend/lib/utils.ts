@@ -113,12 +113,12 @@ export const cn = (...inputs: ClassValue[]) => {
  * Get the first merchant slug
  * @returns The first merchant slug
  */
-export const getFirstMerchantSlug = (): string => {
-    return MERCHANT_SLUGS[0];
+export const getFirstMerchantSlug = (role: MerchantRole): string => {
+    return MERCHANT_ACCESS_RULES[role][0];
 }
 
-export const getFirstAdminSlug = (): string => {
-    return ADMIN_SLUGS[0];
+export const getFirstAdminSlug = (role: AdminRole): string => {
+    return ADMIN_ACCESS_RULES[role][0];
 }
 
 /**

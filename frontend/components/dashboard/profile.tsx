@@ -47,7 +47,6 @@ function hasAvatar(user: any): user is UserWithAvatar {
 
 const Profile = () => {
     const { data: authData, refetch, isLoading: isAuthLoading } = useAuth();
-    console.log('authData', authData);
     const user = authData?.user as UserWithAvatar | undefined;
     const [isEditing, setIsEditing] = useState(false);
     const [imagePreviewModal, setImagePreviewModal] = useState<{ isOpen: boolean; imageUrl: string; alt: string }>({
@@ -95,6 +94,7 @@ const Profile = () => {
     }, [user?.phone, setDialingCode, setValue, initialPhoneParsed]);
 
     const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState<string | undefined>();
+    console.log('optimisticAvatarUrl', optimisticAvatarUrl);
     const [avatarId, setAvatarId] = useState<string | undefined>();
 
     // Sync avatar state with user data

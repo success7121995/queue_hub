@@ -2,7 +2,7 @@ import { useMutation, useQuery, type UseQueryOptions, type UseMutationOptions, Q
 import Cookies from 'js-cookie';
 import { AddEmployeeFormFields, SignupFormFields, AdminInfo } from "@/types/form";
 import { AuthResponse, ChangePasswordResponse, LogoutResponse } from "@/types/response";
-import { User, UserMerchant } from "@/types/user";
+import { User, UserAdmin, UserMerchant } from "@/types/user";
 
 // Define the backend base URL explicitly for production
 const BACKEND_BASE_URL = process.env.NODE_ENV === 'production'
@@ -117,7 +117,7 @@ export const fetchCreateUser = async (data: AddEmployeeFormFields): Promise<Auth
  * @param data 
  * @returns 
  */
-export const fetchLogin = async (data: LoginFormInputs): Promise<{success: boolean, result: {user: User, userMerchant?: UserMerchant }, sessionId: string}> => {
+export const fetchLogin = async (data: LoginFormInputs): Promise<{success: boolean, result: {user: User, userMerchant?: UserMerchant, userAdmin?: UserAdmin }, sessionId: string}> => {
     const res = await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {

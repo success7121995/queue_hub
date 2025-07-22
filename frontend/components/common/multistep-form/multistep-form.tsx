@@ -12,7 +12,7 @@ import Stepper from "../stepper";
 import { useRouter } from "next/navigation";
 import { FormProvider } from "@/constant/form-provider";
 import LoadingIndicator from "../loading-indicator";
-import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
+import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole } from "@/lib/utils";
 import Cookies from 'js-cookie';
 
 interface MultistepFormProps {
@@ -51,10 +51,10 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
                         if (user) {
                             // Valid session exists, redirect to appropriate dashboard
                             if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
-                                const firstAdminSlug = getFirstAdminSlug();
+                                const firstAdminSlug = getFirstAdminSlug(user.role as AdminRole);
                                 router.push(`/admin/${firstAdminSlug}`);
                             } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
-                                const firstMerchantSlug = getFirstMerchantSlug();
+                                const firstMerchantSlug = getFirstMerchantSlug(user.role as MerchantRole);
                                 router.push(`/merchant/${firstMerchantSlug}`);
                             } else {
                                 router.push('/');

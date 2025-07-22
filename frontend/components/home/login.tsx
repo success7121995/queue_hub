@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { useLogin, useAuth, LoginFormInputs } from "@/hooks/auth-hooks";
-import { getFirstAdminSlug, getFirstMerchantSlug } from "@/lib/utils";
+import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import Cookies from 'js-cookie';
 
@@ -54,10 +54,10 @@ const Login = () => {
                             const returnUrl = searchParams.get('from') || '/';
                             
                             if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
-                                const firstAdminSlug = getFirstAdminSlug();
+                                const firstAdminSlug = getFirstAdminSlug(user.role as AdminRole);
                                 router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
                             } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
-                                const firstMerchantSlug = getFirstMerchantSlug();
+                                const firstMerchantSlug = getFirstMerchantSlug(user.role as MerchantRole);
                                 router.push(returnUrl.startsWith('/merchant') ? returnUrl : `/merchant/${firstMerchantSlug}`);
                             } else {
                                 router.push(returnUrl);
@@ -93,7 +93,7 @@ const Login = () => {
         
         try {
             const res = await loginMutation.mutateAsync(data);
-            const { result, sessionId } = res;
+            const { result } = res;
 
             // Handle redirect based on role and return URL
             const returnUrl = searchParams.get('from') || '/';
@@ -101,10 +101,10 @@ const Login = () => {
             
             // Keep loading state active during navigation
             if (isAdmin) {
-                const firstAdminSlug = getFirstAdminSlug();
+                const firstAdminSlug = getFirstAdminSlug(result.userAdmin?.role as AdminRole);
                 router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
             } else if (result.user.role === 'MERCHANT') {
-                const firstMerchantSlug = getFirstMerchantSlug();
+                const firstMerchantSlug = getFirstMerchantSlug(result.userMerchant?.role as MerchantRole);
                 router.push(returnUrl.startsWith('/merchant') ? returnUrl : `/merchant/${firstMerchantSlug}`);
             } else {
                 router.push(returnUrl);

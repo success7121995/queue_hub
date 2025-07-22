@@ -6,6 +6,7 @@ import { getQueryClient } from "@/lib/query-client";
 import { prefetchAuth, useAuth } from "@/hooks/auth-hooks";
 import { queueKeys } from "@/hooks/merchant-hooks";
 import { Chatbox } from "@/components";
+import { redirect } from "next/navigation";
 
 interface MerchantLayoutProps {
 	children: ReactNode;
@@ -17,24 +18,43 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 	try {
 		const userData = await prefetchAuth(queryClient);
 
-		if (!userData?.user?.UserMerchant) throw Error("User merchant not found");
+		// Check if user is authenticated
+		if (!userData?.user) {
+			console.error('User not authenticated');
+			redirect('/login');
+		}
+
+		// Check if user has merchant permissions
+		if (!userData?.user?.UserMerchant) {
+			console.error('User merchant not found - user may not have merchant permissions');
+			redirect('/unauthorized');
+		}
+
 		const merchantId = userData.user.UserMerchant.merchant_id;
 		const selectedBranchId = userData.user.UserMerchant.selected_branch_id;
 		const userId = userData.user.UserMerchant.user_id;
 
-		const merchantData = await prefetchMerchant(queryClient, merchantId);
-		queryClient.setQueryData(['merchant', merchantId], merchantData);
+		// Only prefetch data if we have valid IDs
+		if (merchantId && userId) {
+			try {
+				const merchantData = await prefetchMerchant(queryClient, merchantId);
+				queryClient.setQueryData(['merchant', merchantId], merchantData);
 
-		const branchesData = await prefetchBranches(queryClient, merchantId, userId);
-		queryClient.setQueryData(['branches', merchantId, userId], branchesData);
+				const branchesData = await prefetchBranches(queryClient, merchantId, userId);
+				queryClient.setQueryData(['branches', merchantId, userId], branchesData);
 
-		if (selectedBranchId) {
-			const queuesData = await prefetchQueues(queryClient, selectedBranchId);
-			queryClient.setQueryData(queueKeys.list(selectedBranchId), queuesData);
+				if (selectedBranchId) {
+					const queuesData = await prefetchQueues(queryClient, selectedBranchId);
+					queryClient.setQueryData(queueKeys.list(selectedBranchId), queuesData);
+				}
+			} catch (prefetchError) {
+				console.error('Error prefetching merchant data:', prefetchError);
+				// Continue with layout even if prefetch fails
+			}
 		}
 		
 	} catch (error) {
-		console.error('Error prefetching user data:', error); 
+		console.error('Error prefetching user data:', error);
 	}
 
 	return (
@@ -64,6 +84,5 @@ const MerchantLayout = async ({ children }: MerchantLayoutProps) => {
 		</div>
 	);
 };
-
 
 export default MerchantLayout;

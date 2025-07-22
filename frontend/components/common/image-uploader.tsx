@@ -57,7 +57,7 @@ const ImageUploader = ({
 				}
 			});
 		};
-	}, [previewImages]);
+	}, []);
 
 	const removeImage = useCallback((id: string, triggerCallback = true) => {
 		const imageToRemove = previewImages.find(img => img.id === id);

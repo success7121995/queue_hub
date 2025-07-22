@@ -26,9 +26,19 @@ const nextConfig = {
   },
   // Enable static optimization where possible
   poweredByHeader: false,
-  // Add experimental features for better error handling
-  experimental: {
-    optimizeCss: true,
+  // Webpack configuration to handle cache issues
+  webpack: (config, { dev, isServer }) => {
+    // Disable webpack cache in development to avoid cache corruption issues
+    if (dev) {
+      config.cache = false;
+    }
+    
+    // Add better error handling for cache operations
+    config.infrastructureLogging = {
+      level: 'error',
+    };
+    
+    return config;
   },
   // Add any other necessary configurations here
 };

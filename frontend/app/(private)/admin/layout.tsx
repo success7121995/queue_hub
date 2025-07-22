@@ -17,8 +17,6 @@ const AdminLayout = async ({ children }: AdminLayoutProps) => {
 		const userData = await prefetchAuth(queryClient);
 		queryClient.setQueryData(['auth'], userData);
 
-		if (!userData?.user?.UserAdmin) throw Error("User admin not found");
-
 		// Prefetch notifications
 		await prefetchNotifications(queryClient);
 
