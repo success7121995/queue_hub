@@ -140,3 +140,43 @@ export function isImageFile(fileUrl: string): boolean {
     const extension = fileUrl.split('.').pop()?.toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '');
 }
+
+/**
+ * Check if a user is authenticated. If the user is authenticated, redirect to the appropriate dashboard.
+ * @param user - The user to check
+ * @returns True if the user is authenticated
+ */
+export const checkExistingSession = async (): Promise<{ isAuthenticated: boolean; user?: any }> => {
+    try {
+        // Server-side session validation - HttpOnly cookie is automatically sent
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5500'}/api/auth/me`, {
+            credentials: 'include',
+            signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+            const authResponse = await response.json();
+            const user = authResponse.user;
+            
+            if (user) {
+                return { isAuthenticated: true, user };
+            }
+        } else if (response.status === 401) {
+            // User is not authenticated - this is expected for login page
+            console.log('User not authenticated, showing login form');
+        } else {
+            // Unexpected error
+            console.error('Unexpected error during session validation:', response.status);
+        }
+    } catch (err) {
+        // Network error or other exception
+        console.error('Session validation failed:', err);
+    }
+    
+    return { isAuthenticated: false };
+}

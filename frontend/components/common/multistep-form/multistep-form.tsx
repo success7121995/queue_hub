@@ -12,8 +12,7 @@ import Stepper from "../stepper";
 import { useRouter } from "next/navigation";
 import { FormProvider } from "@/constant/form-provider";
 import LoadingIndicator from "../loading-indicator";
-import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole } from "@/lib/utils";
-import Cookies from 'js-cookie';
+import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole, checkExistingSession } from "@/lib/utils";
 
 interface MultistepFormProps {
     form: "signup" | "add-branch" | "add-admin" | "add-employee";
@@ -33,44 +32,27 @@ const MultistepForm = ({ form }: MultistepFormProps) => {
             return;
         }
 
-        const checkExistingSession = async () => {
-            const sessionId = Cookies.get('session_id');
-            const role = Cookies.get('role');
+        const checkSession = async () => {
+            const { isAuthenticated, user } = await checkExistingSession();
             
-            if (sessionId && role) {
-                try {
-                    // Try to validate the session
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
-                        credentials: 'include',
-                    });
-                    
-                    if (response.ok) {
-                        const authResponse = await response.json();
-                        const user = authResponse.result?.user;
-                        
-                        if (user) {
-                            // Valid session exists, redirect to appropriate dashboard
-                            if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
-                                const firstAdminSlug = getFirstAdminSlug(user.role as AdminRole);
-                                router.push(`/admin/${firstAdminSlug}`);
-                            } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
-                                const firstMerchantSlug = getFirstMerchantSlug(user.role as MerchantRole);
-                                router.push(`/merchant/${firstMerchantSlug}`);
-                            } else {
-                                router.push('/');
-                            }
-                            return;
-                        }
-                    }
-                } catch (err) {
-                    console.log('Session validation failed, allowing signup');
+            if (isAuthenticated && user) {
+                // Valid session exists, redirect to appropriate dashboard
+                if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
+                    const firstAdminSlug = getFirstAdminSlug(user.UserAdmin?.role as AdminRole);
+                    router.push(`/admin/${firstAdminSlug}`);
+                } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
+                    const firstMerchantSlug = getFirstMerchantSlug(user.UserMerchant?.role as MerchantRole);
+                    router.push(`/merchant/${firstMerchantSlug}`);
+                } else {
+                    router.push('/');
                 }
+                return;
             }
             
             setIsCheckingSession(false);
         };
 
-        checkExistingSession();
+        checkSession();
     }, [form, router]);
 
     // Define steps for each form type

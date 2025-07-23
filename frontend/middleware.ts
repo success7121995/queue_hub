@@ -18,7 +18,6 @@ const AUTH_PATHS = ['/login', '/signup'];
 // Simplified middleware for Edge Runtime compatibility
 export const middleware = async (req: NextRequest) => {
     const { pathname } = req.nextUrl;
-    const sessionId = req.cookies.get('session_id');
 
     // Exclude static asset paths from auth
     if (
@@ -26,7 +25,6 @@ export const middleware = async (req: NextRequest) => {
         pathname.startsWith('/fonts/') ||
         pathname.startsWith('/svg/') ||
         pathname === '/favicon.ico'
-        // pathname.startsWith('/public/')
     ) {
         return NextResponse.next();
     }

@@ -45,11 +45,11 @@ const corsOptions = {
         }
         
         if (allowedOrigins.indexOf(origin) !== -1) {
-            console.log('CORS allowed origin:', origin);
+            // console.log('CORS allowed origin:', origin);
             callback(null, true);
         } else {
-            console.log('CORS blocked origin:', origin);
-            console.log('Allowed origins:', allowedOrigins);
+            // console.log('CORS blocked origin:', origin);
+            // console.log('Allowed origins:', allowedOrigins);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -143,7 +143,7 @@ registerSocketHandlers(io);
 // Start server using the HTTP server instance
 server.listen(port, '0.0.0.0', () => {
     console.log(`Server is running on port ${port}`);
-    console.log(`Socket.IO server is running on path: /socket.io`);
-    console.log(`Environment: ${process.env.NODE_ENV}`);
+    // console.log(`Socket.IO server is running on path: /socket.io`);
+    // console.log(`Environment: ${process.env.NODE_ENV}`);
     // console.log(`CORS Origin: ${corsOptions.origin}`);
 });

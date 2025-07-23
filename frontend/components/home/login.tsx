@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import LoadingIndicator from "@/components/common/loading-indicator";
 import { useLogin, useAuth, LoginFormInputs } from "@/hooks/auth-hooks";
-import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole } from "@/lib/utils";
+import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole, checkExistingSession } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import Cookies from 'js-cookie';
 
@@ -24,56 +24,33 @@ const Login = () => {
     const loginMutation = useLogin();
     const [showPassword, setShowPassword] = useState(false);
 
-    // Check for existing valid session
-    const { data: authData, isLoading: isAuthLoading, error: authError } = useAuth({
-        enabled: false, // We'll manually trigger this
-        retry: false,
-    });
-
     /**
      * Check for existing valid session on component mount
      */
     useEffect(() => {
-        const checkExistingSession = async () => {
-            const sessionId = Cookies.get('session_id');
-            const role = Cookies.get('role');
+        const checkSession = async () => {
+            const { isAuthenticated, user } = await checkExistingSession();
             
-            if (sessionId && role) {
-                try {
-                    // Try to validate the session
-                    const response = await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
-                        credentials: 'include',
-                    });
-                    
-                    if (response.ok) {
-                        const authResponse = await response.json();
-                        const user = authResponse.result?.user;
-                        
-                        if (user) {
-                            // Valid session exists, redirect to appropriate dashboard
-                            const returnUrl = searchParams.get('from') || '/';
-                            
-                            if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
-                                const firstAdminSlug = getFirstAdminSlug(user.role as AdminRole);
-                                router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
-                            } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
-                                const firstMerchantSlug = getFirstMerchantSlug(user.role as MerchantRole);
-                                router.push(returnUrl.startsWith('/merchant') ? returnUrl : `/merchant/${firstMerchantSlug}`);
-                            } else {
-                                router.push(returnUrl);
-                            }
-                            return;
-                        }
-                    }
-                } catch (err) {
-                    console.log('Session validation failed, allowing login');
+            if (isAuthenticated && user) {
+                // Valid session exists, redirect to appropriate dashboard
+                const returnUrl = searchParams.get('from') || '/';
+                
+                if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'OPS_ADMIN' || user.role === 'SUPPORT_AGENT' || user.role === 'DEVELOPER') {
+                    const firstAdminSlug = getFirstAdminSlug(user.UserAdmin?.role as AdminRole);
+                    router.push(returnUrl.startsWith('/admin') ? returnUrl : `/admin/${firstAdminSlug}`);
+                } else if (user.role === 'MERCHANT' || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'FRONTLINE') {
+                    const firstMerchantSlug = getFirstMerchantSlug(user.UserMerchant?.role as MerchantRole);
+                    router.push(returnUrl.startsWith('/merchant') ? returnUrl : `/merchant/${firstMerchantSlug}`);
+                } else {
+                    router.push(returnUrl);
                 }
+                return;
             }
             
             setIsCheckingSession(false);
         };
 
-        checkExistingSession();
+        checkSession();
     }, [router, searchParams]);
 
     /**
@@ -120,7 +97,7 @@ const Login = () => {
     
     // Determine loading text based on current state
     const getLoadingText = () => {
-        if (isCheckingSession) return "Checking session...";
+        if (isCheckingSession) return "Loading...";
         if (loginMutation.isPending) return "Signing in...";
         if (isProcessing) return "Redirecting...";
         return "Loading...";
