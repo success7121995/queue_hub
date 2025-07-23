@@ -8,12 +8,6 @@ import LoadingIndicator from "@/components/common/loading-indicator";
 import { useLogin, useAuth, LoginFormInputs } from "@/hooks/auth-hooks";
 import { AdminRole, getFirstAdminSlug, getFirstMerchantSlug, MerchantRole, checkExistingSession } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
-import Cookies from 'js-cookie';
-
-// Define the backend base URL explicitly for production
-const BACKEND_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://queue-hub-backend.onrender.com'
-  : (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5500');
 
 const Login = () => {
     const router = useRouter();

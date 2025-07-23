@@ -14,8 +14,8 @@ const AdminLayout = async ({ children }: AdminLayoutProps) => {
 	const queryClient = getQueryClient();
 
 	try {
-		const userData = await prefetchAuth(queryClient);
-		queryClient.setQueryData(['auth'], userData);
+		await prefetchAuth(queryClient);
+		// queryClient.setQueryData(['auth'], userData);
 
 		// Prefetch notifications
 		await prefetchNotifications(queryClient);

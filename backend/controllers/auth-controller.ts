@@ -188,6 +188,18 @@ export const authController = {
                 throw new AppError("User not found", 404);
             }
 
+            // Clear all existing session to prevent session fixation
+            if (req.session.user) {
+                await new Promise<void>((resolve, reject) => {
+                    req.session.destroy((err) => {
+                        if (err) {
+                            reject(new AppError("Failed to destroy session", 500));
+                        }
+                        resolve();
+                    });
+                });
+            }
+
             // Get merchant role if user is a merchant
             let merchantRole: string | undefined;
             let adminRole: string | undefined;
